@@ -1,0 +1,4 @@
+# V2/medic1/backend/requirements.txt
+fastapi
+uvicorn[standard]
+pydantic>=2.0
