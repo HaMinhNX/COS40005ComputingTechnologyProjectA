@@ -243,7 +243,7 @@ class ExerciseCounter:
         }
 
         self.timing_thresholds = {
-            'min_phase_time': 0.3,
+            'min_phase_time': 0.35,
             'max_phase_time': 3.5  
         }
 

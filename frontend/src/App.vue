@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { PoseLandmarker, FilesetResolver, DrawingUtils } from '@mediapipe/tasks-vision';
-// Dòng này đã được loại bỏ: import { SquatState, BicepCurlState, ExerciseCounter, AngleCalculator } from '@/lib/exercise-logic.js';
 
 // --- Hằng số API ---
 const API_URL = 'http://127.0.0.1:8000'; // Địa chỉ của server FastAPI
@@ -348,7 +347,7 @@ button {
   border: 3px solid #000000;
   border-radius: 10px;
   cursor: pointer;
-  background-color: #007bff;
+  background-color: white;
   transition: opacity 0.3s, background-color 0.3s;
   grid-column: span 1; /* Mặc định 1 cột */
 }
@@ -367,7 +366,7 @@ button:disabled {
 .start-button { background-color: #28a745; }
 .stop-button { background-color: #dc3545; }
 .active-button { 
-  background-color: red;
+  background-color: orange;
   color: #000000;
 }
 
