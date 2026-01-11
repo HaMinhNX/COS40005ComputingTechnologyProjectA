@@ -1,4 +1,12 @@
-# V2/medic1/backend/requirements.txt
 fastapi
-uvicorn[standard]
-pydantic>=2.0
+uvicorn
+psycopg2-binary
+sqlalchemy
+alembic
+python-dotenv
+passlib[bcrypt]
+bcrypt==3.2.2
+
+python-jose[cryptography]
+pydantic
+requests

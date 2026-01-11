@@ -9,11 +9,12 @@ TO INSTALL DEPENDENCIES
 
 TO RUN THE PROGRAM 
 1. cd frontend
--> run npm run dev 
+ npm run dev 
 
 2. cd backend
--> uvicorn main:app --reload
+ uvicorn main:app --reload
 
-
+3. cd backend 
+uvicorn api_dashboard:app --reload --port 8001
 
 
