@@ -151,7 +151,8 @@
 import { ref, computed, onMounted, nextTick, watch } from 'vue';
 import { Search, MessageCircle, MoreVertical, Paperclip, Send } from 'lucide-vue-next';
 
-const API_BASE = 'http://localhost:8000/api';
+import { API_BASE_URL } from '../config';
+const API_BASE = API_BASE_URL;
 
 const doctors = ref([]);
 const patients = ref([]);
@@ -183,7 +184,10 @@ function formatTime(isoString) {
 
 async function loadDoctors() {
   try {
-    const res = await fetch(`${API_BASE}/doctors`);
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_BASE}/doctors`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     if (res.ok) {
       doctors.value = await res.json();
     }
@@ -192,7 +196,10 @@ async function loadDoctors() {
 
 async function loadPatients() {
   try {
-    const res = await fetch(`${API_BASE}/patients`);
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_BASE}/patients`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     if (res.ok) {
       patients.value = await res.json();
     }
@@ -206,7 +213,10 @@ async function loadMessages() {
   // Assuming the backend handles ID resolution or they are unique UUIDs.
   // If not, we might need to pass a type param.
   try {
-    const res = await fetch(`${API_BASE}/messages/${currentUserId.value}?other_user_id=${otherId}`);
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_BASE}/messages/${currentUserId.value}?other_user_id=${otherId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     if (res.ok) {
       messages.value = await res.json();
       scrollToBottom();
@@ -226,9 +236,13 @@ async function sendMessage() {
       content: newMessage.value
     };
 
+    const token = localStorage.getItem('token');
     const res = await fetch(`${API_BASE}/messages`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(payload)
     });
 
@@ -259,7 +273,10 @@ function scrollToBottom() {
 onMounted(async () => {
   // Get current doctor ID
   try {
-    const res = await fetch(`${API_BASE}/doctor-id`);
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_BASE}/doctor-id`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     if (res.ok) {
       const data = await res.json();
       currentUserId.value = data.doctor_id;

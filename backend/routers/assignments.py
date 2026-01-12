@@ -5,14 +5,14 @@ from uuid import UUID
 from database import get_db
 from models import User, Assignment, Combo
 from dependencies import get_current_user, get_current_doctor, verify_patient_access
-from schemas import AssignmentCreate
+from schemas import AssignmentCreate, AssignmentResponse
 
 router = APIRouter(
     prefix="/api",
     tags=["assignments"]
 )
 
-@router.get("/assignments/{patient_id}")
+@router.get("/assignments/{patient_id}", response_model=List[AssignmentResponse])
 async def get_assignments(patient_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Get all assignments for a patient"""
     verify_patient_access(patient_id, current_user, db)
@@ -67,7 +67,7 @@ async def create_assignment(data: AssignmentCreate, db: Session = Depends(get_db
             db.add(new_assignment)
             db.commit()
             db.refresh(new_assignment)
-            return new_assignment
+            return AssignmentResponse.model_validate(new_assignment)
             
     except Exception as e:
         db.rollback()

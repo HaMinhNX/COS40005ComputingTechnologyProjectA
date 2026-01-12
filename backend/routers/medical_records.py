@@ -4,14 +4,14 @@ from uuid import UUID
 from database import get_db
 from models import User, MedicalRecord
 from dependencies import get_current_user, verify_patient_access
-from schemas import MedicalRecordUpdate
+from schemas import MedicalRecordUpdate, MedicalRecordResponse
 
 router = APIRouter(
     prefix="/api/medical-records",
     tags=["medical-records"]
 )
 
-@router.get("/{patient_id}")
+@router.get("/{patient_id}", response_model=MedicalRecordResponse)
 async def get_medical_record(patient_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Get medical record for a patient"""
     # Authorization check
@@ -27,7 +27,7 @@ async def get_medical_record(patient_id: UUID, db: Session = Depends(get_db), cu
     
     return record
 
-@router.put("/{patient_id}")
+@router.put("/{patient_id}", response_model=MedicalRecordResponse)
 async def update_medical_record(patient_id: UUID, data: MedicalRecordUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Update medical record for a patient"""
     # Authorization check

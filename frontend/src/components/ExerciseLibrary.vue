@@ -387,7 +387,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { Search, Plus, Clock, Target, X, Dumbbell, Activity, Footprints, PersonStanding, RotateCw, ChevronRight, Trash2, PlayCircle } from 'lucide-vue-next'
 
-const API_BASE = 'http://localhost:8000/api';
+import { API_BASE_URL } from '../config';
+const API_BASE = API_BASE_URL;
 
 const searchQuery = ref('')
 const selectedCategory = ref('Tất cả')
@@ -456,9 +457,12 @@ function openDetailModal(exercise) {
 
 async function loadCombos() {
   try {
+    const token = localStorage.getItem('token');
     // Get Doctor ID first if not exists
     if (!doctorId.value) {
-      const docRes = await fetch(`${API_BASE}/doctor-id`);
+      const docRes = await fetch(`${API_BASE}/doctor-id`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (docRes.ok) {
         const data = await docRes.json();
         doctorId.value = data.doctor_id;
@@ -466,7 +470,9 @@ async function loadCombos() {
     }
 
     if (doctorId.value) {
-      const res = await fetch(`${API_BASE}/combos?doctor_id=${doctorId.value}`);
+      const res = await fetch(`${API_BASE}/combos?doctor_id=${doctorId.value}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (res.ok) combos.value = await res.json();
     }
   } catch (e) { console.error(e); }
@@ -485,9 +491,13 @@ async function saveCombo() {
       }))
     };
     
+    const token = localStorage.getItem('token');
     const res = await fetch(`${API_BASE}/combos`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(payload)
     });
 

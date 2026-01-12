@@ -341,7 +341,10 @@ const loadPlan = async () => {
   }
   sessionState.value = 'loading';
   try {
-    const res = await fetch(`${API_URL}/patient/today/${props.userId}`);
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_URL}/patient/today/${props.userId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     if (res.ok) {
       planItems.value = await res.json();
     }
@@ -354,9 +357,13 @@ const loadPlan = async () => {
 
 const startSession = async () => {
   try {
+    const token = localStorage.getItem('token');
     const res = await fetch(`${API_URL}/session/start`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({ user_id: props.userId })
     });
     if (res.ok) {
@@ -392,9 +399,13 @@ const startStep = async () => {
 const logStep = async (data) => {
   if (!sessionId.value) return;
   try {
+    const token = localStorage.getItem('token');
     await fetch(`${API_URL}/session/log`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({
         session_id: sessionId.value,
         exercise_type: currentStep.value.name,
@@ -424,7 +435,11 @@ const skipStep = () => {
 const endSession = async () => {
   if (sessionId.value) {
     try {
-      await fetch(`${API_URL}/session/end/${sessionId.value}`, { method: 'POST' });
+      const token = localStorage.getItem('token');
+      await fetch(`${API_URL}/session/end/${sessionId.value}`, { 
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
     } catch (e) { console.error(e); }
   }
   sessionState.value = 'summary';

@@ -3,9 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 import logging
 
-from database import engine, Base
+from database import engine, Base, get_db
 from dependencies import validate_environment
 from routers import auth, patients, medical_records, assignments, schedules, messages, exercises, dashboard, doctors, plans, notifications
 
@@ -37,10 +38,11 @@ Base.metadata.create_all(bind=engine)
 # Exception Handlers
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    from fastapi.encoders import jsonable_encoder
     logger.error(f"Validation error: {exc.errors()}")
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"detail": exc.errors(), "body": exc.body},
+        content=jsonable_encoder({"detail": exc.errors(), "body": exc.body}),
     )
 
 @app.exception_handler(SQLAlchemyError)
@@ -89,6 +91,17 @@ app.include_router(dashboard.router)
 app.include_router(doctors.router)
 app.include_router(plans.router)
 app.include_router(notifications.router)
+
+# === Legacy/Compatibility Endpoints ===
+@app.get("/api/doctor-id")
+async def get_doctor_id_legacy(db: Session = Depends(get_db)):
+    """Legacy endpoint for doctor ID (redirects to new logic)"""
+    from models import User
+    doctor = db.query(User).filter(User.role == 'doctor').first()
+    if doctor:
+        return {"doctor_id": str(doctor.user_id)}
+    return {"doctor_id": None}
+
 
 if __name__ == "__main__":
     import uvicorn

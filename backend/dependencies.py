@@ -15,11 +15,11 @@ from auth import verify_token
 from enums import UserRole
 
 # Security scheme for JWT Bearer tokens
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db)
 ) -> User:
     """
@@ -35,16 +35,32 @@ def get_current_user(
     Raises:
         HTTPException: If token is invalid or user not found
     """
+    if credentials is None:
+        with open("debug_auth.log", "a") as f:
+            f.write("DEBUG: No credentials provided\n")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
     token = credentials.credentials
+    with open("debug_auth.log", "a") as f:
+        f.write(f"DEBUG: Token received: {token[:10]}...\n")
     
     # Verify and decode token
     payload = verify_token(token)
     if payload is None:
+        with open("debug_auth.log", "a") as f:
+            f.write("DEBUG: Token verification failed\n")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    
+    with open("debug_auth.log", "a") as f:
+        f.write(f"DEBUG: Payload: {payload}\n")
     
     # Extract user_id from token
     user_id_str = payload.get("sub")

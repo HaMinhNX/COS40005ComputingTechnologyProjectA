@@ -9,7 +9,8 @@ from models import User, WorkoutSession, SessionDetail, BrainExerciseLog, BrainE
 from dependencies import get_current_user, get_current_patient
 from schemas.exercise import (
     WorkoutSessionCreate, WorkoutSessionEnd, SessionDetailCreate,
-    ProcessRequest, ProcessResponse, LandmarkData
+    ProcessRequest, ProcessResponse, LandmarkData,
+    WorkoutSessionResponse, SessionDetailResponse
 )
 from exercise_logic import (
     AngleCalculator, Landmark, EXERCISE_COUNTER, SquatState, 
@@ -125,7 +126,7 @@ async def process_landmarks_api(request: ProcessRequest):
         print(f"[ERROR] process_landmarks failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/session/start")
+@router.post("/session/start", response_model=WorkoutSessionResponse)
 async def start_session(data: WorkoutSessionCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Start a new workout session"""
     try:
@@ -141,7 +142,7 @@ async def start_session(data: WorkoutSessionCreate, db: Session = Depends(get_db
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.post("/session/log")
+@router.post("/session/log", response_model=SessionDetailResponse)
 async def log_session_detail(data: SessionDetailCreate, db: Session = Depends(get_db)):
     """Log detail for an exercise in a session"""
     try:

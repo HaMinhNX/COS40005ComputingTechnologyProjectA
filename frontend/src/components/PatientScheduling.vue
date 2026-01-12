@@ -243,7 +243,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-vue-next'
 
-const API_BASE = 'http://localhost:8000/api';
+import { API_BASE_URL } from '../config';
+const API_BASE = API_BASE_URL;
 
 const currentView = ref('Tháng')
 const current = ref(new Date())
@@ -422,15 +423,20 @@ async function loadData() {
       patientId.value = user.user_id;
     }
 
+    const token = localStorage.getItem('token');
     // Get Demo Doctor ID (In real app, get assigned doctor)
-    const docRes = await fetch(`${API_BASE}/doctor-id`);
+    const docRes = await fetch(`${API_BASE}/doctor-id`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     if (docRes.ok) {
       const data = await docRes.json();
       doctorId.value = data.doctor_id;
     }
 
     if (patientId.value) {
-      const res = await fetch(`${API_BASE}/patient-schedules/${patientId.value}`);
+      const res = await fetch(`${API_BASE}/patient-schedules/${patientId.value}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (res.ok) {
         const data = await res.json();
         events.value = data.map(s => ({
@@ -464,9 +470,13 @@ async function saveEvent() {
 
   try {
     isSaving.value = true;
+    const token = localStorage.getItem('token');
     const res = await fetch(`${API_BASE}/schedules`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(payload)
     });
 

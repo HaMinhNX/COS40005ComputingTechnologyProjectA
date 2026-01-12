@@ -258,8 +258,12 @@ async function startTraining() {
   formFeedback.value = ''
   
   try {
+    const token = localStorage.getItem('token');
     // Reset backend state
-    await fetch(`${CAMERA_API_URL}/select_exercise?exercise_name=${currentExercise.value.id}`, { method: 'POST' })
+    await fetch(`${CAMERA_API_URL}/select_exercise?exercise_name=${currentExercise.value.id}`, { 
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
   } catch (e) {
     console.error("Failed to reset backend state", e)
   }
@@ -362,9 +366,13 @@ async function processLandmarks(landmarks) {
     const userStr = localStorage.getItem('user')
     const user = userStr ? JSON.parse(userStr) : null
 
+    const token = localStorage.getItem('token');
     const res = await fetch(`${CAMERA_API_URL}/process_landmarks`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({
         landmarks: landmarkData,
         current_exercise: currentExercise.value.id,

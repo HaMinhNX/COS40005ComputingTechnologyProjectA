@@ -114,7 +114,8 @@ import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { Search, Send, MessageCircle } from 'lucide-vue-next'
 
 const props = defineProps(['userId'])
-const API_BASE = 'http://localhost:8000/api'
+import { API_BASE_URL } from '../config'
+const API_BASE = API_BASE_URL
 
 const doctors = ref([])
 const searchQuery = ref('')
@@ -150,7 +151,10 @@ function formatTime(isoString) {
 
 async function loadDoctors() {
   try {
-    const res = await fetch(`${API_BASE}/doctors`)
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_BASE}/doctors`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
     if (res.ok) {
       doctors.value = await res.json()
     } else {
@@ -170,7 +174,10 @@ async function selectDoctor(doc) {
 async function loadMessages() {
   if (!selectedDoctor.value || !props.userId) return
   try {
-    const res = await fetch(`${API_BASE}/messages/${props.userId}?other_user_id=${selectedDoctor.value.doctor_id}`)
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_BASE}/messages/${props.userId}?other_user_id=${selectedDoctor.value.doctor_id}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
     if (res.ok) {
       messages.value = await res.json()
       scrollToBottom()
@@ -196,9 +203,13 @@ async function sendMessage() {
   scrollToBottom()
 
   try {
+    const token = localStorage.getItem('token');
     const res = await fetch(`${API_BASE}/messages`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({
         sender_id: props.userId,
         receiver_id: selectedDoctor.value.doctor_id,

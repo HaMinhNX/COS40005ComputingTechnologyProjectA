@@ -553,14 +553,19 @@ function closeModal() {
 
 async function loadData() {
   try {
+    const token = localStorage.getItem('token');
     // Get Doctor ID
-    const docRes = await fetch(`${API_URL}/doctor/doctor-id`);
+    const docRes = await fetch(`${API_URL}/doctor/doctor-id`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     if (docRes.ok) {
       const data = await docRes.json();
       doctorId.value = data.doctor_id;
       
       // Load Schedules
-      const schedRes = await fetch(`${API_URL}/schedules/${doctorId.value}`);
+      const schedRes = await fetch(`${API_URL}/schedules/${doctorId.value}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (schedRes.ok) {
         const schedData = await schedRes.json();
         events.value = schedData.map(s => ({
@@ -576,7 +581,9 @@ async function loadData() {
     }
 
     // Load Patients
-    const patRes = await fetch(`${API_URL}/patients`);
+    const patRes = await fetch(`${API_URL}/patients`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     if (patRes.ok) {
       patients.value = await patRes.json();
     }
@@ -622,10 +629,13 @@ async function saveEvent() {
   try {
     isSaving.value = true; // Set saving state
     
+    const token = localStorage.getItem('token');
     const res = await fetch(`${API_URL}/schedules`, {
-
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(payload)
     });
 
@@ -689,9 +699,10 @@ async function performDelete() {
   if (!editingEvent.value) return;
 
   try {
+    const token = localStorage.getItem('token');
     const res = await fetch(`${API_URL}/schedules/${editingEvent.value.id}`, {
-
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
     });
 
     if (res.ok) {

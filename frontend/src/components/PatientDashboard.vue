@@ -286,7 +286,10 @@ function formatTime(dateStr) {
 const loadNotifications = async () => {
   if (!props.userId) return;
   try {
-    const res = await fetch(`${API_URL}/notifications/${props.userId}`);
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_URL}/notifications/${props.userId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     if (res.ok) {
       const newNotifications = await res.json();
       const oldUnreadCount = notifications.value.filter(n => !n.is_read).length;
@@ -472,13 +475,16 @@ async function fetchData() {
   try {
     const query = `?user_id=${props.userId}`;
     
-    const statsRes = await fetch(`${API_URL}/overall-stats${query}`);
+    const token = localStorage.getItem('token');
+    const headers = { 'Authorization': `Bearer ${token}` };
+    
+    const statsRes = await fetch(`${API_URL}/overall-stats${query}`, { headers });
     if (statsRes.ok) stats.value = await statsRes.json();
 
-    const historyRes = await fetch(`${API_URL}/weekly-progress${query}`);
+    const historyRes = await fetch(`${API_URL}/weekly-progress${query}`, { headers });
     if (historyRes.ok) history.value = await historyRes.json();
     
-    const chartRes = await fetch(`${API_URL}/patient/charts/${props.userId}`);
+    const chartRes = await fetch(`${API_URL}/patient/charts/${props.userId}`, { headers });
     if (chartRes.ok) {
         chartData.value = await chartRes.json();
         nextTick(() => {
@@ -490,7 +496,9 @@ async function fetchData() {
     
     await loadNotifications();
 
-    const planRes = await fetch(`${API_URL}/patient/today/${props.userId}`);
+    const planRes = await fetch(`${API_URL}/patient/today/${props.userId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     if (planRes.ok) {
       todayPlan.value = await planRes.json();
     }

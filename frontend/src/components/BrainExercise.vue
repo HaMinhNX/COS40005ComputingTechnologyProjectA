@@ -1656,10 +1656,13 @@ function cancelExit() {
 // Database Functions
 async function logExerciseAttempt(isCorrect) {
   try {
+    const token = localStorage.getItem('token');
     await fetch(`${API_URL}/brain-exercise/submit`, {
-
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({
         user_id: props.userId,
         exercise_type: activeGame.value,
@@ -1674,10 +1677,13 @@ async function logExerciseAttempt(isCorrect) {
 
 async function logGameCompletion() {
   try {
+    const token = localStorage.getItem('token');
     await fetch(`${API_URL}/brain-exercise/complete`, {
-
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({
         user_id: props.userId,
         exercise_type: activeGame.value,
@@ -1692,8 +1698,10 @@ async function logGameCompletion() {
 
 async function loadUserStats() {
   try {
-    const response = await fetch(`${API_URL}/brain-exercise/stats/${props.userId}`);
-
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/brain-exercise/stats/${props.userId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     if (response.ok) {
       const data = await response.json();
       todayScore.value = data.today_score || 0;

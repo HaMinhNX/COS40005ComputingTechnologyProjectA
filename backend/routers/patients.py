@@ -15,12 +15,14 @@ router = APIRouter(
     tags=["patients"]
 )
 
-@router.get("/patients")
+from utils import paginate, Page
+
+@router.get("/patients", response_model=Page[UserResponse])
 async def get_patients(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db), 
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_doctor)
 ):
     """Get all patients with pagination"""
     query = db.query(User).filter(User.role == 'patient').order_by(User.full_name)

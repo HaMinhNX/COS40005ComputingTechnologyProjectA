@@ -8,9 +8,23 @@ from database import get_db
 from models import User, WorkoutSession, SessionDetail, Assignment
 
 router = APIRouter(
-    prefix="/api/doctor",
+    prefix="/api",
     tags=["doctor"]
 )
+
+@router.get("/doctors")
+async def get_all_doctors(db: Session = Depends(get_db)):
+    """Get all doctors for messaging and collaboration"""
+    doctors = db.query(User).filter(User.role == 'doctor').all()
+    return [
+        {
+            "user_id": str(doctor.user_id),
+            "full_name": doctor.full_name,
+            "username": doctor.username,
+            "email": doctor.email
+        }
+        for doctor in doctors
+    ]
 
 @router.get("/overview")
 async def get_doctor_overview(db: Session = Depends(get_db)):

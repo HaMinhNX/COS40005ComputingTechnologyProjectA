@@ -13,10 +13,10 @@
           <Plus :size="20" />
           <span>Thêm bệnh nhân</span>
         </button>
-        <button class="action-btn secondary">
+        <!-- <button class="action-btn secondary">
           <Bell :size="20" />
           <span class="notification-badge">3</span>
-        </button>
+        </button> -->
       </div>
     </header>
 
@@ -87,10 +87,10 @@
           <h3 class="card-title">Danh sách bệnh nhân</h3>
           <div class="search-box">
             <Search :size="18" />
-            <input 
-              v-model="searchQuery" 
-              type="text" 
-              placeholder="Tìm kiếm tên, email..." 
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Tìm kiếm tên, email..."
             />
           </div>
         </div>
@@ -107,8 +107,8 @@
               </tr>
             </thead>
             <tbody>
-              <tr 
-                v-for="patient in filteredPatients" 
+              <tr
+                v-for="patient in filteredPatients"
                 :key="patient.patient_id"
                 @click="selectPatient(patient)"
                 :class="{ 'active-row': selectedPatientId === patient.patient_id }"
@@ -166,8 +166,8 @@
         </div>
 
         <div class="detail-tabs">
-          <button 
-            v-for="tab in tabs" 
+          <button
+            v-for="tab in tabs"
             :key="tab"
             @click="activeTab = tab"
             :class="['tab-item', { active: activeTab === tab }]"
@@ -183,14 +183,14 @@
               <h4>Biểu đồ phong độ</h4>
               <div ref="progressChart" class="chart-canvas"></div>
             </div>
-            
+
             <div class="recent-activity-list">
               <h4>Hoạt động gần đây</h4>
               <div v-if="recentSessions.length === 0" class="empty-state">
                 Chưa có dữ liệu tập luyện
               </div>
-              <div 
-                v-for="session in recentSessions" 
+              <div
+                v-for="session in recentSessions"
                 :key="session.session_id"
                 class="activity-item"
               >
@@ -232,8 +232,8 @@
 <script setup>
 import { ref, onMounted, computed, watch, nextTick } from 'vue';
 import * as d3 from 'd3';
-import { 
-  Users, Activity, AlertTriangle, CheckCircle, TrendingUp, AlertCircle, 
+import {
+  Users, Activity, AlertTriangle, CheckCircle, TrendingUp, AlertCircle,
   Plus, Bell, Search, ChevronRight, MessageSquare, Phone, Calendar, Clock
 } from 'lucide-vue-next';
 import { API_BASE_URL } from '../config';
@@ -259,8 +259,8 @@ const currentUser = ref({ full_name: 'Bác sĩ' });
 const progressChart = ref(null);
 
 // Computed
-const currentDate = new Date().toLocaleDateString('vi-VN', { 
-  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+const currentDate = new Date().toLocaleDateString('vi-VN', {
+  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
 });
 
 onMounted(() => {
@@ -278,8 +278,8 @@ onMounted(() => {
 const filteredPatients = computed(() => {
   if (!searchQuery.value) return patients.value;
   const query = searchQuery.value.toLowerCase();
-  return patients.value.filter(p => 
-    p.full_name.toLowerCase().includes(query) || 
+  return patients.value.filter(p =>
+    p.full_name.toLowerCase().includes(query) ||
     p.email.toLowerCase().includes(query)
   );
 });
@@ -335,7 +335,10 @@ const selectPatient = async (patient) => {
 
 const loadPatients = async () => {
   try {
-    const res = await fetch(`${API_BASE}/patients`);
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_BASE}/patients`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     if (res.ok) {
       patients.value = await res.json();
       stats.value.totalPatients = patients.value.length;
@@ -347,14 +350,19 @@ const loadPatients = async () => {
 
 const loadPatientData = async (id) => {
   try {
+    const token = localStorage.getItem('token');
     const [sessRes, logsRes] = await Promise.all([
-      fetch(`${API_BASE}/patient-sessions/${id}`),
-      fetch(`${API_BASE}/patient-logs/${id}`)
+      fetch(`${API_BASE}/patient-sessions/${id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }),
+      fetch(`${API_BASE}/patient-logs/${id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
     ]);
-    
+
     if (sessRes.ok) sessions.value = await sessRes.json();
     if (logsRes.ok) logs.value = await logsRes.json();
-    
+
     // Update stats
     if (logs.value.length) {
       const avg = logs.value.reduce((a, b) => a + b.form_score, 0) / logs.value.length;
@@ -369,28 +377,28 @@ const loadPatientData = async (id) => {
 
 const drawChart = () => {
   if (!progressChart.value || !logs.value.length) return;
-  
+
   const container = d3.select(progressChart.value);
   container.selectAll('*').remove();
-  
+
   const width = progressChart.value.clientWidth;
   const height = progressChart.value.clientHeight;
   const margin = { top: 10, right: 10, bottom: 20, left: 30 };
-  
+
   const svg = container.append('svg')
     .attr('width', width)
     .attr('height', height);
-    
+
   const data = logs.value.slice(0, 10).reverse();
-  
+
   const x = d3.scaleLinear()
     .domain([0, data.length - 1])
     .range([margin.left, width - margin.right]);
-    
+
   const y = d3.scaleLinear()
     .domain([0, 100])
     .range([height - margin.bottom, margin.top]);
-    
+
   // Gradient
   const gradient = svg.append("defs")
     .append("linearGradient")
@@ -406,14 +414,14 @@ const drawChart = () => {
     .x((d, i) => x(i))
     .y(d => y(d.form_score))
     .curve(d3.curveCatmullRom);
-    
+
   svg.append('path')
     .datum(data)
     .attr('fill', 'none')
     .attr('stroke', 'url(#line-gradient)')
     .attr('stroke-width', 3)
     .attr('d', line);
-    
+
   // Dots
   svg.selectAll('circle')
     .data(data)

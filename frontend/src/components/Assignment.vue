@@ -400,14 +400,19 @@ const hideDropdownDelayed = () => {
 
 const loadPatients = async () => {
   try {
+    const token = localStorage.getItem('token');
     // Get Doctor ID first
-    const docRes = await fetch(`${API_BASE}/doctor-id`);
+    const docRes = await fetch(`${API_BASE}/doctor-id`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     if (docRes.ok) {
       const data = await docRes.json();
       doctorId.value = data.doctor_id;
     }
 
-    const response = await fetch(`${API_BASE}/patients`);
+    const response = await fetch(`${API_BASE}/patients`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     if (!response.ok) throw new Error('Failed to fetch patients');
     patients.value = await response.json();
     
@@ -421,7 +426,10 @@ const loadPatients = async () => {
 
 const loadAssignments = async (patientId) => {
   try {
-    const response = await fetch(`${API_BASE}/assignments/${patientId}`);
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE}/assignments/${patientId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     if (response.ok) {
       const data = await response.json();
       // Map to view format
@@ -461,7 +469,10 @@ const closeModal = () => showModal.value = false
 // Combo Logic
 const loadCombos = async () => {
   try {
-    const res = await fetch(`${API_BASE}/combos?doctor_id=${doctorId.value}`);
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_BASE}/combos?doctor_id=${doctorId.value}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     if (res.ok) combos.value = await res.json();
   } catch (e) { console.error(e); }
 }
@@ -498,9 +509,13 @@ const saveAssignment = async () => {
       payload.combo_id = selectedComboId.value;
     }
 
+    const token = localStorage.getItem('token');
     const res = await fetch(`${API_BASE}/assign_plan`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(payload)
     });
 
@@ -520,8 +535,10 @@ const removeExercise = async (idx) => {
   if (!confirm("Bạn có chắc muốn xóa bài tập này?")) return;
 
   try {
+    const token = localStorage.getItem('token');
     const res = await fetch(`${API_BASE}/assignments/${ex.id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
     });
 
     if (res.ok) {

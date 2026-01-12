@@ -38,6 +38,9 @@ from database import engine, SessionLocal, get_db
 from models import Base, ExerciseLogSimple, User
 from sqlalchemy.orm import Session
 from sqlalchemy import text, func
+import psycopg2
+from psycopg2.extras import RealDictCursor, execute_values
+import os
 
 # Create tables if they don't exist
 Base.metadata.create_all(bind=engine)
@@ -131,6 +134,19 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             "body": str(exc)
         }
     )
+
+# === Legacy Database Helpers ===
+def get_db_connection():
+    try:
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        return conn
+    except Exception as e:
+        print(f"Error connecting to DB: {e}")
+        raise e
+
+def return_db_connection(conn):
+    if conn:
+        conn.close()
 
 # === Database Availability Decorator ===
 from functools import wraps

@@ -6,25 +6,25 @@ from datetime import datetime
 from database import get_db
 from models import User, Schedule, Notification
 from dependencies import get_current_user, get_current_doctor, verify_patient_access
-from schemas import ScheduleCreate
+from schemas import ScheduleCreate, ScheduleResponse
 
 router = APIRouter(
     prefix="/api",
     tags=["schedules"]
 )
 
-@router.get("/schedules/{doctor_id}")
+@router.get("/schedules/{doctor_id}", response_model=List[ScheduleResponse])
 async def get_doctor_schedules(doctor_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Get schedules for a doctor"""
     return db.query(Schedule).filter(Schedule.doctor_id == doctor_id).all()
 
-@router.get("/patient-schedules/{patient_id}")
+@router.get("/patient-schedules/{patient_id}", response_model=List[ScheduleResponse])
 async def get_patient_schedules(patient_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Get schedules for a patient"""
     verify_patient_access(patient_id, current_user, db)
     return db.query(Schedule).filter(Schedule.patient_id == patient_id).all()
 
-@router.post("/schedules")
+@router.post("/schedules", response_model=ScheduleResponse)
 async def create_schedule(data: ScheduleCreate, db: Session = Depends(get_db), current_doctor: User = Depends(get_current_doctor)):
     """Create a new schedule/appointment"""
     try:

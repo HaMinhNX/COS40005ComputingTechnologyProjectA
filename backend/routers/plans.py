@@ -5,19 +5,26 @@ from uuid import UUID
 from database import get_db
 from models import User, Combo, ComboItem, WeekPlan, Assignment
 from dependencies import get_current_user, get_current_doctor
-from schemas import ComboCreate, WeekPlanCreate
+from schemas import ComboCreate, WeekPlanCreate, ComboResponse, WeekPlanResponse
 
 router = APIRouter(
     prefix="/api",
     tags=["plans"]
 )
 
-@router.get("/combos")
-async def get_combos(db: Session = Depends(get_db), current_doctor: User = Depends(get_current_doctor)):
-    """Get all exercise combos created by the doctor"""
-    return db.query(Combo).filter(Combo.doctor_id == current_doctor.user_id).options(joinedload(Combo.items)).all()
+@router.get("/combos", response_model=List[ComboResponse])
+async def get_combos(doctor_id: UUID = None, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Get all exercise combos. If doctor_id is provided, filter by that doctor."""
+    query = db.query(Combo).options(joinedload(Combo.items))
+    
+    if doctor_id:
+        query = query.filter(Combo.doctor_id == doctor_id)
+    elif current_user.role == 'doctor':
+        query = query.filter(Combo.doctor_id == current_user.user_id)
+        
+    return query.all()
 
-@router.post("/combos")
+@router.post("/combos", response_model=ComboResponse)
 async def create_combo(data: ComboCreate, db: Session = Depends(get_db), current_doctor: User = Depends(get_current_doctor)):
     """Create a new exercise combo"""
     try:
@@ -47,7 +54,7 @@ async def create_combo(data: ComboCreate, db: Session = Depends(get_db), current
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.post("/week-plans")
+@router.post("/week-plans", response_model=WeekPlanResponse)
 async def create_week_plan(data: WeekPlanCreate, db: Session = Depends(get_db), current_doctor: User = Depends(get_current_doctor)):
     """Create a new week plan for a patient"""
     try:
@@ -85,7 +92,7 @@ async def create_week_plan(data: WeekPlanCreate, db: Session = Depends(get_db), 
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/week-plans/{patient_id}")
+@router.get("/week-plans/{patient_id}", response_model=List[WeekPlanResponse])
 async def get_week_plans(patient_id: UUID, db: Session = Depends(get_db)):
     """Get all week plans for a patient"""
     return db.query(WeekPlan).filter(WeekPlan.patient_id == patient_id).order_by(WeekPlan.start_date.desc()).all()
