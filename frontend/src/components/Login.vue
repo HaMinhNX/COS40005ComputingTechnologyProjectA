@@ -282,6 +282,65 @@ const showMessage = (text, type = 'error') => {
   }, 5000)
 }
 
+const getErrorMessage = (data) => {
+  if (!data.detail) return 'Có lỗi xảy ra'
+
+  if (typeof data.detail === 'string') {
+    return data.detail
+  }
+
+  if (Array.isArray(data.detail)) {
+    const fieldMap = {
+      username: 'Tên đăng nhập',
+      password: 'Mật khẩu',
+      email: 'Email',
+      full_name: 'Họ và tên',
+      role: 'Vai trò',
+    }
+
+    return data.detail
+      .map((err) => {
+        // 1. Get raw field name and translate
+        let rawField = err.loc ? err.loc[err.loc.length - 1] : 'Lỗi'
+        const fieldName = fieldMap[rawField] || rawField
+
+        // 2. Clean up message
+        let msg = err.msg
+
+        // Remove "Value error, " prefix from custom validators
+        msg = msg.replace(/^Value error,\s*/i, '')
+
+        // 3. Translate specific messages
+        // Translate dynamic length errors
+        msg = msg.replace(
+          /String should have at least (\d+) characters/i,
+          'Phải có ít nhất $1 ký tự',
+        )
+        msg = msg.replace(/String should have at most (\d+) characters/i, 'Không được quá $1 ký tự')
+
+        const lowerMsg = msg.toLowerCase()
+
+        // Standard Pydantic errors
+        if (lowerMsg === 'field required') msg = 'Bắt buộc nhập'
+        if (lowerMsg.includes('not a valid email')) msg = 'Email không hợp lệ'
+        if (lowerMsg.includes('input should be a valid string')) msg = 'Giá trị phải là chuỗi ký tự'
+
+        // Custom password validators
+        if (lowerMsg.includes('at least 8 characters')) msg = 'Phải có ít nhất 8 ký tự'
+        if (lowerMsg.includes('must contain at least one uppercase letter'))
+          msg = 'Phải có ít nhất 1 chữ in hoa'
+        if (lowerMsg.includes('must contain at least one lowercase letter'))
+          msg = 'Phải có ít nhất 1 chữ thường'
+        if (lowerMsg.includes('must contain at least one digit')) msg = 'Phải có ít nhất 1 số'
+
+        return `${fieldName}: ${msg}`
+      })
+      .join('\n')
+  }
+
+  return JSON.stringify(data.detail)
+}
+
 const onLogin = async () => {
   loading.value = true
   message.value = { text: '', type: '' }
@@ -296,7 +355,7 @@ const onLogin = async () => {
     const data = await res.json()
 
     if (!res.ok) {
-      throw new Error(data.detail || 'Đăng nhập thất bại')
+      throw new Error(getErrorMessage(data))
     }
 
     // Save user data and token
@@ -341,7 +400,7 @@ const onSignup = async () => {
     const data = await res.json()
 
     if (!res.ok) {
-      throw new Error(data.detail || 'Đăng ký thất bại')
+      throw new Error(getErrorMessage(data))
     }
 
     // Save user data and token
@@ -642,6 +701,7 @@ const onSignup = async () => {
   align-items: center;
   gap: 0.75rem;
   font-weight: 600;
+  white-space: pre-line;
 }
 
 .message.error {
