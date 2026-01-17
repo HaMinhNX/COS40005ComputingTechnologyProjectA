@@ -5,8 +5,8 @@ from uuid import UUID
 from database import get_db
 from models import User, Message
 from dependencies import get_current_user
-from schemas import MessageCreate
-from utils import paginate
+from schemas import MessageCreate, MessageResponse
+from utils import paginate, Page
 from fastapi import Query
 
 
@@ -15,7 +15,7 @@ router = APIRouter(
     tags=["messages"]
 )
 
-@router.get("/{user1_id}/{user2_id}")
+@router.get("/{user1_id}/{user2_id}", response_model=Page[MessageResponse])
 async def get_conversation(
     user1_id: UUID, 
     user2_id: UUID, 
@@ -33,7 +33,7 @@ async def get_conversation(
     return paginate(query, page, size)
 
 
-@router.get("/{user_id}")
+@router.get("/{user_id}", response_model=Page[MessageResponse])
 async def get_user_messages(
     user_id: UUID, 
     page: int = Query(1, ge=1),
@@ -49,7 +49,7 @@ async def get_user_messages(
     return paginate(query, page, size)
 
 
-@router.post("")
+@router.post("", response_model=MessageResponse)
 async def send_message(data: MessageCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Send a message"""
     try:
@@ -65,3 +65,4 @@ async def send_message(data: MessageCreate, db: Session = Depends(get_db), curre
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+

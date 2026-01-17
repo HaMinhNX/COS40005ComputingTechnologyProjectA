@@ -43,5 +43,11 @@ def verify_token(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
-    except JWTError:
+    except JWTError as e:
+        # Debug: log the exact error
+        with open("debug_jwt.log", "a") as f:
+            f.write(f"JWT Error: {type(e).__name__}: {str(e)}\n")
+            f.write(f"Token: {token[:50]}...\n")
+            f.write(f"SECRET_KEY: {SECRET_KEY[:10]}...\n")
         return None
+
