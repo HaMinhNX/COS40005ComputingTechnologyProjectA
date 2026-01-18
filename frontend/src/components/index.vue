@@ -282,7 +282,6 @@ import {
   Calendar,
   Dumbbell,
   MessageSquare,
-  Brain,
   Activity,
   LogOut,
   ChevronLeft,
@@ -308,7 +307,7 @@ const mobileMenuOpen = ref(false)
 const showLogoutModal = ref(false)
 const showNotifications = ref(false)
 const notifications = ref([])
-const active = ref('dashboard')
+const active = ref(localStorage.getItem('doctor_active_tab') || 'dashboard')
 const currentUser = ref(JSON.parse(localStorage.getItem('user') || '{}'))
 
 const unreadCount = computed(() => notifications.value.filter((n) => !n.is_read).length)
@@ -419,6 +418,7 @@ const currentDate = new Date().toLocaleDateString('vi-VN', {
 // Methods
 const handleMenuClick = (id) => {
   active.value = id
+  localStorage.setItem('doctor_active_tab', id)
   mobileMenuOpen.value = false
 }
 
@@ -435,8 +435,10 @@ const translateGroup = (key) => {
 
 const handleLogout = () => {
   console.log('Logging out...')
+  // Clear all session data
   localStorage.removeItem('user')
-  // Assuming router is available or using window.location
+  localStorage.removeItem('token')
+  localStorage.removeItem('doctor_active_tab') // Reset to dashboard on next login
   window.location.href = '/login'
   showLogoutModal.value = false
 }
