@@ -1,9 +1,13 @@
 <template>
   <div class="flex flex-col h-full bg-slate-50" data-isolated-ui>
     <!-- Header -->
-    <header class="bg-white border-b border-slate-200 px-8 py-6 flex items-center justify-between shadow-sm relative z-20">
+    <header
+      class="bg-white border-b border-slate-200 px-8 py-6 flex items-center justify-between shadow-sm relative z-20"
+    >
       <div class="flex items-center gap-4">
-        <div class="w-12 h-12 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+        <div
+          class="w-12 h-12 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/20"
+        >
           <Activity :size="24" />
         </div>
         <div>
@@ -33,7 +37,7 @@
             'flex items-center gap-2 py-4 text-sm font-bold border-b-2 transition-all whitespace-nowrap',
             currentTab === tab.id
               ? 'border-indigo-600 text-indigo-600'
-              : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300'
+              : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300',
           ]"
         >
           <component :is="tab.iconComponent" :size="18" />
@@ -46,21 +50,33 @@
     <main class="flex-1 overflow-y-auto p-8 custom-scrollbar">
       <div class="max-w-7xl mx-auto">
         <transition name="fade" mode="out-in">
-          <component :is="currentComponent" :userId="userId" :key="currentTab" @start-workout="handleStartWorkout" />
+          <component
+            :is="currentComponent"
+            :userId="userId"
+            :key="currentTab"
+            @start-workout="handleStartWorkout"
+          />
         </transition>
       </div>
     </main>
 
     <!-- Logout Confirmation Modal -->
     <Transition name="fade">
-      <div v-if="showLogoutModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+      <div
+        v-if="showLogoutModal"
+        class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+      >
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
           <div class="p-8 text-center">
-            <div class="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div
+              class="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6"
+            >
               <LogOut :size="40" class="text-red-500" />
             </div>
             <h3 class="text-2xl font-black text-slate-900 mb-2">Đăng xuất?</h3>
-            <p class="text-slate-500 font-medium">Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?</p>
+            <p class="text-slate-500 font-medium">
+              Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?
+            </p>
           </div>
           <div class="p-6 bg-slate-50 flex gap-4">
             <button
@@ -85,7 +101,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Activity, LogOut, BarChart3, Brain, Calendar, Phone } from 'lucide-vue-next'
+import { Activity, LogOut, BarChart3, Brain, Calendar, Phone, MessageSquare } from 'lucide-vue-next'
 
 // Import các component con (đảm bảo đã tạo chúng)
 import PatientDashboard from './PatientDashboard.vue'
@@ -93,6 +109,7 @@ import PatientWorkout from './PatientWorkout.vue'
 import BrainExercise from './BrainExercise.vue'
 import SportsTraining from './SportsTraining.vue'
 import PatientScheduling from './PatientScheduling.vue'
+import PatientMessaging from './PatientMessaging.vue'
 import PatientContact from './PatientContact.vue'
 
 const router = useRouter()
@@ -107,19 +124,29 @@ const tabs = [
   { id: 'workout', label: 'Tập luyện', iconComponent: Activity },
   { id: 'brain', label: 'Trí tuệ', iconComponent: Brain },
   { id: 'sports', label: 'Thể thao', iconComponent: Activity },
+  { id: 'messages', label: 'Tin nhắn', iconComponent: MessageSquare },
   { id: 'scheduling', label: 'Lịch hẹn', iconComponent: Calendar },
   { id: 'contact', label: 'Liên hệ', iconComponent: Phone },
 ]
 
 const currentComponent = computed(() => {
   switch (currentTab.value) {
-    case 'dashboard': return PatientDashboard
-    case 'workout': return PatientWorkout
-    case 'brain': return BrainExercise
-    case 'sports': return SportsTraining
-    case 'scheduling': return PatientScheduling
-    case 'contact': return PatientContact
-    default: return PatientWorkout
+    case 'dashboard':
+      return PatientDashboard
+    case 'workout':
+      return PatientWorkout
+    case 'brain':
+      return BrainExercise
+    case 'sports':
+      return SportsTraining
+    case 'messages':
+      return PatientMessaging
+    case 'scheduling':
+      return PatientScheduling
+    case 'contact':
+      return PatientContact
+    default:
+      return PatientWorkout
   }
 })
 
@@ -168,7 +195,9 @@ onMounted(() => {
 
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
 }
 .fade-enter-from {
   opacity: 0;
