@@ -16,7 +16,7 @@ class AssignmentCreate(BaseModel):
     patient_id: UUID
     exercise_type: Optional[ExerciseType] = None
 
-    target_reps: int = Field(default=10, ge=1, le=1000)
+    target_reps: int = Field(default=10, ge=0, le=1000)
     frequency: Optional[str] = Field(None, max_length=50)
     session_time: Optional[str] = Field(None, max_length=20)
     notes: Optional[str] = None

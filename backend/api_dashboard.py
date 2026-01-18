@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 import logging
 
 from database import engine, Base, get_db
-from dependencies import validate_environment
+from dependencies import validate_environment, get_current_user
+from models import User
 from routers import auth, patients, medical_records, assignments, schedules, messages, exercises, dashboard, doctors, plans, notifications
 
 app = FastAPI(title="Medic1 Rehabilitation API", version="2.0")
@@ -91,16 +92,65 @@ app.include_router(dashboard.router)
 app.include_router(doctors.router)
 app.include_router(plans.router)
 app.include_router(notifications.router)
+app.include_router(notifications.router)
 
 # === Legacy/Compatibility Endpoints ===
 @app.get("/api/doctor-id")
-async def get_doctor_id_legacy(db: Session = Depends(get_db)):
-    """Legacy endpoint for doctor ID (redirects to new logic)"""
-    from models import User
-    doctor = db.query(User).filter(User.role == 'doctor').first()
-    if doctor:
-        return {"doctor_id": str(doctor.user_id)}
-    return {"doctor_id": None}
+async def get_doctor_id_legacy(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Smart endpoint for doctor ID.
+    1. If user is patient, try to find their assigned doctor from WeekPlans, Assignments, or Schedules.
+    2. Fallback to first doctor if no relationship found.
+    """
+    from models import User, WeekPlan, Assignment, Schedule
+    
+    doctor_id = None
+    
+    if current_user.role == 'patient':
+        # 1. Check active WeekPlan
+        plan = db.query(WeekPlan).filter(
+            WeekPlan.patient_id == current_user.user_id,
+            WeekPlan.status == 'active'
+        ).order_by(WeekPlan.created_at.desc()).first()
+        if plan:
+            doctor_id = plan.doctor_id
+            
+        # 2. If no plan, check latest Assignment
+        if not doctor_id:
+            assign = db.query(Assignment).filter(
+                Assignment.patient_id == current_user.user_id
+            ).order_by(Assignment.created_at.desc()).first() # Assuming created_at exists or use assignment_id/date
+            # Assignment doesn't have created_at default, use assigned_date
+            if assign:
+                doctor_id = assign.doctor_id
+
+        # 3. If no assignment, check latest Schedule
+        if not doctor_id:
+            sched = db.query(Schedule).filter(
+                Schedule.patient_id == current_user.user_id
+            ).order_by(Schedule.created_at.desc()).first()
+            if sched:
+                doctor_id = sched.doctor_id
+
+    # 4. Fallback: Return first doctor found (Demo mode)
+    if not doctor_id:
+        doctor = db.query(User).filter(User.role == 'doctor').first()
+        if doctor:
+            doctor_id = doctor.user_id
+            
+    return {"doctor_id": str(doctor_id) if doctor_id else None}
+
+# Proper authenticated endpoint
+from dependencies import get_current_doctor
+from models import User
+
+@app.get("/api/me/doctor-id")
+async def get_authenticated_doctor_id(current_user: User = Depends(get_current_doctor)):
+    """Returns the authenticated doctor's ID"""
+    return {"doctor_id": str(current_user.user_id)}
 
 
 if __name__ == "__main__":

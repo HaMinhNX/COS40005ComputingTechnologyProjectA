@@ -4,7 +4,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
 from database import Base
-from enums import UserRole, ExerciseType, ScheduleStatus, AssignmentStatus, SessionStatus, WeekPlanStatus, NotificationType
+from enums import UserRole, ExerciseType, ScheduleStatus, AssignmentStatus, SessionStatus, WeekPlanStatus, NotificationType, PatientStatus
 
 
 class User(Base):
@@ -16,6 +16,10 @@ class User(Base):
     email = Column(String(100), nullable=False)
     full_name = Column(String(100))
     role = Column(String(20)) # UserRole
+    
+    # Activity tracking fields
+    last_active_at = Column(DateTime(timezone=True), nullable=True)
+    status = Column(String(20), default=PatientStatus.ACTIVE.value)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -35,7 +39,7 @@ class User(Base):
     week_plans_as_patient = relationship("WeekPlan", foreign_keys="[WeekPlan.patient_id]", back_populates="patient")
     week_plans_as_doctor = relationship("WeekPlan", foreign_keys="[WeekPlan.doctor_id]", back_populates="doctor")
     notifications = relationship("Notification", back_populates="user")
-
+    
 class ExerciseLogSimple(Base):
     __tablename__ = "exercise_logs_simple"
 
@@ -246,3 +250,6 @@ class Notification(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
     user = relationship("User", back_populates="notifications")
+
+
+

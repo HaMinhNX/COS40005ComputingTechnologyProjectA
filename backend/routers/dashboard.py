@@ -114,3 +114,174 @@ async def get_today_progress_all(db: Session = Depends(get_db)):
         "rep_count": l.reps_completed
     } for l in logs]
 
+
+@router.get("/dashboard/summary")
+async def get_dashboard_summary(db: Session = Depends(get_db)):
+    """Get dashboard summary stats with trend calculations"""
+    from enums import PatientStatus
+    
+    # Total patients
+    total_patients = db.query(User).filter(User.role == 'patient').count()
+    
+    # Calculate activity-based status
+    seven_days_ago = date.today() - timedelta(days=7)
+    three_days_ago = date.today() - timedelta(days=3)
+    thirty_days_ago = date.today() - timedelta(days=30)
+    sixty_days_ago = date.today() - timedelta(days=60)
+    
+    # Get patients with recent activity
+    active_patient_ids = db.query(WorkoutSession.user_id).filter(
+        func.date(WorkoutSession.start_time) >= seven_days_ago
+    ).distinct().subquery()
+    
+    # Count active patients (activity in last 7 days)
+    active_count = db.query(User).filter(
+        User.role == 'patient',
+        User.user_id.in_(db.query(active_patient_ids))
+    ).count()
+    
+    # Needs attention: activity 3-7 days ago but not recently
+    needs_attention_ids = db.query(WorkoutSession.user_id).filter(
+        func.date(WorkoutSession.start_time) >= seven_days_ago,
+        func.date(WorkoutSession.start_time) < three_days_ago
+    ).distinct().subquery()
+    
+    needs_attention_count = db.query(User).filter(
+        User.role == 'patient',
+        User.user_id.in_(db.query(needs_attention_ids)),
+        ~User.user_id.in_(db.query(WorkoutSession.user_id).filter(
+            func.date(WorkoutSession.start_time) >= three_days_ago
+        ).distinct())
+    ).count()
+    
+    # Avg form score across all patients
+    avg_form = db.query(func.avg(SessionDetail.accuracy_score)).scalar() or 0
+    
+    # --- TREND CALCULATIONS ---
+    # Patient growth: compare this month vs last month
+    patients_this_month = db.query(User).filter(
+        User.role == 'patient',
+        func.date(User.created_at) >= thirty_days_ago
+    ).count()
+    patients_last_month = db.query(User).filter(
+        User.role == 'patient',
+        func.date(User.created_at) >= sixty_days_ago,
+        func.date(User.created_at) < thirty_days_ago
+    ).count()
+    patient_trend = round(((patients_this_month - patients_last_month) / max(patients_last_month, 1)) * 100) if patients_last_month > 0 else (patients_this_month * 10)
+    
+    # Activity trend: sessions today vs yesterday
+    today_sessions = db.query(WorkoutSession).filter(
+        func.date(WorkoutSession.start_time) == date.today()
+    ).count()
+    yesterday_sessions = db.query(WorkoutSession).filter(
+        func.date(WorkoutSession.start_time) == date.today() - timedelta(days=1)
+    ).count()
+    activity_trend = round(((today_sessions - yesterday_sessions) / max(yesterday_sessions, 1)) * 100) if yesterday_sessions > 0 else (today_sessions * 5)
+    
+    # New alerts (needs_attention count is the alert count)
+    new_alerts = needs_attention_count
+    
+    return {
+        "total_patients": total_patients,
+        "active_count": active_count,
+        "needs_attention_count": needs_attention_count,
+        "inactive_count": total_patients - active_count,
+        "avg_form_score": round(float(avg_form), 1) if avg_form else 0,
+        "patient_trend": patient_trend,
+        "activity_trend": activity_trend,
+        "new_alerts": new_alerts
+    }
+
+
+@router.get("/patients-with-status")
+async def get_patients_with_status(db: Session = Depends(get_db)):
+    """Get all patients with their activity status and last active time - OPTIMIZED"""
+    from enums import PatientStatus
+    
+    # Get all patients
+    patients = db.query(User).filter(User.role == 'patient').all()
+    patient_ids = [p.user_id for p in patients]
+    
+    if not patient_ids:
+        return []
+    
+    # Batch query 1: Get last session for all patients in one query
+    last_sessions_subq = db.query(
+        WorkoutSession.user_id,
+        func.max(WorkoutSession.start_time).label('last_time')
+    ).filter(
+        WorkoutSession.user_id.in_(patient_ids)
+    ).group_by(WorkoutSession.user_id).all()
+    
+    last_session_map = {str(row.user_id): row.last_time for row in last_sessions_subq}
+    
+    # Batch query 2: Get avg accuracy for all patients in one query
+    accuracy_subq = db.query(
+        WorkoutSession.user_id,
+        func.avg(SessionDetail.accuracy_score).label('avg_score')
+    ).join(SessionDetail).filter(
+        WorkoutSession.user_id.in_(patient_ids)
+    ).group_by(WorkoutSession.user_id).all()
+    
+    accuracy_map = {str(row.user_id): float(row.avg_score) if row.avg_score else 0 for row in accuracy_subq}
+    
+    # Batch query 3: Get session counts for all patients in one query
+    session_counts_subq = db.query(
+        WorkoutSession.user_id,
+        func.count(WorkoutSession.session_id).label('count')
+    ).filter(
+        WorkoutSession.user_id.in_(patient_ids)
+    ).group_by(WorkoutSession.user_id).all()
+    
+    session_count_map = {str(row.user_id): row.count for row in session_counts_subq}
+    
+    # Build result using pre-fetched data (no more DB calls in loop!)
+    result = []
+    now = datetime.now()
+    
+    for patient in patients:
+        pid = str(patient.user_id)
+        
+        # Get last active from map
+        last_active = last_session_map.get(pid) or patient.created_at
+        
+        # Calculate status based on activity
+        if last_active:
+            if last_active.tzinfo:
+                days_since = (now.replace(tzinfo=last_active.tzinfo) - last_active).days
+            else:
+                days_since = (now - last_active).days
+            
+            if days_since <= 3:
+                status = PatientStatus.ACTIVE.value
+            elif days_since <= 7:
+                status = PatientStatus.NEEDS_ATTENTION.value
+            else:
+                status = PatientStatus.INACTIVE.value
+        else:
+            status = PatientStatus.INACTIVE.value
+        
+        # Get progress from maps
+        avg_accuracy = accuracy_map.get(pid, 0)
+        session_count = session_count_map.get(pid, 0)
+        
+        if avg_accuracy > 0:
+            progress = round(avg_accuracy)
+        elif session_count > 0:
+            progress = min(session_count * 15, 100)
+        else:
+            progress = 0
+        
+        result.append({
+            "patient_id": pid,
+            "full_name": patient.full_name,
+            "email": patient.email,
+            "status": status,
+            "last_active_at": last_active.isoformat() if last_active else None,
+            "progress": progress
+        })
+    
+    return result
+
+

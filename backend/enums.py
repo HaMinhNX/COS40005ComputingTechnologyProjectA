@@ -58,12 +58,26 @@ class NotificationType(str, Enum):
     REMINDER = "reminder"
 
 
+class PatientStatus(str, Enum):
+    """Patient activity status for doctor dashboard"""
+    ACTIVE = "active"           # Active in last 7 days
+    INACTIVE = "inactive"       # No activity for 7+ days
+    NEEDS_ATTENTION = "needs_attention"  # No activity for 3+ days
+
+
 class SessionType(str, Enum):
     """Types of scheduled sessions"""
     CONSULTATION = "consultation"
     CHECKUP = "checkup"
     THERAPY = "therapy"
     FOLLOWUP = "followup"
+
+
+class AppointmentRequestStatus(str, Enum):
+    """Status of appointment requests"""
+    PENDING = "pending"
+    RESOLVED = "resolved"
+    REJECTED = "rejected"
 
 
 # Daily target reps for each exercise type

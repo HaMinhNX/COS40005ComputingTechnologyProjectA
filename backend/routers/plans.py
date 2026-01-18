@@ -99,12 +99,16 @@ async def get_week_plans(patient_id: UUID, db: Session = Depends(get_db)):
 
 @router.get("/patient/today/{user_id}")
 async def get_today_plan(user_id: UUID, db: Session = Depends(get_db)):
-    """Get today's exercises for a patient"""
+    """Get today's exercises for a patient - includes both week plan and direct assignments"""
     from datetime import date
-    today = date.today()
-    day_of_week = today.weekday() + 1 # 1=Monday, 7=Sunday
+    from sqlalchemy import or_
     
-    # Find active week plan for today
+    today = date.today()
+    day_of_week = today.weekday() + 1  # 1=Monday, 7=Sunday
+    
+    all_assignments = []
+    
+    # 1. Get assignments from active week plans for today's day of week
     plan = db.query(WeekPlan).filter(
         WeekPlan.patient_id == user_id,
         WeekPlan.start_date <= today,
@@ -112,14 +116,32 @@ async def get_today_plan(user_id: UUID, db: Session = Depends(get_db)):
         WeekPlan.status == 'active'
     ).first()
     
-    if not plan:
-        return []
-        
-    # Get assignments for today
-    assignments = db.query(Assignment).filter(
-        Assignment.week_plan_id == plan.plan_id,
-        Assignment.day_of_week == day_of_week
+    if plan:
+        week_assignments = db.query(Assignment).filter(
+            Assignment.week_plan_id == plan.plan_id,
+            Assignment.day_of_week == day_of_week
+        ).all()
+        all_assignments.extend(week_assignments)
+    
+    # 2. Get direct assignments (no week plan) with assigned_date = today
+    direct_assignments = db.query(Assignment).filter(
+        Assignment.patient_id == user_id,
+        Assignment.week_plan_id == None,  # Direct assignment, not from week plan
+        Assignment.assigned_date == today
     ).all()
+    all_assignments.extend(direct_assignments)
+    
+    # 3. Also get daily assignments (frequency = 'Daily')
+    daily_assignments = db.query(Assignment).filter(
+        Assignment.patient_id == user_id,
+        Assignment.frequency == 'Daily'
+    ).all()
+    
+    # Add daily assignments that aren't already in the list
+    existing_ids = {a.assignment_id for a in all_assignments}
+    for a in daily_assignments:
+        if a.assignment_id not in existing_ids:
+            all_assignments.append(a)
     
     return [
         {
@@ -129,7 +151,8 @@ async def get_today_plan(user_id: UUID, db: Session = Depends(get_db)):
             "sets": a.sets,
             "session_time": a.session_time,
             "is_completed": a.is_completed,
-            "instructions": a.notes
+            "instructions": a.notes,
+            "type": "exercise"
         }
-        for a in assignments
+        for a in all_assignments
     ]

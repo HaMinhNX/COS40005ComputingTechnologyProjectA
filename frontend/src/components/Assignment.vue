@@ -1,205 +1,243 @@
 <template>
   <div class="assignment-wrapper">
-    <!-- Patient Selector Header -->
-    <div class="selector-card">
-      <div class="selector-header">
-        <div class="header-icon">
-          <Users :size="24" />
-        </div>
-        <div>
-          <h3 class="selector-title">Quản lý & Phân công</h3>
-          <p class="selector-subtitle">Tạo tổ hợp bài tập và phân công cho bệnh nhân</p>
-        </div>
+    <!-- Toast Notification -->
+    <Transition name="toast">
+      <div v-if="toast.show" :class="['toast-notification', toast.type]">
+        {{ toast.message }}
       </div>
+    </Transition>
 
-      <!-- Patient Search -->
-      
-      <div v-if="viewMode === 'assign'" class="patient-search-wrapper">
-        <Search class="search-icon" :size="18" />
-        <input
-          v-model="searchQuery"
-          @focus="showDropdown = true"
-          @blur="hideDropdownDelayed"
-          type="text"
-          placeholder="Tìm kiếm bệnh nhân..."
-          class="patient-search-input"
-        />
-        
-        <div v-if="showDropdown && filteredPatients.length > 0" class="patients-dropdown">
-          <button
-            v-for="patient in filteredPatients"
-            :key="patient.patient_id"
-            @click="selectPatient(patient)"
-            class="dropdown-patient-item"
-          >
-            <div class="patient-avatar-sm">{{ getInitials(patient.full_name) }}</div>
-            <span class="patient-dropdown-name">{{ patient.full_name }}</span>
-            <Check v-if="selectedPatient === patient.patient_id" :size="16" class="check-icon" />
+    <!-- Unified Page Header -->
+    <div class="page-header">
+      <!-- Left: Patient Selector/Display -->
+      <div class="header-left">
+        <!-- Skeleton Loading State -->
+        <div v-if="isLoading" class="skeleton-patient">
+          <div class="skeleton skeleton-avatar"></div>
+          <div class="skeleton-text">
+            <div class="skeleton skeleton-line"></div>
+            <div class="skeleton skeleton-line-sm"></div>
+          </div>
+        </div>
+
+        <!-- Search (when no patient and not loading) -->
+        <div v-else-if="!selectedPatient" class="patient-search-compact">
+          <Search class="search-icon-sm" :size="16" />
+          <input
+            v-model="searchQuery"
+            @focus="showDropdown = true"
+            @blur="hideDropdownDelayed"
+            type="text"
+            placeholder="Tìm bệnh nhân..."
+            class="search-input-compact"
+          />
+          <div v-if="showDropdown && filteredPatients.length > 0" class="patients-dropdown-compact">
+            <button
+              v-for="patient in filteredPatients"
+              :key="patient.patient_id"
+              @click="selectPatient(patient)"
+              class="dropdown-item-compact"
+            >
+              <div class="avatar-xs">{{ getInitials(patient.full_name) }}</div>
+              <span>{{ patient.full_name }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Selected Patient Display -->
+        <div v-else class="patient-display">
+          <div class="avatar-md">{{ getInitials(currentPatient.full_name) }}</div>
+          <div class="patient-info">
+            <h2 class="patient-name">{{ currentPatient.full_name }}</h2>
+            <p class="patient-email">{{ currentPatient.email }}</p>
+          </div>
+          <button @click="clearSelection" class="change-btn">
+            <RefreshCw :size="14" />
           </button>
         </div>
       </div>
-    </div>
 
+      <!-- Center: Stats (only when patient selected) -->
+      <div v-if="currentPatient" class="header-stats">
+        <div class="stat-compact">
+          <span class="stat-num">{{ patientStats.compliance }}%</span>
+          <span class="stat-lbl">Tuân thủ</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-compact">
+          <span class="stat-num">{{ patientStats.sessions }}</span>
+          <span class="stat-lbl">Buổi tập</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-compact">
+          <span class="stat-num">{{ patientStats.totalTime }}h</span>
+          <span class="stat-lbl">Thời gian</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-compact">
+          <span class="stat-num">{{ patientStats.avgScore }}</span>
+          <span class="stat-lbl">Điểm TB</span>
+        </div>
+      </div>
 
-
-    <!-- View Toggle -->
-    <div class="flex justify-end mb-4">
-      <div class="bg-slate-100 p-1 rounded-xl flex gap-1">
-        <button 
-          @click="viewMode = 'list'"
-          :class="['px-4 py-2 rounded-lg text-sm font-bold transition-all', viewMode === 'list' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700']"
+      <!-- Right: View Toggle + Add Button -->
+      <div class="header-right">
+        <div v-if="currentPatient" class="view-toggle">
+          <button
+            @click="viewMode = 'list'"
+            :class="['toggle-btn', viewMode === 'list' && 'active']"
+          >
+            <List :size="16" />
+          </button>
+          <button
+            @click="viewMode = 'calendar'"
+            :class="['toggle-btn', viewMode === 'calendar' && 'active']"
+          >
+            <Calendar :size="16" />
+          </button>
+        </div>
+        <button
+          v-if="currentPatient && viewMode === 'list'"
+          @click="openAddModal"
+          class="add-btn-header"
         >
-          Danh sách
+          <Plus :size="16" />
+          <span>Thêm</span>
         </button>
-        <button 
-          @click="viewMode = 'calendar'"
-          :class="['px-4 py-2 rounded-lg text-sm font-bold transition-all', viewMode === 'calendar' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700']"
-        >
-          Lịch tập
-        </button>
       </div>
     </div>
 
-    <!-- ASSIGN MODE -->
-    <div v-if="currentPatient" class="assign-wrapper">
-
-    <!-- Patient Profile Card -->
-    <div v-if="currentPatient" class="profile-card">
-      <div class="profile-decoration"></div>
-      
-      <div class="profile-header">
-        <div class="profile-avatar-large">
-          {{ getInitials(currentPatient.full_name) }}
-        </div>
-        <div class="profile-info">
-          <h2 class="profile-name">{{ currentPatient.full_name }}</h2>
-          <p class="profile-email">
-            <Mail :size="14" />
-            {{ currentPatient.email }}
-          </p>
-        </div>
-      </div>
-      
-      <div class="profile-stats">
-        <div class="stat-item">
-          <p class="stat-value">{{ patientStats.compliance }}%</p>
-          <p class="stat-label">Tuân thủ</p>
-        </div>
-        <div class="stat-item">
-          <p class="stat-value">{{ patientStats.sessions }}</p>
-          <p class="stat-label">Buổi tập</p>
-        </div>
-        <div class="stat-item">
-          <p class="stat-value">{{ patientStats.totalTime }}h</p>
-          <p class="stat-label">Tổng thời gian</p>
-        </div>
-        <div class="stat-item">
-          <p class="stat-value">{{ patientStats.avgScore }}</p>
-          <p class="stat-label">Điểm TB</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- CALENDAR VIEW -->
-    <div v-if="viewMode === 'calendar'" class="calendar-view bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
-      <!-- Calendar Header -->
-      <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-        <div class="flex items-center gap-4">
-          <button @click="calendarToday" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50">Hôm nay</button>
-          <div class="flex gap-1">
-            <button @click="calendarPrev" class="p-1.5 hover:bg-white rounded-lg"><ChevronLeft :size="20" /></button>
-            <button @click="calendarNext" class="p-1.5 hover:bg-white rounded-lg"><ChevronRight :size="20" /></button>
-          </div>
-          <h3 class="text-lg font-black text-slate-800">{{ calendarTitle }}</h3>
-        </div>
-      </div>
-
-      <!-- Calendar Grid -->
-      <div class="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
-        <div v-for="day in ['CN', 'Hai', 'Ba', 'Tư', 'Năm', 'Sáu', 'Bảy']" :key="day" class="py-3 text-center text-xs font-bold text-slate-500 uppercase">
-          {{ day }}
-        </div>
-      </div>
-      <div class="grid grid-cols-7 auto-rows-fr bg-white">
-        <div 
-          v-for="(cell, i) in calendarCells" 
-          :key="i"
-          @click="selectDate(cell.date)"
-          :class="[
-            'min-h-[120px] border-b border-r border-slate-100 p-2 transition-colors hover:bg-slate-50 cursor-pointer',
-            !cell.inMonth ? 'bg-slate-50/50 text-slate-400' : ''
-          ]"
-        >
-          <div class="flex justify-between items-start mb-2">
-            <span :class="['w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold', cell.isToday ? 'bg-indigo-600 text-white' : '']">
-              {{ cell.date.getDate() }}
-            </span>
-          </div>
-          
-          <!-- Events List -->
-          <div class="space-y-1">
-            <div 
-              v-for="ex in cell.exercises" 
-              :key="ex.id"
-              class="px-2 py-1.5 rounded-lg bg-indigo-50 border border-indigo-100 text-xs hover:bg-indigo-100 transition-colors group"
+    <!-- MAIN CONTENT -->
+    <div v-if="currentPatient" class="content-area">
+      <!-- CALENDAR VIEW -->
+      <div
+        v-if="viewMode === 'calendar'"
+        class="calendar-view bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden"
+      >
+        <!-- Calendar Header -->
+        <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+          <div class="flex items-center gap-4">
+            <button
+              @click="calendarToday"
+              class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50"
             >
-              <div class="font-bold text-indigo-900 truncate">{{ ex.name }}</div>
-              <div class="flex items-center gap-1 text-indigo-700 text-[10px]">
-                <span v-if="ex.reps > 0">{{ ex.reps }} reps</span>
-                <span v-if="ex.duration > 0">{{ ex.duration }}m</span>
-                <span>• {{ ex.session_time === 'Morning' ? 'Sáng' : (ex.session_time === 'Afternoon' ? 'Chiều' : 'Tối') }}</span>
+              Hôm nay
+            </button>
+            <div class="flex gap-1">
+              <button @click="calendarPrev" class="p-1.5 hover:bg-white rounded-lg">
+                <ChevronLeft :size="20" />
+              </button>
+              <button @click="calendarNext" class="p-1.5 hover:bg-white rounded-lg">
+                <ChevronRight :size="20" />
+              </button>
+            </div>
+            <h3 class="text-lg font-black text-slate-800">{{ calendarTitle }}</h3>
+          </div>
+        </div>
+
+        <!-- Calendar Grid -->
+        <div class="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
+          <div
+            v-for="day in ['CN', 'Hai', 'Ba', 'Tư', 'Năm', 'Sáu', 'Bảy']"
+            :key="day"
+            class="py-3 text-center text-xs font-bold text-slate-500 uppercase"
+          >
+            {{ day }}
+          </div>
+        </div>
+        <div class="grid grid-cols-7 auto-rows-fr bg-white">
+          <div
+            v-for="(cell, i) in calendarCells"
+            :key="i"
+            @click="selectDate(cell.date)"
+            :class="[
+              'min-h-[120px] border-b border-r border-slate-100 p-2 transition-colors hover:bg-slate-50 cursor-pointer',
+              !cell.inMonth ? 'bg-slate-50/50 text-slate-400' : '',
+            ]"
+          >
+            <div class="flex justify-between items-start mb-2">
+              <span
+                :class="[
+                  'w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold',
+                  cell.isToday ? 'bg-indigo-600 text-white' : '',
+                ]"
+              >
+                {{ cell.date.getDate() }}
+              </span>
+            </div>
+
+            <!-- Events List -->
+            <div class="space-y-1">
+              <div
+                v-for="ex in cell.exercises"
+                :key="ex.id"
+                class="px-2 py-1.5 rounded-lg bg-indigo-50 border border-indigo-100 text-xs hover:bg-indigo-100 transition-colors group"
+              >
+                <div class="font-bold text-indigo-900 truncate">{{ ex.name }}</div>
+                <div class="flex items-center gap-1 text-indigo-700 text-[10px]">
+                  <span v-if="ex.reps > 0">{{ ex.reps }} reps</span>
+                  <span v-if="ex.duration > 0">{{ ex.duration }}m</span>
+                  <span
+                    >•
+                    {{
+                      ex.session_time === 'Morning'
+                        ? 'Sáng'
+                        : ex.session_time === 'Afternoon'
+                          ? 'Chiều'
+                          : 'Tối'
+                    }}</span
+                  >
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- LIST VIEW (Original) -->
-    <div v-else class="exercises-section">
-      <div class="section-header">
-        <h3 class="section-title">Bài tập đã giao</h3>
-        <button @click="openAddModal" class="add-btn">
-          <Plus :size="18" />
-          Thêm bài tập
-        </button>
-      </div>
-
-      <div class="exercises-grid">
-        <div v-for="(ex, i) in exercises" :key="ex.id" class="exercise-card">
-          <div class="exercise-icon-wrapper">
-            <div class="exercise-icon">{{ ex.icon }}</div>
-          </div>
-          <div class="exercise-content">
-            <h4 class="exercise-name">{{ ex.name }}</h4>
-            <div class="exercise-meta">
-              <span class="meta-text">
-                {{ ex.reps > 0 ? `${ex.reps} reps` : `${ex.duration} phút` }} • {{ ex.session_time === 'Morning' ? 'Sáng' : 'Chiều' }}
-              </span>
-              <span class="meta-date">{{ formatDate(ex.assigned_date) }}</span>
+      <!-- LIST VIEW -->
+      <div v-else class="exercises-section">
+        <div class="exercises-list">
+          <div v-for="(ex, i) in exercises" :key="ex.id" class="exercise-card">
+            <div class="exercise-icon-wrapper">
+              <div class="exercise-icon">{{ ex.icon }}</div>
+            </div>
+            <div class="exercise-content">
+              <h4 class="exercise-name capitalize">{{ ex.name }}</h4>
+              <div class="exercise-meta">
+                <span class="meta-text">
+                  {{ ex.reps > 0 ? `${ex.reps} reps` : `${ex.duration} phút` }} •
+                  {{ ex.session_time === 'Morning' ? 'Sáng' : 'Chiều' }}
+                </span>
+                <span class="meta-date">{{ formatDate(ex.assigned_date) }}</span>
+              </div>
+            </div>
+            <div class="exercise-actions">
+              <button
+                @click.prevent.stop="removeExercise(i)"
+                type="button"
+                class="action-btn action-delete"
+              >
+                <Trash2 :size="18" />
+              </button>
             </div>
           </div>
-          <div class="exercise-actions">
-            <button @click="removeExercise(i)" class="action-btn action-delete">
-              <Trash2 :size="18" />
+
+          <!-- Empty State -->
+          <div v-if="exercises.length === 0" class="empty-state">
+            <div class="empty-icon">💪</div>
+            <h4 class="empty-title">Chưa có bài tập nào</h4>
+            <p class="empty-text">
+              Bắt đầu bằng cách thêm bài tập đầu tiên vào kế hoạch của bệnh nhân.
+            </p>
+            <button @click="openAddModal" class="empty-btn">
+              <Plus :size="18" />
+              Thêm bài tập đầu tiên
             </button>
           </div>
         </div>
-
-        <!-- Empty State -->
-        <div v-if="exercises.length === 0" class="empty-state">
-          <div class="empty-icon">💪</div>
-          <h4 class="empty-title">Chưa có bài tập nào</h4>
-          <p class="empty-text">Bắt đầu bằng cách thêm bài tập đầu tiên vào kế hoạch của bệnh nhân.</p>
-          <button @click="openAddModal" class="empty-btn">
-            <Plus :size="18" />
-            Thêm bài tập đầu tiên
-          </button>
-        </div>
       </div>
     </div>
-
-    </div> <!-- End Assign Wrapper -->
+    <!-- End Assign Wrapper -->
 
     <!-- Add/Edit Exercise Modal (Modified to support Combos) -->
     <div v-if="showModal" class="modal-overlay" @click="closeModal">
@@ -210,18 +248,18 @@
             <X :size="20" />
           </button>
         </div>
-        
+
         <div class="modal-body">
           <!-- Type Switcher -->
           <div class="type-tabs">
-            <button 
-              @click="assignType = 'single'" 
+            <button
+              @click="assignType = 'single'"
               :class="['type-tab', { active: assignType === 'single' }]"
             >
               Bài tập lẻ
             </button>
-            <button 
-              @click="assignType = 'combo'" 
+            <button
+              @click="assignType = 'combo'"
               :class="['type-tab', { active: assignType === 'combo' }]"
             >
               Combo mẫu
@@ -233,14 +271,13 @@
             <div class="form-group">
               <label class="form-label">Loại bài tập</label>
               <select v-model="form.exercise_type" class="form-input">
-                <option value="Squat">Squat</option>
-                <option value="Bicep Curl">Bicep Curl</option>
-                <option value="Shoulder Flexion">Shoulder Flexion</option>
-                <option value="Knee Raise">Knee Raise</option>
-                <option value="Brain Game">Brain Game (Trí tuệ)</option>
+                <option value="squat">Squat</option>
+                <option value="bicep-curl">Bicep Curl</option>
+                <option value="shoulder-flexion">Shoulder Flexion</option>
+                <option value="knee-raise">Knee Raise</option>
               </select>
             </div>
-            
+
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Chế độ tập</label>
@@ -255,50 +292,72 @@
             <div class="form-row">
               <div v-if="form.target_mode === 'sets_reps'" class="form-group">
                 <label class="form-label">Số hiệp (Sets)</label>
-                <input v-model.number="form.sets" type="number" class="form-input" placeholder="3" />
+                <input
+                  v-model.number="form.sets"
+                  type="number"
+                  class="form-input"
+                  placeholder="3"
+                />
               </div>
-              
+
               <div v-if="form.target_mode !== 'duration'" class="form-group">
                 <label class="form-label">Số lần (Reps)</label>
-                <input v-model.number="form.target_reps" type="number" class="form-input" placeholder="10" />
+                <input
+                  v-model.number="form.target_reps"
+                  type="number"
+                  class="form-input"
+                  placeholder="10"
+                />
               </div>
 
               <div v-if="form.target_mode === 'duration'" class="form-group">
                 <label class="form-label">Thời gian (Phút)</label>
-                <input v-model.number="form.duration_minutes" type="number" class="form-input" placeholder="15" />
+                <input
+                  v-model.number="form.duration_minutes"
+                  type="number"
+                  class="form-input"
+                  placeholder="15"
+                />
               </div>
             </div>
           </div>
 
           <!-- Combo Selection Form -->
           <div v-if="assignType === 'combo'">
-             <div class="form-group">
-               <label class="form-label">Chọn Combo</label>
-               <select v-model="selectedComboId" class="form-input">
-                 <option v-for="c in combos" :key="c.combo_id" :value="c.combo_id">
-                   {{ c.name }} ({{ c.items?.length || 0 }} bài)
-                 </option>
-               </select>
-             </div>
+            <div class="form-group">
+              <label class="form-label">Chọn Combo</label>
+              <select v-model="selectedComboId" class="form-input">
+                <option v-for="c in combos" :key="c.combo_id" :value="c.combo_id">
+                  {{ c.name }} ({{ c.items?.length || 0 }} bài)
+                </option>
+              </select>
+            </div>
           </div>
 
           <div class="form-group">
-             <label class="form-label">Ngày bắt đầu</label>
-             <input v-model="form.assigned_date" type="date" class="form-input" />
+            <label class="form-label">Ngày bắt đầu</label>
+            <input v-model="form.assigned_date" type="date" class="form-input" />
           </div>
 
           <div class="form-group">
-             <label class="form-label">Buổi tập</label>
-             <select v-model="form.session_time" class="form-input">
-               <option value="Morning">Sáng</option>
-               <option value="Afternoon">Chiều</option>
-               <option value="Evening">Tối</option>
-             </select>
+            <label class="form-label">Buổi tập</label>
+            <select v-model="form.session_time" class="form-input">
+              <option value="Morning">Sáng</option>
+              <option value="Afternoon">Chiều</option>
+              <option value="Evening">Tối</option>
+            </select>
           </div>
 
           <div class="form-group flex items-center gap-2 mt-4">
-             <input type="checkbox" v-model="form.is_daily" id="is_daily" class="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500" />
-             <label for="is_daily" class="text-sm font-bold text-slate-700">Lặp lại hàng ngày (Thêm vào kế hoạch tuần)</label>
+            <input
+              type="checkbox"
+              v-model="form.is_daily"
+              id="is_daily"
+              class="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500"
+            />
+            <label for="is_daily" class="text-sm font-bold text-slate-700"
+              >Lặp lại hàng ngày (Thêm vào kế hoạch tuần)</label
+            >
           </div>
         </div>
 
@@ -308,19 +367,31 @@
         </div>
       </div>
     </div>
-
-
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { 
-  Plus, Clock, Repeat, Calendar, Trash2, Edit2, X, Search, Check, Users, Mail, ChevronLeft, ChevronRight
+import {
+  Plus,
+  Clock,
+  Repeat,
+  Calendar,
+  Trash2,
+  Edit2,
+  X,
+  Search,
+  Check,
+  Users,
+  Mail,
+  ChevronLeft,
+  ChevronRight,
+  List,
+  RefreshCw,
 } from 'lucide-vue-next'
 
 // API Configuration
-const API_BASE = 'http://localhost:8001/api';
+const API_BASE = 'http://localhost:8001/api'
 
 const viewMode = ref('assign') // 'assign' or 'combos'
 const assignType = ref('single') // 'single' or 'combo'
@@ -333,14 +404,12 @@ const doctorId = ref(null)
 
 // Form Data
 const form = ref({
-  exercise_type: 'Squat',
+  exercise_type: 'squat',
   target_reps: 10,
   assigned_date: new Date().toISOString().split('T')[0],
   session_time: 'Morning',
-  is_daily: false
+  is_daily: false,
 })
-
-
 
 // Patient selection
 const patients = ref([])
@@ -349,91 +418,133 @@ const currentPatient = ref(null)
 const searchQuery = ref('')
 const showDropdown = ref(false)
 const dropdownTimeout = ref(null)
+const isLoading = ref(true)
 
-// Patient stats (Mocked for now)
+// Toast notification
+const toast = ref({ show: false, message: '', type: 'success' })
+const showToast = (message, type = 'success') => {
+  toast.value = { show: true, message, type }
+  setTimeout(() => {
+    toast.value.show = false
+  }, 3000)
+}
+
+// Patient stats (loaded from API)
 const patientStats = ref({
-  compliance: 85,
-  sessions: 12,
-  totalTime: 3,
-  avgScore: 4.2
+  compliance: 0,
+  sessions: 0,
+  totalTime: 0,
+  avgScore: 0,
 })
 
 // Computed
 const filteredPatients = computed(() => {
   if (!searchQuery.value.trim()) {
-    return patients.value;
+    return patients.value
   }
-  const query = searchQuery.value.toLowerCase();
-  return patients.value.filter(patient => 
-    patient.full_name.toLowerCase().includes(query) ||
-    patient.email.toLowerCase().includes(query)
-  );
+  const query = searchQuery.value.toLowerCase()
+  return patients.value.filter(
+    (patient) =>
+      patient.full_name.toLowerCase().includes(query) ||
+      patient.email.toLowerCase().includes(query),
+  )
 })
 
 // Methods
 const getInitials = (name) => {
-  return name ? name.split(' ').map(s => s[0]).join('').slice(0, 2).toUpperCase() : '??';
+  return name
+    ? name
+        .split(' ')
+        .map((s) => s[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase()
+    : '??'
 }
 
-const selectPatient = (patient) => {
+const selectPatient = async (patient) => {
   if (dropdownTimeout.value) {
-    clearTimeout(dropdownTimeout.value);
-    dropdownTimeout.value = null;
+    clearTimeout(dropdownTimeout.value)
+    dropdownTimeout.value = null
   }
-  
-  selectedPatient.value = patient.patient_id;
-  currentPatient.value = patient;
-  searchQuery.value = patient.full_name;
-  showDropdown.value = false;
-  loadAssignments(patient.patient_id);
+
+  selectedPatient.value = patient.patient_id
+  currentPatient.value = patient
+  searchQuery.value = '' // Clear search query to avoid filtering issues
+  showDropdown.value = false
+
+  // Load real patient stats from API
+  try {
+    const token = localStorage.getItem('token')
+    const statsRes = await fetch(`${API_BASE}/patients/${patient.patient_id}/stats`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (statsRes.ok) {
+      patientStats.value = await statsRes.json()
+    }
+  } catch (e) {
+    console.error('Error loading patient stats:', e)
+  }
+
+  loadAssignments(patient.patient_id)
+}
+
+const clearSelection = () => {
+  selectedPatient.value = null
+  currentPatient.value = null
+  searchQuery.value = ''
+  // Focus search input on next tick if possible, but simple state change is enough
 }
 
 const hideDropdownDelayed = () => {
   if (dropdownTimeout.value) {
-    clearTimeout(dropdownTimeout.value);
+    clearTimeout(dropdownTimeout.value)
   }
-  
+
   dropdownTimeout.value = setTimeout(() => {
-    showDropdown.value = false;
-  }, 200);
+    showDropdown.value = false
+  }, 200)
 }
 
 const loadPatients = async () => {
+  isLoading.value = true
   try {
-    const token = localStorage.getItem('token');
-    // Get Doctor ID first
-    const docRes = await fetch(`${API_BASE}/doctor-id`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    const token = localStorage.getItem('token')
+    // Get Doctor ID first - use authenticated endpoint
+    const docRes = await fetch(`${API_BASE}/me/doctor-id`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
     if (docRes.ok) {
-      const data = await docRes.json();
-      doctorId.value = data.doctor_id;
+      const data = await docRes.json()
+      doctorId.value = data.doctor_id
     }
 
-    const response = await fetch(`${API_BASE}/patients`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (!response.ok) throw new Error('Failed to fetch patients');
-    patients.value = await response.json();
-    
+    const response = await fetch(`${API_BASE}/patients-with-status`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!response.ok) throw new Error('Failed to fetch patients')
+    patients.value = await response.json()
+
     if (patients.value.length > 0) {
-      selectPatient(patients.value[0]);
+      selectPatient(patients.value[0])
     }
   } catch (err) {
-    console.error('Error loading patients:', err);
+    console.error('Error loading patients:', err)
+  } finally {
+    isLoading.value = false
   }
 }
 
 const loadAssignments = async (patientId) => {
   try {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token')
     const response = await fetch(`${API_BASE}/assignments/${patientId}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+      headers: { Authorization: `Bearer ${token}` },
+    })
     if (response.ok) {
-      const data = await response.json();
+      const data = await response.json()
       // Map to view format
-      exercises.value = data.map(d => ({
+      exercises.value = data.map((d) => ({
         id: d.assignment_id,
         name: d.exercise_type,
         duration: d.duration_seconds ? Math.round(d.duration_seconds / 60) : 0,
@@ -441,126 +552,144 @@ const loadAssignments = async (patientId) => {
         reps: d.target_reps,
         freq: d.frequency || 'Once',
         difficulty: 'Medium',
-        icon: '🏋️'
-      }));
+        icon: '🏋️',
+        assigned_date: d.assigned_date,
+        session_time: d.session_time,
+      }))
     }
   } catch (err) {
-    console.error('Error loading assignments:', err);
+    console.error('Error loading assignments:', err)
   }
 }
 
 // Modal Logic
-const openAddModal = () => { 
-  isEditing.value = false; 
+const openAddModal = () => {
+  isEditing.value = false
   form.value = {
-    exercise_type: 'Squat',
+    exercise_type: 'squat',
     target_reps: 10,
     duration_minutes: 15,
     assigned_date: new Date().toISOString().split('T')[0],
     session_time: 'Morning',
     is_daily: false,
-    target_mode: 'reps'
+    target_mode: 'reps',
   }
-  showModal.value = true 
+  showModal.value = true
 }
 
-const closeModal = () => showModal.value = false
+const closeModal = () => (showModal.value = false)
 
 // Combo Logic
 const loadCombos = async () => {
   try {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token')
     const res = await fetch(`${API_BASE}/combos?doctor_id=${doctorId.value}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (res.ok) combos.value = await res.json();
-  } catch (e) { console.error(e); }
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (res.ok) combos.value = await res.json()
+  } catch (e) {
+    console.error(e)
+  }
 }
-
-
 
 // Assignment Logic
 const saveAssignment = async () => {
-  if (!selectedPatient.value || !doctorId.value) return;
+  if (!selectedPatient.value || !doctorId.value) return
 
   try {
+    // Only include fields defined in AssignmentCreate schema
     const payload = {
       patient_id: selectedPatient.value,
-      doctor_id: doctorId.value,
-      assigned_date: form.value.assigned_date,
+      // doctor_id removed - backend uses current_doctor dependency
+      // assigned_date removed - backend likely generates it or uses API date, check if schema has it?
+      // Wait, Schema doesn't have assigned_date in AssignmentCreate.
+      // It has day_of_week and week_plan_id.
+      // If we need assigned_date, it might not be supported in simple assignment or uses current date.
       target_reps: form.value.target_reps,
       session_time: form.value.session_time,
       frequency: form.value.is_daily ? 'Daily' : 'Once',
-      duration_seconds: (form.value.duration_minutes || 0) * 60
-    };
+      duration_seconds: (form.value.duration_minutes || 0) * 60,
+    }
 
     if (form.value.target_mode === 'reps') {
-       payload.sets = 1;
+      payload.sets = 1
     } else if (form.value.target_mode === 'sets_reps') {
-       payload.sets = form.value.sets || 3;
+      payload.sets = form.value.sets || 3
     } else if (form.value.target_mode === 'duration') {
-       payload.sets = 1;
-       payload.target_reps = 0;
+      payload.sets = 1
+      payload.target_reps = 0
     }
 
     if (assignType.value === 'single') {
-      payload.exercise_type = form.value.exercise_type;
+      payload.exercise_type = form.value.exercise_type
     } else {
-      payload.combo_id = selectedComboId.value;
+      payload.combo_id = selectedComboId.value
     }
 
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token')
     const res = await fetch(`${API_BASE}/assign_plan`, {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(payload)
-    });
+      body: JSON.stringify(payload),
+    })
 
     if (res.ok) {
-      await loadAssignments(selectedPatient.value);
-      closeModal();
+      await loadAssignments(selectedPatient.value)
+      closeModal()
+      showToast('Đã giao bài tập thành công!', 'success')
     } else {
-      alert("Lỗi khi giao bài tập");
+      const err = await res.json()
+      showToast(`Lỗi: ${err.detail || 'Không thể giao bài tập'}`, 'error')
     }
   } catch (e) {
-    console.error(e);
+    console.error(e)
   }
 }
 
 const removeExercise = async (idx) => {
-  const ex = exercises.value[idx];
-  if (!confirm("Bạn có chắc muốn xóa bài tập này?")) return;
+  const ex = exercises.value[idx]
+  if (!ex || !ex.id) return
 
   try {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token')
     const res = await fetch(`${API_BASE}/assignments/${ex.id}`, {
       method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+      headers: { Authorization: `Bearer ${token}` },
+    })
 
     if (res.ok) {
-      exercises.value.splice(idx, 1);
+      exercises.value.splice(idx, 1)
+      showToast('Đã xóa bài tập!', 'success')
+    } else {
+      console.error('Delete failed:', res.status)
+      showToast('Không thể xóa bài tập', 'error')
     }
   } catch (e) {
-    console.error(e);
+    console.error('Delete error:', e)
   }
 }
 
 const getDifficultyClass = (diff) => {
-  switch(diff) {
-    case 'Easy': return 'difficulty-easy'
-    case 'Medium': return 'difficulty-medium'
-    case 'Hard': return 'difficulty-hard'
-    default: return 'difficulty-medium'
+  switch (diff) {
+    case 'Easy':
+      return 'difficulty-easy'
+    case 'Medium':
+      return 'difficulty-medium'
+    case 'Hard':
+      return 'difficulty-hard'
+    default:
+      return 'difficulty-medium'
   }
 }
 
 // Calendar State
 const calendarDate = ref(new Date())
-const calendarTitle = computed(() => calendarDate.value.toLocaleString('vi-VN', { month: 'long', year: 'numeric' }))
+const calendarTitle = computed(() =>
+  calendarDate.value.toLocaleString('vi-VN', { month: 'long', year: 'numeric' }),
+)
 
 const calendarCells = computed(() => {
   const year = calendarDate.value.getFullYear()
@@ -576,19 +705,21 @@ const calendarCells = computed(() => {
     const date = new Date(startDate)
     date.setDate(startDate.getDate() + i)
 
-    const dayExercises = exercises.value.filter(ex => {
+    const dayExercises = exercises.value.filter((ex) => {
       if (!ex.assigned_date) return false
       const exDate = new Date(ex.assigned_date)
-      return exDate.getDate() === date.getDate() &&
-             exDate.getMonth() === date.getMonth() &&
-             exDate.getFullYear() === date.getFullYear()
+      return (
+        exDate.getDate() === date.getDate() &&
+        exDate.getMonth() === date.getMonth() &&
+        exDate.getFullYear() === date.getFullYear()
+      )
     })
 
     cells.push({
       date,
       inMonth: date.getMonth() === month,
       isToday: isSameDay(date, new Date()),
-      exercises: dayExercises
+      exercises: dayExercises,
     })
   }
   return cells
@@ -596,11 +727,19 @@ const calendarCells = computed(() => {
 
 // Calendar Methods
 const calendarPrev = () => {
-  calendarDate.value = new Date(calendarDate.value.getFullYear(), calendarDate.value.getMonth() - 1, 1)
+  calendarDate.value = new Date(
+    calendarDate.value.getFullYear(),
+    calendarDate.value.getMonth() - 1,
+    1,
+  )
 }
 
 const calendarNext = () => {
-  calendarDate.value = new Date(calendarDate.value.getFullYear(), calendarDate.value.getMonth() + 1, 1)
+  calendarDate.value = new Date(
+    calendarDate.value.getFullYear(),
+    calendarDate.value.getMonth() + 1,
+    1,
+  )
 }
 
 const calendarToday = () => {
@@ -608,14 +747,16 @@ const calendarToday = () => {
 }
 
 const isSameDay = (d1, d2) => {
-  return d1.getDate() === d2.getDate() &&
-         d1.getMonth() === d2.getMonth() &&
-         d1.getFullYear() === d2.getFullYear()
+  return (
+    d1.getDate() === d2.getDate() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getFullYear() === d2.getFullYear()
+  )
 }
 
 const selectDate = (date) => {
   const offset = date.getTimezoneOffset()
-  const adjustedDate = new Date(date.getTime() - (offset*60*1000))
+  const adjustedDate = new Date(date.getTime() - offset * 60 * 1000)
   form.value.assigned_date = adjustedDate.toISOString().split('T')[0]
   openAddModal()
 }
@@ -627,8 +768,8 @@ const formatDate = (dateStr) => {
 
 // Lifecycle
 onMounted(async () => {
-  await loadPatients();
-  if (doctorId.value) loadCombos();
+  await loadPatients()
+  if (doctorId.value) loadCombos()
 })
 </script>
 
@@ -640,6 +781,346 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 32px;
+  position: relative;
+}
+
+/* Toast Notification */
+.toast-notification {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  padding: 16px 24px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+}
+
+.toast-notification.success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.toast-notification.error {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+}
+
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(100px);
+}
+
+/* Compact Page Header */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+  padding: 16px 24px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-bottom: 20px;
+  gap: 24px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  min-width: 280px;
+}
+
+.patient-search-compact {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.search-icon-sm {
+  position: absolute;
+  left: 12px;
+  color: #94a3b8;
+}
+
+.search-input-compact {
+  width: 100%;
+  padding: 10px 12px 10px 38px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.search-input-compact:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.patients-dropdown-compact {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  margin-top: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.dropdown-item-compact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+  transition: background 0.15s;
+}
+
+.dropdown-item-compact:hover {
+  background: #f1f5f9;
+}
+
+.avatar-xs {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.avatar-md {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.patient-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.patient-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.patient-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0;
+}
+
+.patient-email {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+}
+
+.change-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: #f1f5f9;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  margin-left: 8px;
+}
+
+.change-btn:hover {
+  background: #e2e8f0;
+  color: #6366f1;
+}
+
+/* Header Stats */
+.header-stats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 24px;
+  border-left: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
+}
+
+.stat-compact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 60px;
+}
+
+.stat-num {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.stat-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 24px;
+  background: #e2e8f0;
+}
+
+/* Header Right */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.view-toggle {
+  display: flex;
+  background: #f1f5f9;
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.toggle-btn {
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle-btn:hover {
+  color: #6366f1;
+}
+
+.toggle-btn.active {
+  background: white;
+  color: #6366f1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.add-btn-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.add-btn-header:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+
+/* Content Area */
+.content-area {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Exercises List */
+.exercises-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Skeleton Loading */
+.skeleton-patient {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.skeleton-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+.skeleton-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+
+.skeleton-line {
+  width: 120px;
+  height: 14px;
+}
+
+.skeleton-line-sm {
+  width: 160px;
+  height: 10px;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .mode-switcher {
@@ -652,7 +1133,7 @@ onMounted(async () => {
   padding: 12px 24px;
   border-radius: 12px;
   border: none;
-  background: rgba(255,255,255,0.5);
+  background: rgba(255, 255, 255, 0.5);
   font-weight: 700;
   color: #64748b;
   cursor: pointer;
@@ -697,8 +1178,16 @@ onMounted(async () => {
   font-size: 20px;
 }
 
-.combo-name { margin: 0 0 4px 0; font-size: 16px; font-weight: 700; }
-.combo-desc { margin: 0; font-size: 13px; color: #64748b; }
+.combo-name {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+.combo-desc {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
 
 .combo-items {
   display: flex;
@@ -739,7 +1228,7 @@ onMounted(async () => {
 .type-tab.active {
   background: white;
   color: #0f172a;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 /* Builder */
@@ -768,7 +1257,8 @@ onMounted(async () => {
   font-weight: 700;
 }
 
-.builder-select, .builder-input {
+.builder-select,
+.builder-input {
   padding: 8px;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
@@ -1268,6 +1758,10 @@ onMounted(async () => {
   white-space: nowrap;
 }
 
+.capitalize {
+  text-transform: capitalize;
+}
+
 .action-edit {
   background: #eef2ff;
   color: #6366f1;
@@ -1310,8 +1804,13 @@ onMounted(async () => {
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .empty-title {
@@ -1580,17 +2079,17 @@ onMounted(async () => {
   .profile-stats {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .exercise-card {
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .exercise-actions {
     width: 100%;
     justify-content: flex-end;
   }
-  
+
   .form-row {
     grid-template-columns: 1fr;
   }

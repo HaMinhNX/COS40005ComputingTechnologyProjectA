@@ -20,6 +20,25 @@ async def get_notifications(user_id: UUID, db: Session = Depends(get_db), curren
     
     return notifications
 
+@router.post("")
+async def create_notification(data: dict, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Create a new notification (used for appointment requests, etc.)"""
+    notification = Notification(
+        user_id=data.get("user_id"),
+        title=data.get("title", "Thông báo mới"),
+        message=data.get("message", ""),
+        type=data.get("type", "info"),
+        is_read=False
+    )
+    db.add(notification)
+    try:
+        db.commit()
+        db.refresh(notification)
+        return {"message": "Notification created", "notification_id": str(notification.notification_id)}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
 @router.post("/{user_id}/read-all")
 async def mark_all_read(user_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Mark all notifications as read"""

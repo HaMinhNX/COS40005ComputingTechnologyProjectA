@@ -29,8 +29,9 @@
         <div class="stat-info">
           <span class="stat-label">Tổng bệnh nhân</span>
           <h3 class="stat-value">{{ stats.totalPatients || 0 }}</h3>
-          <span class="stat-trend positive">
-            <TrendingUp :size="14" /> +12% tháng này
+          <span :class="['stat-trend', trends.patientTrend >= 0 ? 'positive' : 'negative']">
+            <TrendingUp :size="14" /> {{ trends.patientTrend >= 0 ? '+' : ''
+            }}{{ trends.patientTrend }}% tháng này
           </span>
         </div>
         <div class="stat-bg-icon"><Users :size="100" /></div>
@@ -43,8 +44,9 @@
         <div class="stat-info">
           <span class="stat-label">Đang hoạt động</span>
           <h3 class="stat-value">{{ activePatientsCount }}</h3>
-          <span class="stat-trend positive">
-            <TrendingUp :size="14" /> +5% hôm nay
+          <span :class="['stat-trend', trends.activityTrend >= 0 ? 'positive' : 'negative']">
+            <TrendingUp :size="14" /> {{ trends.activityTrend >= 0 ? '+' : ''
+            }}{{ trends.activityTrend }}% hôm nay
           </span>
         </div>
         <div class="stat-bg-icon"><Activity :size="100" /></div>
@@ -58,7 +60,7 @@
           <span class="stat-label">Cần chú ý</span>
           <h3 class="stat-value">{{ criticalPatientsCount }}</h3>
           <span class="stat-trend negative">
-            <AlertCircle :size="14" /> 2 cảnh báo mới
+            <AlertCircle :size="14" /> {{ trends.newAlerts }} cảnh báo mới
           </span>
         </div>
         <div class="stat-bg-icon"><AlertTriangle :size="100" /></div>
@@ -87,11 +89,7 @@
           <h3 class="card-title">Danh sách bệnh nhân</h3>
           <div class="search-box">
             <Search :size="18" />
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="Tìm kiếm tên, email..."
-            />
+            <input v-model="searchQuery" type="text" placeholder="Tìm kiếm tên, email..." />
           </div>
         </div>
 
@@ -130,9 +128,9 @@
                 <td>
                   <div class="progress-cell">
                     <div class="progress-bar">
-                      <div class="fill" :style="{ width: '75%' }"></div> <!-- Mock data -->
+                      <div class="fill" :style="{ width: `${patient.progress || 0}%` }"></div>
                     </div>
-                    <span class="percent">75%</span>
+                    <span class="percent">{{ patient.progress || 0 }}%</span>
                   </div>
                 </td>
                 <td class="text-muted">
@@ -201,16 +199,48 @@
                   <span class="act-name">{{ session.exercise_type }}</span>
                   <span class="act-time">{{ formatDate(session.start_time) }}</span>
                 </div>
-                <div class="activity-score">
-                  {{ session.total_reps_completed }} reps
-                </div>
+                <div class="activity-score">{{ session.total_reps_completed }} reps</div>
               </div>
             </div>
           </div>
 
           <!-- Other tabs placeholders -->
-          <div v-else class="tab-pane fade-in">
-            <p class="text-center text-muted mt-10">Đang cập nhật tính năng...</p>
+          <div v-else-if="activeTab === 'history'" class="tab-pane fade-in">
+            <h4>Lịch sử tập luyện</h4>
+            <div v-if="logs.length === 0" class="empty-state">Chưa có lịch sử tập luyện</div>
+            <div v-else class="history-list">
+              <div v-for="(log, idx) in logs.slice(0, 10)" :key="idx" class="history-item">
+                <div class="history-icon">
+                  <Activity :size="16" />
+                </div>
+                <div class="history-content">
+                  <span class="history-exercise">{{ log.exercise_type }}</span>
+                  <span class="history-date">{{ formatDate(log.completed_at) }}</span>
+                </div>
+                <div class="history-stats">
+                  <span class="reps">{{ log.rep_number }} reps</span>
+                  <span class="score" v-if="log.accuracy_score"
+                    >{{ Math.round(log.accuracy_score) }}%</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notes Tab -->
+          <div v-else-if="activeTab === 'notes'" class="tab-pane fade-in">
+            <h4>Ghi chú bệnh nhân</h4>
+            <div v-if="patientNotes.length === 0" class="empty-state">Chưa có ghi chú nào</div>
+            <div v-else class="notes-list">
+              <div v-for="note in patientNotes" :key="note.note_id" class="note-item">
+                <div class="note-header">
+                  <span class="note-title">{{ note.title }}</span>
+                  <span class="note-date">{{ formatDate(note.created_at) }}</span>
+                </div>
+                <p class="note-content">{{ note.content }}</p>
+                <span class="note-author">{{ note.doctor_name }}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -222,7 +252,10 @@
             <Users :size="64" />
           </div>
           <h3>Chọn một bệnh nhân</h3>
-          <p>Chọn bệnh nhân từ danh sách bên trái để xem chi tiết hồ sơ, lịch sử tập luyện và phân tích.</p>
+          <p>
+            Chọn bệnh nhân từ danh sách bên trái để xem chi tiết hồ sơ, lịch sử tập luyện và phân
+            tích.
+          </p>
         </div>
       </div>
     </div>
@@ -230,210 +263,280 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch, nextTick } from 'vue';
-import * as d3 from 'd3';
+import { ref, onMounted, computed, watch, nextTick } from 'vue'
+import * as d3 from 'd3'
 import {
-  Users, Activity, AlertTriangle, CheckCircle, TrendingUp, AlertCircle,
-  Plus, Bell, Search, ChevronRight, MessageSquare, Phone, Calendar, Clock
-} from 'lucide-vue-next';
-import { API_BASE_URL } from '../config';
+  Users,
+  Activity,
+  AlertTriangle,
+  CheckCircle,
+  TrendingUp,
+  AlertCircle,
+  Plus,
+  Bell,
+  Search,
+  ChevronRight,
+  MessageSquare,
+  Phone,
+  Calendar,
+  Clock,
+} from 'lucide-vue-next'
+import { API_BASE_URL } from '../config'
 
 // State
-const API_BASE = API_BASE_URL;
-const patients = ref([]);
-const selectedPatientId = ref(null);
-const selectedPatient = ref(null);
-const sessions = ref([]);
-const logs = ref([]);
-const searchQuery = ref('');
-const activeTab = ref('overview');
-const tabs = ['overview', 'history', 'notes'];
+const API_BASE = API_BASE_URL
+const patients = ref([])
+const selectedPatientId = ref(null)
+const selectedPatient = ref(null)
+const sessions = ref([])
+const logs = ref([])
+const searchQuery = ref('')
+const activeTab = ref('overview')
+const tabs = ['overview', 'history', 'notes']
 const stats = ref({
   totalPatients: 0,
   avgFormScore: 0,
-  totalReps: 0
-});
-const currentUser = ref({ full_name: 'Bác sĩ' });
+  totalReps: 0,
+})
+const trends = ref({
+  patientTrend: 0,
+  activityTrend: 0,
+  newAlerts: 0,
+})
+const patientNotes = ref([])
+const currentUser = ref({ full_name: 'Bác sĩ' })
 
 // Refs for charts
-const progressChart = ref(null);
+const progressChart = ref(null)
 
 // Computed
 const currentDate = new Date().toLocaleDateString('vi-VN', {
-  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-});
+  weekday: 'long',
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+})
 
 onMounted(() => {
-  const userStr = localStorage.getItem('user');
+  const userStr = localStorage.getItem('user')
   if (userStr) {
     try {
-      currentUser.value = JSON.parse(userStr);
+      currentUser.value = JSON.parse(userStr)
     } catch (e) {
-      console.error("Error parsing user data", e);
+      console.error('Error parsing user data', e)
     }
   }
-  loadPatients();
-});
+  loadPatients()
+})
 
 const filteredPatients = computed(() => {
-  if (!searchQuery.value) return patients.value;
-  const query = searchQuery.value.toLowerCase();
-  return patients.value.filter(p =>
-    p.full_name.toLowerCase().includes(query) ||
-    p.email.toLowerCase().includes(query)
-  );
-});
+  if (!searchQuery.value) return patients.value
+  const query = searchQuery.value.toLowerCase()
+  return patients.value.filter(
+    (p) => p.full_name.toLowerCase().includes(query) || p.email.toLowerCase().includes(query),
+  )
+})
 
-const activePatientsCount = computed(() => {
-  // Mock logic: 80% of patients are active
-  return Math.floor(patients.value.length * 0.8);
-});
+const activePatientsCount = ref(0)
+const criticalPatientsCount = ref(0)
 
-const criticalPatientsCount = computed(() => {
-  // Mock logic: Random small number
-  return Math.floor(patients.value.length * 0.1);
-});
-
-const recentSessions = computed(() => sessions.value.slice(0, 5));
+const recentSessions = computed(() => sessions.value.slice(0, 5))
 
 // Methods
-const getInitials = (name) => name ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '??';
+const getInitials = (name) =>
+  name
+    ? name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase()
+    : '??'
 
 const getTabLabel = (tab) => {
-  const map = { overview: 'Tổng quan', history: 'Lịch sử', notes: 'Ghi chú' };
-  return map[tab] || tab;
-};
+  const map = { overview: 'Tổng quan', history: 'Lịch sử', notes: 'Ghi chú' }
+  return map[tab] || tab
+}
 
 const getPatientStatus = (patient) => {
-  // Mock status logic
-  const statuses = ['active', 'active', 'warning', 'active'];
-  return statuses[patient.patient_id % statuses.length] || 'active';
-};
+  // Use real status from API data
+  return patient.status || 'active'
+}
 
 const getPatientStatusText = (patient) => {
-  const status = getPatientStatus(patient);
-  return status === 'active' ? 'Hoạt động' : 'Cần chú ý';
-};
+  const status = getPatientStatus(patient)
+  if (status === 'active') return 'Hoạt động'
+  if (status === 'needs_attention') return 'Cần chú ý'
+  return 'Không hoạt động'
+}
 
 const getLastActive = (patient) => {
-  return '2 giờ trước'; // Mock
-};
+  if (!patient.last_active_at) return 'Chưa hoạt động'
+  const lastActive = new Date(patient.last_active_at)
+  const now = new Date()
+  const diffMs = now - lastActive
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  if (diffMins < 60) return `${diffMins} phút trước`
+  if (diffHours < 24) return `${diffHours} giờ trước`
+  return `${diffDays} ngày trước`
+}
 
 const formatDate = (dateStr) => {
-  return new Date(dateStr).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-};
+  return new Date(dateStr).toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
 
 const getSessionQuality = (session) => {
-  return session.total_errors_detected > 2 ? 'poor' : 'good';
-};
+  return session.total_errors_detected > 2 ? 'poor' : 'good'
+}
 
 const selectPatient = async (patient) => {
-  selectedPatientId.value = patient.patient_id;
-  selectedPatient.value = patient;
-  await loadPatientData(patient.patient_id);
-};
+  selectedPatientId.value = patient.patient_id
+  selectedPatient.value = patient
+  await loadPatientData(patient.patient_id)
+}
 
 const loadPatients = async () => {
   try {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`${API_BASE}/patients`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    const token = localStorage.getItem('token')
+
+    // Load patients with status
+    const res = await fetch(`${API_BASE}/patients-with-status`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
     if (res.ok) {
-      patients.value = await res.json();
-      stats.value.totalPatients = patients.value.length;
+      patients.value = await res.json()
+      stats.value.totalPatients = patients.value.length
+    }
+
+    // Load dashboard summary for active/critical counts and trends
+    const summaryRes = await fetch(`${API_BASE}/dashboard/summary`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (summaryRes.ok) {
+      const summary = await summaryRes.json()
+      activePatientsCount.value = summary.active_count
+      criticalPatientsCount.value = summary.needs_attention_count
+      stats.value.avgFormScore = summary.avg_form_score
+      trends.value.patientTrend = summary.patient_trend || 0
+      trends.value.activityTrend = summary.activity_trend || 0
+      trends.value.newAlerts = summary.new_alerts || 0
     }
   } catch (e) {
-    console.error(e);
+    console.error(e)
   }
-};
+}
 
 const loadPatientData = async (id) => {
   try {
-    const token = localStorage.getItem('token');
-    const [sessRes, logsRes] = await Promise.all([
+    const token = localStorage.getItem('token')
+    const [sessRes, logsRes, notesRes] = await Promise.all([
       fetch(`${API_BASE}/patient-sessions/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       }),
       fetch(`${API_BASE}/patient-logs/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-    ]);
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      fetch(`${API_BASE}/patient-notes/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+    ])
 
-    if (sessRes.ok) sessions.value = await sessRes.json();
-    if (logsRes.ok) logs.value = await logsRes.json();
+    if (sessRes.ok) sessions.value = await sessRes.json()
+    if (logsRes.ok) logs.value = await logsRes.json()
+    if (notesRes.ok) patientNotes.value = await notesRes.json()
 
     // Update stats
     if (logs.value.length) {
-      const avg = logs.value.reduce((a, b) => a + b.form_score, 0) / logs.value.length;
-      stats.value.avgFormScore = Math.round(avg);
+      const avg = logs.value.reduce((a, b) => a + (b.accuracy_score || 0), 0) / logs.value.length
+      stats.value.avgFormScore = Math.round(avg)
     }
 
-    nextTick(() => drawChart());
+    nextTick(() => drawChart())
   } catch (e) {
-    console.error(e);
+    console.error(e)
   }
-};
+}
 
 const drawChart = () => {
-  if (!progressChart.value || !logs.value.length) return;
+  if (!progressChart.value || !logs.value.length) return
 
-  const container = d3.select(progressChart.value);
-  container.selectAll('*').remove();
+  const container = d3.select(progressChart.value)
+  container.selectAll('*').remove()
 
-  const width = progressChart.value.clientWidth;
-  const height = progressChart.value.clientHeight;
-  const margin = { top: 10, right: 10, bottom: 20, left: 30 };
+  const width = progressChart.value.clientWidth
+  const height = progressChart.value.clientHeight
+  const margin = { top: 10, right: 10, bottom: 20, left: 30 }
 
-  const svg = container.append('svg')
-    .attr('width', width)
-    .attr('height', height);
+  const svg = container.append('svg').attr('width', width).attr('height', height)
 
-  const data = logs.value.slice(0, 10).reverse();
+  // Filter data to ensure we have valid scores
+  const rawData = logs.value.slice(0, 10).reverse()
+  const data = rawData.filter((d) => d.accuracy_score != null && !isNaN(d.accuracy_score))
 
-  const x = d3.scaleLinear()
+  if (data.length < 2) {
+    // Not enough valid data points for chart
+    return
+  }
+
+  const x = d3
+    .scaleLinear()
     .domain([0, data.length - 1])
-    .range([margin.left, width - margin.right]);
+    .range([margin.left, width - margin.right])
 
-  const y = d3.scaleLinear()
+  const y = d3
+    .scaleLinear()
     .domain([0, 100])
-    .range([height - margin.bottom, margin.top]);
+    .range([height - margin.bottom, margin.top])
 
   // Gradient
-  const gradient = svg.append("defs")
-    .append("linearGradient")
-    .attr("id", "line-gradient")
-    .attr("gradientUnits", "userSpaceOnUse")
-    .attr("x1", 0).attr("y1", y(0))
-    .attr("x2", 0).attr("y2", y(100));
+  const gradient = svg
+    .append('defs')
+    .append('linearGradient')
+    .attr('id', 'line-gradient')
+    .attr('gradientUnits', 'userSpaceOnUse')
+    .attr('x1', 0)
+    .attr('y1', y(0))
+    .attr('x2', 0)
+    .attr('y2', y(100))
 
-  gradient.append("stop").attr("offset", "0%").attr("stop-color", "#6366f1");
-  gradient.append("stop").attr("offset", "100%").attr("stop-color", "#a855f7");
+  gradient.append('stop').attr('offset', '0%').attr('stop-color', '#6366f1')
+  gradient.append('stop').attr('offset', '100%').attr('stop-color', '#a855f7')
 
-  const line = d3.line()
+  const line = d3
+    .line()
     .x((d, i) => x(i))
-    .y(d => y(d.form_score))
-    .curve(d3.curveCatmullRom);
+    .y((d) => y(d.accuracy_score || 0))
+    .curve(d3.curveCatmullRom)
 
-  svg.append('path')
+  svg
+    .append('path')
     .datum(data)
     .attr('fill', 'none')
     .attr('stroke', 'url(#line-gradient)')
     .attr('stroke-width', 3)
-    .attr('d', line);
+    .attr('d', line)
 
   // Dots
-  svg.selectAll('circle')
+  svg
+    .selectAll('circle')
     .data(data)
     .enter()
     .append('circle')
     .attr('cx', (d, i) => x(i))
-    .attr('cy', d => y(d.form_score))
+    .attr('cy', (d) => y(d.accuracy_score || 0))
     .attr('r', 4)
     .attr('fill', 'white')
     .attr('stroke', '#6366f1')
-    .attr('stroke-width', 2);
-};
+    .attr('stroke-width', 2)
+}
 </script>
 
 <style scoped>
@@ -561,10 +664,18 @@ const drawChart = () => {
   z-index: 2;
 }
 
-.stat-card.blue .stat-icon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-.stat-card.green .stat-icon { background: linear-gradient(135deg, #10b981, #059669); }
-.stat-card.orange .stat-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
-.stat-card.purple .stat-icon { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+.stat-card.blue .stat-icon {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+.stat-card.green .stat-icon {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+.stat-card.orange .stat-icon {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+.stat-card.purple .stat-icon {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
 
 .stat-info {
   position: relative;
@@ -592,8 +703,12 @@ const drawChart = () => {
   gap: 4px;
 }
 
-.stat-trend.positive { color: #10b981; }
-.stat-trend.negative { color: #ef4444; }
+.stat-trend.positive {
+  color: #10b981;
+}
+.stat-trend.negative {
+  color: #ef4444;
+}
 
 .stat-bg-icon {
   position: absolute;
@@ -742,8 +857,14 @@ const drawChart = () => {
   flex-direction: column;
 }
 
-.name { font-weight: 600; color: #0f172a; }
-.email { font-size: 12px; color: #64748b; }
+.name {
+  font-weight: 600;
+  color: #0f172a;
+}
+.email {
+  font-size: 12px;
+  color: #64748b;
+}
 
 .status-badge {
   padding: 4px 10px;
@@ -752,8 +873,14 @@ const drawChart = () => {
   font-weight: 600;
 }
 
-.status-badge.active { background: #dcfce7; color: #166534; }
-.status-badge.warning { background: #fef3c7; color: #92400e; }
+.status-badge.active {
+  background: #dcfce7;
+  color: #166534;
+}
+.status-badge.warning {
+  background: #fef3c7;
+  color: #92400e;
+}
 
 .progress-cell {
   display: flex;
@@ -775,7 +902,11 @@ const drawChart = () => {
   border-radius: 10px;
 }
 
-.percent { font-size: 12px; font-weight: 600; color: #64748b; }
+.percent {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
 
 .icon-btn {
   background: transparent;
@@ -950,8 +1081,14 @@ const drawChart = () => {
   font-size: 16px;
 }
 
-.activity-icon.good { background: #dcfce7; color: #166534; }
-.activity-icon.poor { background: #fee2e2; color: #991b1b; }
+.activity-icon.good {
+  background: #dcfce7;
+  color: #166534;
+}
+.activity-icon.poor {
+  background: #fee2e2;
+  color: #991b1b;
+}
 
 .activity-details {
   flex: 1;
@@ -959,8 +1096,15 @@ const drawChart = () => {
   flex-direction: column;
 }
 
-.act-name { font-weight: 600; color: #334155; font-size: 14px; }
-.act-time { font-size: 12px; color: #94a3b8; }
+.act-name {
+  font-weight: 600;
+  color: #334155;
+  font-size: 14px;
+}
+.act-time {
+  font-size: 12px;
+  color: #94a3b8;
+}
 
 .activity-score {
   font-weight: 700;

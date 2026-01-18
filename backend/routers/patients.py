@@ -147,3 +147,43 @@ async def delete_patient(patient_id: UUID, db: Session = Depends(get_db), curren
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
+
+from sqlalchemy import func
+from models import Assignment
+
+@router.get("/patients/{patient_id}/stats")
+async def get_patient_stats(patient_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Get comprehensive stats for a patient - replaces mocked patient stats"""
+    verify_patient_access(patient_id, current_user, db)
+    
+    # 1. Total workout sessions
+    total_sessions = db.query(WorkoutSession).filter(WorkoutSession.user_id == patient_id).count()
+    
+    # 2. Total time (in hours)
+    total_seconds = db.query(func.sum(SessionDetail.duration_seconds)).join(WorkoutSession).filter(
+        WorkoutSession.user_id == patient_id
+    ).scalar() or 0
+    total_hours = round(total_seconds / 3600, 1)
+    
+    # 3. Average accuracy score
+    avg_score = db.query(func.avg(SessionDetail.accuracy_score)).join(WorkoutSession).filter(
+        WorkoutSession.user_id == patient_id
+    ).scalar() or 0
+    avg_score = round(float(avg_score), 1) if avg_score else 0
+    
+    # 4. Compliance rate (completed assignments / total assignments)
+    total_assignments = db.query(Assignment).filter(Assignment.patient_id == patient_id).count()
+    completed_assignments = db.query(Assignment).filter(
+        Assignment.patient_id == patient_id,
+        Assignment.is_completed == True
+    ).count()
+    compliance = round((completed_assignments / total_assignments * 100) if total_assignments > 0 else 0)
+    
+    return {
+        "compliance": compliance,
+        "sessions": total_sessions,
+        "totalTime": total_hours,
+        "avgScore": avg_score
+    }
+
+

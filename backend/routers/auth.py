@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import User
 from auth import verify_password, get_password_hash, create_access_token
-from schemas import UserLogin, UserCreate, UserWithToken
+from dependencies import get_current_user
+from schemas import UserLogin, UserCreate, UserWithToken, UserResponse
 
 router = APIRouter(
     prefix="/api",
@@ -87,3 +88,8 @@ async def signup(data: UserCreate, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Lỗi tạo tài khoản: {str(e)}")
+
+@router.get("/me", response_model=UserResponse)
+async def read_users_me(current_user: User = Depends(get_current_user)):
+    """Get current user details"""
+    return current_user
