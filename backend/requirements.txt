@@ -6,7 +6,6 @@ alembic
 python-dotenv
 passlib[bcrypt]
 bcrypt==3.2.2
-
 python-jose[cryptography]
 pydantic[email]  # includes email-validator
 requests
