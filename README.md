@@ -1,30 +1,62 @@
-REMEMBER TO CREATE THE PROJECT OWN PYTHON ENV 
+# Project Setup Guide
 
+> ⚠️ **Remember to create the project's own Python virtual environment before starting.**
 
-CREATE VIRTUAL ENVIRONMENT FOR TESTING
-1. python -m venv venv
--> then run "venv\Scripts\Activate.ps1" (Powershell)
--> or run "venv\Scripts\activate" (CMD)
+---
 
+## 🐍 Virtual Environment Setup
 
-TO INSTALL DEPENDENCIES
-1. cd frontend 
--> then run "npm install"
--> then run "cd .."
+```bash
+python -m venv venv
+```
 
-2. cd backend
--> then run "pip install -r requirements.txt"
--> then run "cd .."
+Activate the environment:
 
-TO RUN THE PROGRAM 
-1. cd frontend
- npm run dev
- -> then run "cd .."
+```bash
+# PowerShell
+venv\Scripts\Activate.ps1
 
-2. cd backend
- uvicorn main:app --reload
+# CMD
+venv\Scripts\activate
+```
 
-3. cd backend 
+---
+
+## 📦 Installing Dependencies
+
+### Frontend
+```bash
+cd frontend
+npm install
+cd ..
+```
+
+### Backend
+```bash
+cd backend
+pip install -r requirements.txt
+cd ..
+```
+
+---
+
+## 🚀 Running the Program
+
+### 1. Frontend
+```bash
+cd frontend
+npm run dev
+cd ..
+```
+
+### 2. Backend — Main App
+```bash
+cd backend
+uvicorn main:app --reload
+```
+
+### 3. Backend — Dashboard API
+```bash
+cd backend
 uvicorn api_dashboard:app --reload --port 8001
-
-
+```
