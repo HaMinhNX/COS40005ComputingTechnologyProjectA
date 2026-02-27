@@ -40,13 +40,12 @@ cd ..
 
 ---
 
-## 🚀 Running the Program
+## 🚀 Running the Program (3 terminals > remember to re-activate virtual environment on new terminal)
 
 ### 1. Frontend
 ```bash
 cd frontend
 npm run dev
-cd ..
 ```
 
 ### 2. Backend — Main App
