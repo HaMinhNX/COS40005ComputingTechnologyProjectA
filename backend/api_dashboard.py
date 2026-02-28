@@ -155,6 +155,32 @@ async def get_authenticated_doctor_id(current_user: User = Depends(get_current_d
     return {"doctor_id": str(current_user.user_id)}
 
 
+# === Auto Mail Endpoint ===
+from pydantic import BaseModel as PydanticBaseModel
+
+class SendReportRequest(PydanticBaseModel):
+    receiver_email: str
+    patient_name: str
+
+@app.post("/api/send-report-email")
+async def send_report_email(req: SendReportRequest):
+    from auto_mail import send_health_email
+    try:
+        success = send_health_email(receiver=req.receiver_email, name=req.patient_name)
+        if success:
+            return {"success": True, "message": f"Báo cáo đã được gửi tới {req.receiver_email}"}
+        else:
+            return JSONResponse(
+                status_code=500,
+                content={"success": False, "message": "Gửi email thất bại. Kiểm tra cấu hình SMTP."}
+            )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": f"Lỗi: {str(e)}"}
+        )
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)

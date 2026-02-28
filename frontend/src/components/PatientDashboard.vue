@@ -1,12 +1,21 @@
 <template>
   <div class="max-w-7xl mx-auto px-2">
     <!-- Header -->
-    <div class="mb-8">
-      <h1 class="text-4xl font-black text-slate-900 mb-2">Sức khỏe của bạn</h1>
-      <p class="text-lg text-slate-600 font-bold flex items-center gap-2">
-        <span class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></span>
-        Dữ liệu từ smartwatch
-      </p>
+    <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <h1 class="text-4xl font-black text-slate-900 mb-2">Sức khỏe của bạn</h1>
+        <p class="text-lg text-slate-600 font-bold flex items-center gap-2">
+          <span class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></span>
+          Dữ liệu từ smartwatch
+        </p>
+      </div>
+      <button
+        @click="showEmailModal = true"
+        class="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:shadow-emerald-500/40 transition-all hover:scale-105 text-sm"
+      >
+        <Mail :size="20" />
+        Gửi báo cáo phục hồi
+      </button>
     </div>
 
     <!-- Health Metrics Cards -->
@@ -288,6 +297,83 @@
         <p class="text-base text-slate-600 font-bold">Hãy bắt đầu bài tập đầu tiên của bạn!</p>
       </div>
     </div>
+
+    <!-- Email Report Modal -->
+    <Transition name="fade">
+      <div
+        v-if="showEmailModal"
+        class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+        @click.self="showEmailModal = false"
+      >
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
+          <div class="p-6 bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
+            <h3 class="text-xl font-black flex items-center gap-2">
+              <Mail :size="24" />
+              Gửi báo cáo phục hồi qua Email
+            </h3>
+            <p class="text-emerald-100 text-sm font-bold mt-1">
+              Báo cáo tiến độ phục hồi chức năng sẽ được gửi tự động
+            </p>
+          </div>
+          <div class="p-6 space-y-5">
+            <div>
+              <label class="block text-sm font-black text-slate-700 mb-2">Tên bệnh nhân</label>
+              <input
+                v-model="emailForm.patientName"
+                type="text"
+                placeholder="Nhập tên bệnh nhân"
+                class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl font-bold text-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-black text-slate-700 mb-2">Email người nhận</label>
+              <input
+                v-model="emailForm.receiverEmail"
+                type="email"
+                placeholder="example@gmail.com"
+                class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl font-bold text-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
+              />
+              <p class="text-xs text-slate-400 font-medium mt-1.5">
+                Hỗ trợ nhiều email, phân cách bằng dấu phẩy
+              </p>
+            </div>
+          </div>
+          <div class="p-6 bg-slate-50 flex gap-3">
+            <button
+              @click="showEmailModal = false"
+              class="flex-1 py-3 rounded-xl font-bold text-slate-600 hover:bg-white hover:shadow-md transition-all border border-transparent hover:border-slate-200"
+            >
+              Hủy bỏ
+            </button>
+            <button
+              @click="sendReport"
+              :disabled="emailSending"
+              class="flex-1 py-3 rounded-xl font-black text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <Send v-if="!emailSending" :size="18" />
+              <span
+                v-if="emailSending"
+                class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"
+              ></span>
+              {{ emailSending ? 'Đang gửi...' : 'Gửi báo cáo' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Toast Notification -->
+    <Transition name="toast">
+      <div
+        v-if="emailToast.show"
+        :class="[
+          'fixed bottom-6 right-6 z-[200] px-6 py-4 rounded-2xl shadow-2xl font-bold text-white flex items-center gap-3 max-w-md',
+          emailToast.type === 'success' ? 'bg-emerald-500' : 'bg-red-500',
+        ]"
+      >
+        <span>{{ emailToast.message }}</span>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -308,6 +394,8 @@ import {
   User,
   CalendarOff,
   TrendingUp,
+  Mail,
+  Send,
 } from 'lucide-vue-next'
 import * as d3 from 'd3'
 import { API_BASE_URL } from '../config'
@@ -331,6 +419,51 @@ const todayPlan = ref([])
 
 const API_URL = API_BASE_URL
 // Removed unreadCount computed property
+
+// Email report state
+const showEmailModal = ref(false)
+const emailSending = ref(false)
+const emailForm = ref({
+  patientName: '',
+  receiverEmail: '',
+})
+const emailToast = ref({ show: false, message: '', type: 'success' })
+
+const showToast = (message, type = 'success') => {
+  emailToast.value = { show: true, message, type }
+  setTimeout(() => {
+    emailToast.value.show = false
+  }, 4000)
+}
+
+const sendReport = async () => {
+  if (!emailForm.value.receiverEmail.trim()) {
+    showToast('Vui lòng nhập email người nhận', 'error')
+    return
+  }
+  emailSending.value = true
+  try {
+    const res = await fetch(`${API_URL}/send-report-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        receiver_email: emailForm.value.receiverEmail.trim(),
+        patient_name: emailForm.value.patientName.trim() || 'Bệnh nhân',
+      }),
+    })
+    const data = await res.json()
+    if (res.ok && data.success) {
+      showToast(data.message, 'success')
+      showEmailModal.value = false
+    } else {
+      showToast(data.message || 'Gửi email thất bại', 'error')
+    }
+  } catch (e) {
+    showToast('Lỗi kết nối server', 'error')
+  } finally {
+    emailSending.value = false
+  }
+}
 
 // Generate dynamic health data
 const updateHealthData = () => {
@@ -434,7 +567,7 @@ const drawWeeklyChart = () => {
 
   const margin = { top: 20, right: 20, bottom: 30, left: 40 }
   const width = container.node().getBoundingClientRect().width - margin.left - margin.right
-  const height = 280- margin.top - margin.bottom
+  const height = 280 - margin.top - margin.bottom
 
   const svg = container
     .append('svg')
@@ -510,6 +643,17 @@ async function fetchData() {
 let dataInterval = null
 
 onMounted(() => {
+  // Pre-fill patient name from localStorage
+  const userStr = localStorage.getItem('user')
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr)
+      emailForm.value.patientName = user.full_name || ''
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
   fetchData()
   dataInterval = setInterval(() => {
     updateHealthData()
@@ -537,5 +681,33 @@ onUnmounted(() => {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Removed custom-scrollbar and dropdown transition styles */
+.fade-enter-active,
+.fade-leave-active {
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+.fade-enter-from {
+  opacity: 0;
+  transform: scale(0.95);
+}
+.fade-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.toast-enter-active {
+  transition: all 0.4s ease;
+}
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+.toast-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+.toast-leave-to {
+  opacity: 0;
+  transform: translateY(20px);
+}
 </style>
