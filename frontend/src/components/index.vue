@@ -139,22 +139,8 @@
           </p>
         </div>
 
-        <!-- Right: Search Bar & Notification Bell -->
+        <!-- Right: Notification Bell -->
         <div class="flex justify-end items-center gap-3">
-          <div class="relative group hidden lg:block w-64">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-              <Search
-                class="text-slate-400 group-focus-within:text-indigo-600 transition-colors"
-                :size="16"
-              />
-            </div>
-            <input
-              type="text"
-              placeholder="Tìm kiếm..."
-              class="block w-full pl-10 pr-3 py-2 bg-slate-100/50 border border-slate-200 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 rounded-xl text-xs transition-all outline-none placeholder-slate-400 font-medium"
-            />
-          </div>
-
           <!-- Notification Bell with Dropdown -->
           <div class="relative">
             <button
@@ -286,7 +272,6 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Search,
   Bell,
   Calendar as CalendarIcon,
   Phone,

@@ -17,8 +17,10 @@ app = FastAPI(title="Medic1 Rehabilitation API", version="2.0")
 origins = [
     "http://localhost:3000",
     "http://localhost:5173",
+    "http://localhost:4173",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5173",
+    "http://127.0.0.1:4173",
 ]
 
 app.add_middleware(
