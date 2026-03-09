@@ -19,11 +19,11 @@
 
       <div class="login-form-section">
         <!-- Tab Switcher -->
-        <div class="tab-switcher">
-          <button @click="isLogin = true" :class="['tab-btn', { active: isLogin }]">
+        <div class="tab-switcher" v-if="!isForgotPassword">
+          <button @click="isLogin = true; isForgotPassword = false" :class="['tab-btn', { active: isLogin }]">
             Đăng nhập
           </button>
-          <button @click="isLogin = false" :class="['tab-btn', { active: !isLogin }]">
+          <button @click="isLogin = false; isForgotPassword = false" :class="['tab-btn', { active: !isLogin }]">
             Đăng ký
           </button>
         </div>
@@ -77,10 +77,14 @@
             <span v-else class="btn-text">Đang xử lý...</span>
             <ArrowRight class="btn-icon" :size="20" />
           </button>
+          
+          <div style="text-align:right; margin-top: 5px;">
+             <a href="#" @click.prevent="isForgotPassword = true; isLogin = false; forgotPasswordStep = 1" style="color: #667eea; text-decoration: none; font-size: 14px;">Quên mật khẩu?</a>
+          </div>
         </form>
 
         <!-- Signup Form -->
-        <form v-else @submit.prevent="onSignup" class="auth-form">
+        <form v-else-if="!isLogin && !isForgotPassword" @submit.prevent="onSignup" class="auth-form">
           <h2 class="form-title">Tạo tài khoản mới</h2>
           <p class="form-subtitle">Đăng ký để bắt đầu</p>
 
@@ -198,6 +202,91 @@
           </div>
         </form>
 
+        <!-- Forgot Password Form -->
+        <form v-else-if="isForgotPassword" @submit.prevent="onForgotPasswordSubmit" class="auth-form">
+          <h2 class="form-title">Quên mật khẩu</h2>
+          <p class="form-subtitle">
+            <span v-if="forgotPasswordStep === 1">Nhập email để nhận mã xác nhận</span>
+            <span v-else-if="forgotPasswordStep === 2">Nhập mã OTP được gửi đến email</span>
+            <span v-else>Tạo mật khẩu mới</span>
+          </p>
+
+          <div v-if="forgotPasswordStep === 1">
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <div class="input-wrapper">
+                <Mail :size="18" class="input-icon" />
+                <input
+                  v-model="forgotPasswordForm.email"
+                  type="email"
+                  required
+                  placeholder="Nhập email của bạn"
+                  class="form-input with-icon"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div v-else-if="forgotPasswordStep === 2">
+            <div class="form-group">
+              <label class="form-label">Mã xác nhận (OTP)</label>
+              <div class="input-wrapper">
+                <Lock :size="18" class="input-icon" />
+                <input
+                  v-model="forgotPasswordForm.otpCode"
+                  type="text"
+                  required
+                  maxlength="6"
+                  placeholder="Nhập mã 6 số từ email"
+                  class="form-input with-icon"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div v-else-if="forgotPasswordStep === 3">
+            <div class="form-group">
+              <label class="form-label">Mật khẩu mới</label>
+              <div class="password-input-group">
+                <div class="input-wrapper-inner">
+                  <Lock :size="18" class="input-icon" />
+                  <input
+                    v-model="forgotPasswordForm.newPassword"
+                    :type="showPassword ? 'text' : 'password'"
+                    required
+                    minlength="8"
+                    placeholder="Tối thiểu 8 ký tự, có Hoa, thường, số"
+                    class="form-input with-icon"
+                  />
+                </div>
+                <button
+                  type="button"
+                  @click="showPassword = !showPassword"
+                  class="password-toggle-external"
+                >
+                  <Eye v-if="!showPassword" :size="20" />
+                  <EyeOff v-else :size="20" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-submit" :disabled="loading">
+            <span v-if="!loading" class="btn-text">
+              <span v-if="forgotPasswordStep === 1">Gửi mã OTP</span>
+              <span v-else-if="forgotPasswordStep === 2">Xác nhận OTP</span>
+              <span v-else>Đặt lại mật khẩu</span>
+            </span>
+            <span v-else class="btn-text">Đang xử lý...</span>
+            <ArrowRight class="btn-icon" :size="20" v-if="forgotPasswordStep !== 3" />
+            <CheckCircle class="btn-icon" :size="20" v-else />
+          </button>
+          
+          <div style="text-align:center; margin-top: 15px;">
+            <a href="#" @click.prevent="isForgotPassword = false; isLogin = true" style="color: #667eea; text-decoration: none; font-size: 14px;">Quay lại đăng nhập</a>
+          </div>
+        </form>
+
         <!-- Error/Success Message -->
         <transition name="fade">
           <div v-if="message.text" :class="['message', message.type]">
@@ -233,7 +322,9 @@ import { API_BASE_URL } from '../config'
 
 const router = useRouter()
 const isLogin = ref(true)
+const isForgotPassword = ref(false)
 const isOTPStep = ref(false)
+const forgotPasswordStep = ref(1)
 const showPassword = ref(false)
 const loading = ref(false)
 const message = ref({ text: '', type: '' })
@@ -242,6 +333,12 @@ const otpCode = ref('')
 const loginForm = ref({
   username: '',
   password: '',
+})
+
+const forgotPasswordForm = ref({
+  email: '',
+  otpCode: '',
+  newPassword: '',
 })
 
 const signupForm = ref({
@@ -391,6 +488,107 @@ const onRequestOTP = async () => {
     showMessage(e.message, 'error')
   } finally {
     loading.value = false
+  }
+}
+
+const onForgotPasswordSubmit = async () => {
+  if (forgotPasswordStep.value === 1) {
+    if (!forgotPasswordForm.value.email) {
+      showMessage("Vui lòng nhập email", 'error')
+      return
+    }
+    
+    loading.value = true
+    message.value = { text: '', type: '' }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/forgot-password/request-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotPasswordForm.value.email }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(getErrorMessage(data))
+      }
+
+      showMessage(data.message || 'Mã OTP đã được gửi!', 'success')
+      forgotPasswordStep.value = 2
+    } catch (e) {
+      showMessage(e.message, 'error')
+    } finally {
+      loading.value = false
+    }
+  } else if (forgotPasswordStep.value === 2) {
+    if (!forgotPasswordForm.value.otpCode) {
+      showMessage("Vui lòng nhập mã OTP", 'error')
+      return
+    }
+    
+    loading.value = true
+    message.value = { text: '', type: '' }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/forgot-password/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: forgotPasswordForm.value.email, 
+          otp_code: forgotPasswordForm.value.otpCode 
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(getErrorMessage(data))
+      }
+
+      showMessage('Mã OTP hợp lệ, vui lòng tạo mật khẩu mới.', 'success')
+      forgotPasswordStep.value = 3
+    } catch (e) {
+      showMessage(e.message, 'error')
+    } finally {
+      loading.value = false
+    }
+  } else if (forgotPasswordStep.value === 3) {
+    if (!forgotPasswordForm.value.newPassword) {
+      showMessage("Vui lòng nhập mật khẩu mới", 'error')
+      return
+    }
+    
+    loading.value = true
+    message.value = { text: '', type: '' }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/forgot-password/reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: forgotPasswordForm.value.email, 
+          otp_code: forgotPasswordForm.value.otpCode,
+          new_password: forgotPasswordForm.value.newPassword
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(getErrorMessage(data))
+      }
+
+      showMessage('Đặt lại mật khẩu thành công! Bạn có thể đăng nhập.', 'success')
+      isForgotPassword.value = false
+      isLogin.value = true
+      forgotPasswordStep.value = 1
+      forgotPasswordForm.value = { email: '', otpCode: '', newPassword: '' }
+    } catch (e) {
+      showMessage(e.message, 'error')
+    } finally {
+      loading.value = false
+    }
   }
 }
 

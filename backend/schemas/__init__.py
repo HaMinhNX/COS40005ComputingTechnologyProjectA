@@ -13,6 +13,9 @@ from schemas.user import (
     PatientResponse,
     DoctorResponse,
     GoogleLogin,
+    ForgotPasswordRequest,
+    VerifyForgotPasswordOTP,
+    ResetPassword,
 )
 
 from schemas.exercise import (
@@ -70,6 +73,9 @@ __all__ = [
     "PatientCreate",
     "PatientResponse",
     "DoctorResponse",
+    "ForgotPasswordRequest",
+    "VerifyForgotPasswordOTP",
+    "ResetPassword",
     # Exercise schemas
     "AssignmentCreate",
     "AssignmentUpdate",

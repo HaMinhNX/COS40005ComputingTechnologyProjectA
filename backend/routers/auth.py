@@ -4,7 +4,7 @@ from database import get_db
 from models import User
 from auth import verify_password, get_password_hash, create_access_token
 from dependencies import get_current_user
-from schemas import UserLogin, UserCreate, UserWithToken, UserResponse, GoogleLogin
+from schemas import UserLogin, UserCreate, UserWithToken, UserResponse, GoogleLogin, ForgotPasswordRequest, VerifyForgotPasswordOTP, ResetPassword
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 import os
@@ -86,6 +86,31 @@ def send_otp_email(recipient: str, otp_code: str):
         server.send_message(msg)
         server.quit()
         print(f"DEBUG: Sent OTP to {recipient}")
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+
+def send_forgot_password_email(recipient: str, otp_code: str):
+    sender = os.getenv("SMTP_EMAIL")
+    password = os.getenv("SMTP_PASSWORD")
+    if not sender or not password:
+        print(f"SMTP config missing. Fake sent forgot password OTP to {recipient}: {otp_code}")
+        return
+
+    msg = MIMEMultipart()
+    msg['From'] = f"Medic1 <{sender}>"
+    msg['To'] = recipient
+    msg['Subject'] = "Mã xác nhận quên mật khẩu Medic1"
+
+    body = f"Chào bạn,\n\nMã xác nhận (OTP) để đặt lại mật khẩu của bạn là: {otp_code}\nMã này sẽ hết hạn trong 15 phút.\nNếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.\n\nTrân trọng,\nĐội ngũ Medic1"
+    msg.attach(MIMEText(body, 'plain'))
+    
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(sender, password)
+        server.send_message(msg)
+        server.quit()
+        print(f"DEBUG: Sent forgot password OTP to {recipient}")
     except Exception as e:
         print(f"Failed to send email: {e}")
 
@@ -177,6 +202,88 @@ async def verify_otp(data: OTPVerifySchema, db: Session = Depends(get_db)):
         traceback.print_exc()
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Lỗi tạo tài khoản: {str(e)}")
+
+@router.post("/forgot-password/request-otp")
+async def forgot_password_request_otp(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    """Request OTP for forgot password"""
+    user = db.query(User).filter(User.email == data.email).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Không tìm thấy tài khoản với email này")
+        
+    otp_code = ''.join(random.choices(string.digits, k=6))
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
+    
+    existing = db.query(OTPVerification).filter(OTPVerification.email == data.email).first()
+    if existing:
+        existing.otp_code = otp_code
+        existing.expires_at = expires_at
+        existing.user_data = json.dumps({"reason": "forgot_password"})
+    else:
+        new_verify = OTPVerification(
+            email=data.email,
+            otp_code=otp_code,
+            expires_at=expires_at,
+            user_data=json.dumps({"reason": "forgot_password"})
+        )
+        db.add(new_verify)
+    
+    db.commit()
+    send_forgot_password_email(data.email, otp_code)
+    
+    return {"message": "Mã OTP đặt lại mật khẩu đã được gửi đến email của bạn."}
+
+@router.post("/forgot-password/verify-otp")
+async def forgot_password_verify_otp(data: VerifyForgotPasswordOTP, db: Session = Depends(get_db)):
+    """Verify OTP for forgot password"""
+    verify_record = db.query(OTPVerification).filter(OTPVerification.email == data.email).first()
+    if not verify_record:
+        raise HTTPException(status_code=400, detail="Không tìm thấy yêu cầu xác nhận cho email này")
+        
+    if verify_record.otp_code != data.otp_code:
+        raise HTTPException(status_code=400, detail="Mã OTP không chính xác")
+        
+    now = datetime.now(timezone.utc)
+    expires = verify_record.expires_at
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+        
+    if expires < now:
+        raise HTTPException(status_code=400, detail="Mã OTP đã hết hạn")
+        
+    # Valid OTP
+    return {"message": "Mã OTP hợp lệ"}
+
+@router.post("/forgot-password/reset")
+async def forgot_password_reset(data: ResetPassword, db: Session = Depends(get_db)):
+    """Reset password after OTP verification"""
+    verify_record = db.query(OTPVerification).filter(OTPVerification.email == data.email).first()
+    if not verify_record:
+        raise HTTPException(status_code=400, detail="Không tìm thấy yêu cầu xác nhận cho email này")
+        
+    if verify_record.otp_code != data.otp_code:
+        raise HTTPException(status_code=400, detail="Mã OTP không chính xác hoặc đã hết hạn")
+        
+    now = datetime.now(timezone.utc)
+    expires = verify_record.expires_at
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+        
+    if expires < now:
+        raise HTTPException(status_code=400, detail="Mã OTP đã hết hạn")
+        
+    user = db.query(User).filter(User.email == data.email).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Không tìm thấy người dùng")
+        
+    # Update password
+    hashed_password = get_password_hash(data.new_password)
+    user.password_hash = hashed_password
+    
+    # Delete OTP record
+    db.delete(verify_record)
+    db.commit()
+    
+    return {"message": "Đặt lại mật khẩu thành công. Bạn có thể đăng nhập với mật khẩu mới."}
 
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
 
