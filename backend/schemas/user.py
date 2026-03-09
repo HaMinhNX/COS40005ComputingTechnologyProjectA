@@ -2,7 +2,7 @@
 Pydantic schemas for User-related operations.
 Provides request/response validation and API documentation.
 """
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional
 from datetime import datetime
 from uuid import UUID
@@ -29,7 +29,8 @@ class UserCreate(BaseModel):
     full_name: Optional[str] = Field(None, max_length=100)
     role: UserRole
 
-    @validator('password')
+    @classmethod
+    @field_validator('password')
     def validate_password(cls, v):
         """Ensure password meets security requirements"""
         if len(v) < 8:
@@ -48,6 +49,11 @@ class UserLogin(BaseModel):
     username: str
     password: str
 
+class GoogleLogin(BaseModel):
+    """Schema for Google OAuth token login"""
+    credential: str
+
+
 
 class UserUpdate(BaseModel):
     """Schema for updating user information"""
@@ -55,7 +61,8 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = Field(None, max_length=100)
     password: Optional[str] = Field(None, min_length=8, max_length=100)
 
-    @validator('password')
+    @classmethod
+    @field_validator('password')
     def validate_password(cls, v):
         """Ensure password meets security requirements if provided"""
         if v is None:
@@ -82,8 +89,7 @@ class UserResponse(BaseModel):
     role: UserRole
     created_at: datetime
 
-    class Config:
-        from_attributes = True  # Allows creation from ORM models
+    model_config = {"from_attributes": True}
 
 
 class UserWithToken(UserResponse):
@@ -99,8 +105,7 @@ class UserListItem(BaseModel):
     full_name: Optional[str]
     role: UserRole
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # ============ Patient-Specific Schemas ============
@@ -112,7 +117,8 @@ class PatientCreate(BaseModel):
     password: str = Field(..., min_length=8, max_length=100)
     full_name: str = Field(..., max_length=100)
 
-    @validator('password')
+    @classmethod
+    @field_validator('password')
     def validate_password(cls, v):
         """Ensure password meets security requirements"""
         if len(v) < 8:

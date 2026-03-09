@@ -3,9 +3,14 @@ __pycache__/
 *.py[cod]
 *$py.class
 venv/
+.venv/
+medic1/
 .env
+*.log
+*.db
 
 # Node
 node_modules/
 dist/
 .DS_Store
+.vercel

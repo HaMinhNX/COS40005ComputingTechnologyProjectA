@@ -34,14 +34,14 @@
           <p class="form-subtitle">Đăng nhập để tiếp tục</p>
 
           <div class="form-group">
-            <label class="form-label">Tên đăng nhập</label>
+            <label class="form-label">Email</label>
             <div class="input-wrapper">
-              <User :size="18" class="input-icon" />
+              <Mail :size="18" class="input-icon" />
               <input
                 v-model="loginForm.username"
-                type="text"
+                type="email"
                 required
-                placeholder="Nhập tên đăng nhập"
+                placeholder="Nhập email"
                 class="form-input with-icon"
               />
             </div>
@@ -84,90 +84,118 @@
           <h2 class="form-title">Tạo tài khoản mới</h2>
           <p class="form-subtitle">Đăng ký để bắt đầu</p>
 
-          <div class="form-group">
-            <label class="form-label">Họ và tên</label>
-            <div class="input-wrapper">
-              <User :size="18" class="input-icon" />
-              <input
-                v-model="signupForm.full_name"
-                type="text"
-                required
-                placeholder="Nguyễn Văn A"
-                class="form-input with-icon"
-              />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Email</label>
-            <div class="input-wrapper">
-              <Mail :size="18" class="input-icon" />
-              <input
-                v-model="signupForm.email"
-                type="email"
-                required
-                placeholder="example@email.com"
-                class="form-input with-icon"
-              />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Tên đăng nhập</label>
-            <div class="input-wrapper">
-              <UserCircle :size="18" class="input-icon" />
-              <input
-                v-model="signupForm.username"
-                type="text"
-                required
-                placeholder="Chọn tên đăng nhập"
-                class="form-input with-icon"
-              />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Mật khẩu</label>
-            <div class="password-input-group">
-              <div class="input-wrapper-inner">
-                <Lock :size="18" class="input-icon" />
+          <div v-if="!isOTPStep">
+            <div class="form-group">
+              <label class="form-label">Họ và tên</label>
+              <div class="input-wrapper">
+                <User :size="18" class="input-icon" />
                 <input
-                  v-model="signupForm.password"
-                  :type="showPassword ? 'text' : 'password'"
+                  v-model="signupForm.full_name"
+                  type="text"
                   required
-                  minlength="6"
-                  placeholder="Tối thiểu 6 ký tự"
+                  placeholder="Nguyễn Văn A"
                   class="form-input with-icon"
                 />
               </div>
-              <button
-                type="button"
-                @click="showPassword = !showPassword"
-                class="password-toggle-external"
-              >
-                <Eye v-if="!showPassword" :size="20" />
-                <EyeOff v-else :size="20" />
-              </button>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <div class="input-wrapper">
+                <Mail :size="18" class="input-icon" />
+                <input
+                  v-model="signupForm.email"
+                  type="email"
+                  required
+                  placeholder="example@email.com"
+                  class="form-input with-icon"
+                />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Tên đăng nhập</label>
+              <div class="input-wrapper">
+                <UserCircle :size="18" class="input-icon" />
+                <input
+                  v-model="signupForm.username"
+                  type="text"
+                  required
+                  placeholder="Chọn tên đăng nhập"
+                  class="form-input with-icon"
+                />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Mật khẩu</label>
+              <div class="password-input-group">
+                <div class="input-wrapper-inner">
+                  <Lock :size="18" class="input-icon" />
+                  <input
+                    v-model="signupForm.password"
+                    :type="showPassword ? 'text' : 'password'"
+                    required
+                    minlength="8"
+                    placeholder="Tối thiểu 8 ký tự, có Hoa, thường, số"
+                    class="form-input with-icon"
+                  />
+                </div>
+                <button
+                  type="button"
+                  @click="showPassword = !showPassword"
+                  class="password-toggle-external"
+                >
+                  <Eye v-if="!showPassword" :size="20" />
+                  <EyeOff v-else :size="20" />
+                </button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Vai trò</label>
+              <div class="input-wrapper">
+                <ShieldCheck :size="18" class="input-icon" />
+                <select v-model="signupForm.role" required class="form-select with-icon">
+                  <option value="">Chọn vai trò</option>
+                  <option value="patient">Bệnh nhân</option>
+                  <option value="doctor">Bác sĩ</option>
+                </select>
+              </div>
+            </div>
+
+            <button type="button" @click="onRequestOTP" class="btn-submit" :disabled="loading">
+              <span v-if="!loading" class="btn-text">Đăng ký & Nhận mã OTP</span>
+              <span v-else class="btn-text">Đang xử lý...</span>
+              <ArrowRight class="btn-icon" :size="20" />
+            </button>
+          </div>
+          
+          <div v-else>
+            <div class="form-group">
+              <label class="form-label">Mã xác nhận (OTP)</label>
+              <div class="input-wrapper">
+                <Lock :size="18" class="input-icon" />
+                <input
+                  v-model="otpCode"
+                  type="text"
+                  required
+                  maxlength="6"
+                  placeholder="Nhập mã 6 số từ email"
+                  class="form-input with-icon"
+                />
+              </div>
+            </div>
+            
+            <button type="submit" class="btn-submit" :disabled="loading">
+              <span v-if="!loading" class="btn-text">Xác nhận OTP & Đăng ký</span>
+              <span v-else class="btn-text">Đang xử lý...</span>
+              <CheckCircle class="btn-icon" :size="20" />
+            </button>
+            <div style="text-align:center; margin-top: 15px;">
+              <a href="#" @click.prevent="isOTPStep = false" style="color: #667eea; text-decoration: none; font-size: 14px;">Quay lại chỉnh sửa thông tin</a>
             </div>
           </div>
-
-          <div class="form-group">
-            <label class="form-label">Vai trò</label>
-            <div class="input-wrapper">
-              <ShieldCheck :size="18" class="input-icon" />
-              <select v-model="signupForm.role" required class="form-select with-icon">
-                <option value="">Chọn vai trò</option>
-                <option value="patient">Bệnh nhân</option>
-                <option value="doctor">Bác sĩ</option>
-              </select>
-            </div>
-          </div>
-
-          <button type="submit" class="btn-submit" :disabled="loading">
-            <span v-if="!loading" class="btn-text">Đăng ký</span>
-            <span v-else class="btn-text">Đang xử lý...</span>
-            <ArrowRight class="btn-icon" :size="20" />
-          </button>
         </form>
 
         <!-- Error/Success Message -->
@@ -179,37 +207,14 @@
           </div>
         </transition>
 
-        <!-- Demo Accounts (only show in login) -->
-        <div v-if="isLogin" class="demo-section">
-          <button @click="showDemo = !showDemo" class="demo-toggle-btn">
-            <Zap :size="16" />
-            {{ showDemo ? 'Ẩn đăng nhập nhanh' : 'Đăng nhập nhanh (Demo)' }}
-          </button>
 
-          <transition name="slide-fade">
-            <div v-if="showDemo" class="demo-accounts">
-              <div class="demo-controls">
-                <select v-model="selectedRole" class="demo-select">
-                  <option value="doctor">Bác sĩ</option>
-                  <option value="patient">Bệnh nhân</option>
-                </select>
-                <select v-model="selectedDemoUser" @change="fillDemoUser" class="demo-select">
-                  <option value="">Chọn tài khoản...</option>
-                  <option v-for="user in demoUsers" :key="user.username" :value="user">
-                    {{ user.label }}
-                  </option>
-                </select>
-              </div>
-            </div>
-          </transition>
-        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Activity,
@@ -223,16 +228,16 @@ import {
   ShieldCheck,
   AlertCircle,
   CheckCircle,
-  Zap,
 } from 'lucide-vue-next'
 import { API_BASE_URL } from '../config'
 
 const router = useRouter()
 const isLogin = ref(true)
-const showDemo = ref(false)
+const isOTPStep = ref(false)
 const showPassword = ref(false)
 const loading = ref(false)
 const message = ref({ text: '', type: '' })
+const otpCode = ref('')
 
 const loginForm = ref({
   username: '',
@@ -246,34 +251,6 @@ const signupForm = ref({
   email: '',
   role: '',
 })
-
-const selectedRole = ref('doctor')
-const selectedDemoUser = ref('')
-
-const demoUsers = computed(() => {
-  if (selectedRole.value === 'doctor') {
-    return Array.from({ length: 5 }, (_, i) => ({
-      username: `doctor_dummy_${i + 1}`,
-      password: '123',
-      label: `Bác sĩ Demo ${i + 1}`,
-    }))
-  } else {
-    return Array.from({ length: 10 }, (_, i) => ({
-      username: `patient_dummy_${i + 1}`,
-      password: '123',
-      label: `Bệnh nhân Demo ${i + 1}`,
-    }))
-  }
-})
-
-const fillDemoUser = () => {
-  if (selectedDemoUser.value) {
-    loginForm.value.username = selectedDemoUser.value.username
-    loginForm.value.password = selectedDemoUser.value.password
-    // Auto login
-    onLogin()
-  }
-}
 
 const showMessage = (text, type = 'error') => {
   message.value = { text, type }
@@ -386,15 +363,51 @@ const onLogin = async () => {
   }
 }
 
-const onSignup = async () => {
+const onRequestOTP = async () => {
+  if (!signupForm.value.full_name || !signupForm.value.email || !signupForm.value.username || !signupForm.value.password || !signupForm.value.role) {
+    showMessage("Vui lòng điền đủ thông tin", 'error')
+    return
+  }
+  
   loading.value = true
   message.value = { text: '', type: '' }
 
   try {
-    const res = await fetch(`${API_BASE_URL}/signup`, {
+    const res = await fetch(`${API_BASE_URL}/signup/request-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(signupForm.value),
+    })
+
+    const data = await res.json()
+
+    if (!res.ok) {
+      throw new Error(getErrorMessage(data))
+    }
+
+    showMessage(data.message || 'Mã OTP đã được gửi!', 'success')
+    isOTPStep.value = true
+  } catch (e) {
+    showMessage(e.message, 'error')
+  } finally {
+    loading.value = false
+  }
+}
+
+const onSignup = async () => {
+  if (!otpCode.value) {
+    showMessage("Vui lòng nhập mã OTP", 'error')
+    return
+  }
+  
+  loading.value = true
+  message.value = { text: '', type: '' }
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/signup/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: signupForm.value.email, otp_code: otpCode.value }),
     })
 
     const data = await res.json()

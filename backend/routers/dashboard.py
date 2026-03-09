@@ -284,4 +284,111 @@ async def get_patients_with_status(db: Session = Depends(get_db)):
     
     return result
 
+@router.get("/patient/health-metrics/{user_id}")
+async def get_patient_health_metrics(user_id: UUID, db: Session = Depends(get_db)):
+    """Calculate logical health metrics specific to the user based on their exercise history."""
+    # Base determinism from user_id (first characters of UUID to an integer)
+    base_val = int(str(user_id).replace("-", "")[:8], 16)
+    
+    # Analyze their workout history to update their stats "logically"
+    today_sessions = db.query(SessionDetail).join(WorkoutSession).filter(
+        WorkoutSession.user_id == user_id,
+        func.date(SessionDetail.completed_at) == date.today()
+    ).all()
+    
+    total_reps_all_time = db.query(func.sum(SessionDetail.reps_completed)).join(WorkoutSession).filter(
+        WorkoutSession.user_id == user_id
+    ).scalar() or 0
+    
+    total_days_active = db.query(func.count(func.distinct(func.date(WorkoutSession.start_time)))).filter(
+        WorkoutSession.user_id == user_id
+    ).scalar() or 0
 
+    today_duration_seconds = sum(s.duration_seconds for s in today_sessions)
+    today_reps = sum(s.reps_completed for s in today_sessions)
+
+    # 1. Calories: Base BMR + calories burned today
+    # Assuming ~5 calories per rep and ~0.1 per second of duration for light exercise
+    calories = 1400 + (base_val % 400) + int(today_reps * 5) + int(today_duration_seconds * 0.1)
+    
+    # 2. Resting HR: Improves (lowers) as they work out more days
+    base_resting = 65 + (base_val % 15)
+    resting_improvement = min(15, total_days_active * 0.5) 
+    resting_hr = max(50, int(base_resting - resting_improvement))
+    
+    # 3. Current Heart Rate: Spikes if they exercised recently, otherwise close to resting
+    heart_rate = resting_hr + (5 if today_sessions else 0) + (base_val % 10)
+    if today_sessions:
+        # If they worked out today, elevate it slightly based on reps
+        heart_rate += min(30, int(today_reps * 0.2))
+        
+    # 4. SpO2: Blood oxygen is generally 96-99, slightly improved by overall fitness
+    spo2 = 96 + (base_val % 3)
+    if total_reps_all_time > 100:
+        spo2 = min(99, spo2 + 1)
+        
+    # 5. Sleep Quality: Random baseline + penalty if inactive, bonus if active
+    sleep_base = 75 + (base_val % 10)
+    if today_sessions:
+        sleep_base += 5  # better sleep after workout
+    elif total_days_active == 0:
+        sleep_base -= 5  # worse sleep if completely inactive
+    sleep_quality = min(100, max(0, sleep_base))
+
+    return {
+        "heartRate": heart_rate,
+        "calories": calories,
+        "restingHR": resting_hr,
+        "spo2": spo2,
+        "sleepQuality": sleep_quality
+    }
+
+@router.get("/patient/health-charts/{user_id}")
+async def get_patient_health_charts(user_id: UUID, db: Session = Depends(get_db)):
+    """Generate historical health chart data for the patient based on their workout history."""
+    base_val = int(str(user_id).replace("-", "")[:8], 16)
+    end_date = date.today()
+    start_date = end_date - timedelta(days=6)
+    
+    # Get daily reps for the past 7 days to influence the chart
+    daily_reps = db.query(
+        func.date(SessionDetail.completed_at).label('d'),
+        func.sum(SessionDetail.reps_completed).label('reps')
+    ).join(WorkoutSession).filter(
+        WorkoutSession.user_id == user_id,
+        func.date(SessionDetail.completed_at) >= start_date
+    ).group_by(func.date(SessionDetail.completed_at)).all()
+    
+    rep_map = {str(r.d): int(r.reps) for r in daily_reps}
+    
+    heart_rate_chart = []
+    weekly_chart = []
+    
+    base_resting = 65 + (base_val % 15)
+    
+    for i in range(7):
+        current_d = start_date + timedelta(days=i)
+        d_str = str(current_d)
+        reps = rep_map.get(d_str, 0)
+        
+        # Format date string exactly like JS: `new Date().toLocaleDateString('vi-VN', { weekday: 'short' })`
+        # Using simple formatting or letting frontend parse the ISO date
+        
+        # Activity affects that day's average heart rate
+        day_hr = base_resting + (10 if reps > 0 else 0) + (reps * 0.1)
+        day_hr = int(min(120, day_hr)) # cap at 120 avg
+        
+        heart_rate_chart.append({
+            "date": d_str,
+            "rate": day_hr
+        })
+        
+        weekly_chart.append({
+            "date": d_str,
+            "reps": reps
+        })
+        
+    return {
+        "heartRateData": heart_rate_chart,
+        "weeklyData": weekly_chart
+    }

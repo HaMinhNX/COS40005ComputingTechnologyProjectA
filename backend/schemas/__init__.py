@@ -12,6 +12,7 @@ from schemas.user import (
     PatientCreate,
     PatientResponse,
     DoctorResponse,
+    GoogleLogin,
 )
 
 from schemas.exercise import (

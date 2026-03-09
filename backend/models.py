@@ -13,7 +13,7 @@ class User(Base):
     user_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     username = Column(String(50), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
-    email = Column(String(100), nullable=False)
+    email = Column(String(100), nullable=False, unique=True, index=True)
     full_name = Column(String(100))
     role = Column(String(20)) # UserRole
     
@@ -252,4 +252,11 @@ class Notification(Base):
     user = relationship("User", back_populates="notifications")
 
 
+class OTPVerification(Base):
+    __tablename__ = "otp_verifications"
 
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(100), nullable=False, unique=True, index=True)
+    otp_code = Column(String(6), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    user_data = Column(Text, nullable=False) # JSON encoded string

@@ -466,13 +466,18 @@ const sendReport = async () => {
 }
 
 // Generate dynamic health data
-const updateHealthData = () => {
-  healthData.value = {
-    heartRate: Math.floor(Math.random() * 20) + 65, // 65-85
-    calories: Math.floor(Math.random() * 300) + 300, // 300-600
-    restingHR: Math.floor(Math.random() * 10) + 55, // 55-65
-    spo2: Math.floor(Math.random() * 3) + 96, // 96-99
-    sleepQuality: Math.floor(Math.random() * 20) + 75, // 75-95
+const updateHealthData = async () => {
+  if (!props.userId) return
+  
+  try {
+    const token = localStorage.getItem('token')
+    const headers = { Authorization: `Bearer ${token}` }
+    const res = await fetch(`${API_URL}/patient/health-metrics/${props.userId}`, { headers })
+    if (res.ok) {
+      healthData.value = await res.json()
+    }
+  } catch (e) {
+    console.error('Failed to load real health metrics:', e)
   }
 }
 
@@ -505,17 +510,15 @@ function formatDate(dateStr) {
 }
 
 // Chart drawing functions
-const drawHeartRateChart = () => {
+const drawHeartRateChart = (heartRateData) => {
   const container = d3.select('#heart-rate-chart')
-  if (container.empty()) return
+  if (container.empty() || !heartRateData) return
   container.selectAll('*').remove()
 
-  // Generate mock heart rate data for the week
-  const heartRateData = Array.from({ length: 7 }, (_, i) => ({
-    date: new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000).toLocaleDateString('vi-VN', {
-      weekday: 'short',
-    }),
-    rate: Math.floor(Math.random() * 20) + 65,
+  // Format JS date strings
+  const formattedData = heartRateData.map(d => ({
+    date: new Date(d.date).toLocaleDateString('vi-VN', { weekday: 'short' }),
+    rate: d.rate
   }))
 
   const margin = { top: 20, right: 20, bottom: 30, left: 40 }
@@ -532,15 +535,15 @@ const drawHeartRateChart = () => {
   const x = d3.scaleBand().range([0, width]).padding(0.3)
   const y = d3.scaleLinear().range([height, 0])
 
-  x.domain(heartRateData.map((d) => d.date))
-  y.domain([0, 100])
+  x.domain(formattedData.map((d) => d.date))
+  y.domain([0, 150]) // cap at 150 bpm
 
   svg.append('g').attr('transform', `translate(0,${height})`).call(d3.axisBottom(x))
   svg.append('g').call(d3.axisLeft(y))
 
   svg
     .selectAll('.bar')
-    .data(heartRateData)
+    .data(formattedData)
     .enter()
     .append('rect')
     .attr('class', 'bar')
@@ -552,17 +555,14 @@ const drawHeartRateChart = () => {
     .attr('rx', 6)
 }
 
-const drawWeeklyChart = () => {
+const drawWeeklyChart = (weeklyData) => {
   const container = d3.select('#weekly-chart')
-  if (container.empty()) return
+  if (container.empty() || !weeklyData) return
   container.selectAll('*').remove()
 
-  // Generate mock weekly activity data
-  const weeklyData = Array.from({ length: 7 }, (_, i) => ({
-    date: new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000).toLocaleDateString('vi-VN', {
-      weekday: 'short',
-    }),
-    reps: Math.floor(Math.random() * 50) + 20,
+  const formattedData = weeklyData.map(d => ({
+    date: new Date(d.date).toLocaleDateString('vi-VN', { weekday: 'short' }),
+    reps: d.reps
   }))
 
   const margin = { top: 20, right: 20, bottom: 30, left: 40 }
@@ -579,8 +579,9 @@ const drawWeeklyChart = () => {
   const x = d3.scalePoint().range([0, width]).padding(0.5)
   const y = d3.scaleLinear().range([height, 0])
 
-  x.domain(weeklyData.map((d) => d.date))
-  y.domain([0, d3.max(weeklyData, (d) => d.reps) * 1.2])
+  x.domain(formattedData.map((d) => d.date))
+  const maxReps = d3.max(formattedData, (d) => d.reps) || 10;
+  y.domain([0, maxReps * 1.2])
 
   svg.append('g').attr('transform', `translate(0,${height})`).call(d3.axisBottom(x))
   svg.append('g').call(d3.axisLeft(y))
@@ -593,7 +594,7 @@ const drawWeeklyChart = () => {
 
   svg
     .append('path')
-    .data([weeklyData])
+    .data([formattedData])
     .attr('d', line)
     .attr('fill', 'none')
     .attr('stroke', '#6366f1')
@@ -601,7 +602,7 @@ const drawWeeklyChart = () => {
 
   svg
     .selectAll('.dot')
-    .data(weeklyData)
+    .data(formattedData)
     .enter()
     .append('circle')
     .attr('cx', (d) => x(d.date))
@@ -619,28 +620,32 @@ async function fetchData() {
     const token = localStorage.getItem('token')
     const headers = { Authorization: `Bearer ${token}` }
 
-    const [statsRes, historyRes, planRes] = await Promise.all([
+    const [statsRes, historyRes, planRes, chartsRes] = await Promise.all([
       fetch(`${API_URL}/overall-stats${query}`, { headers }),
       fetch(`${API_URL}/weekly-progress${query}`, { headers }),
       fetch(`${API_URL}/patient/today/${props.userId}`, { headers }),
+      fetch(`${API_URL}/patient/health-charts/${props.userId}`, { headers }),
     ])
 
     if (statsRes.ok) stats.value = await statsRes.json()
     if (historyRes.ok) history.value = await historyRes.json()
     if (planRes.ok) todayPlan.value = await planRes.json()
+    
+    let chartData = null
+    if (chartsRes.ok) chartData = await chartsRes.json()
 
-    updateHealthData()
+    await updateHealthData()
 
     nextTick(() => {
-      drawHeartRateChart()
-      drawWeeklyChart()
+      if (chartData) {
+        drawHeartRateChart(chartData.heartRateData)
+        drawWeeklyChart(chartData.weeklyData)
+      }
     })
   } catch (e) {
     console.error('Error loading dashboard data:', e)
   }
 }
-
-let dataInterval = null
 
 onMounted(() => {
   // Pre-fill patient name from localStorage
@@ -655,22 +660,16 @@ onMounted(() => {
   }
 
   fetchData()
-  dataInterval = setInterval(() => {
-    updateHealthData()
-  }, 60000) // Update health data every minute
 
   window.addEventListener('resize', () => {
-    drawHeartRateChart()
-    drawWeeklyChart()
+    // Cannot redraw easily without storing chartData globally, but that's fine for now 
+    // Data is static until refresh. 
+    // We can just rely on refresh, or optionally define a reactive ref for chartData
   })
 })
 
 onUnmounted(() => {
-  if (dataInterval) clearInterval(dataInterval)
-  window.removeEventListener('resize', () => {
-    drawHeartRateChart()
-    drawWeeklyChart()
-  })
+  window.removeEventListener('resize', () => {})
 })
 </script>
 

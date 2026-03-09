@@ -1,61 +1,32 @@
-# Project Setup Guide
+# Medic1 - Health & Rehabilitation Platform
 
-> ⚠️ **Remember to create the project's own Python virtual environment before starting.**
+Medic1 is a comprehensive platform for health and rehabilitation management, connecting patients with their doctors for personalized exercise plans and progress tracking.
 
----
+## Tech Stack
+- **Frontend**: Vue 3, Vite, TailwindCSS, Pinia (Deployed on Vercel)
+- **Backend**: FastAPI, SQLAlchemy, PostgreSQL/SQLite (Deployed as Serverless Functions)
+- **Computer Vision**: MediaPipe for exercise tracking
 
-## 🐍 Virtual Environment Setup
+## Features
+- **Authentication**: JWT-based Secure Login & Signup
+- **Dashboard**: Doctor and Patient portals with dynamic views
+- **Exercise Tracking**: Real-time AI-powered form checking (Squats, Curls, etc.)
+- **Communication**: Integrated messaging and scheduling system
+- **Deployment-Ready**: Vercel configuration included natively
 
+## Local Development
+### Backend
 ```bash
-python -m venv venv
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload
 ```
-
-Activate the environment:
-
-```bash
-# PowerShell
-venv\Scripts\Activate.ps1
-
-# CMD
-venv\Scripts\activate
-```
-
----
-
-## 📦 Installing Dependencies
 
 ### Frontend
 ```bash
 cd frontend
 npm install
-cd ..
-```
-
-### Backend
-```bash
-cd backend
-pip install -r requirements.txt
-cd ..
-```
-
----
-
-## 🚀 Running the Program (3 terminals > remember to re-activate virtual environment on new terminal)
-
-### 1. Frontend
-```bash
-cd frontend
 npm run dev
-```
-
-### 2. Backend — Main App
-```bash
-cd backend
-uvicorn main:app --reload
-```
-
-### 3. Backend — Dashboard API
-```bash
-cd backend
-uvicorn api_dashboard:app --reload --port 8001
 ```

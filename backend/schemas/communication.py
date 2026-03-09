@@ -1,7 +1,7 @@
 """
 Pydantic schemas for Schedules and Messages.
 """
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import datetime
 from uuid import UUID
@@ -18,7 +18,8 @@ class ScheduleCreate(BaseModel):
     notes: Optional[str] = None
     session_type: Optional[SessionType] = None
 
-    @validator('end_time')
+    @classmethod
+    @field_validator('end_time')
     def validate_times(cls, v, values):
         """Ensure end_time is after start_time"""
         if 'start_time' in values and v <= values['start_time']:
@@ -47,8 +48,7 @@ class ScheduleResponse(BaseModel):
     session_type: Optional[str]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # ============ Message Schemas ============
@@ -73,8 +73,7 @@ class MessageResponse(BaseModel):
     is_read: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # ============ Notification Schemas ============
@@ -102,5 +101,4 @@ class NotificationResponse(BaseModel):
     is_read: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

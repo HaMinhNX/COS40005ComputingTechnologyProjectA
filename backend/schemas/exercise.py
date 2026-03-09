@@ -1,7 +1,7 @@
 """
 Pydantic schemas for Exercise and Workout-related operations.
 """
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 from datetime import datetime, date
 from uuid import UUID
@@ -58,8 +58,7 @@ class AssignmentResponse(BaseModel):
     rest_seconds: int
     notes: Optional[str]
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # ============ Combo Schemas ============
@@ -83,15 +82,14 @@ class ComboItemResponse(BaseModel):
     duration_seconds: int
     instructions: Optional[str]
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class ComboCreate(BaseModel):
     """Schema for creating a combo"""
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = None
-    items: List[ComboItemCreate] = Field(..., min_items=1)
+    items: List[ComboItemCreate] = Field(..., min_length=1)
 
 
 class ComboUpdate(BaseModel):
@@ -109,8 +107,7 @@ class ComboResponse(BaseModel):
     created_at: datetime
     items: List[ComboItemResponse] = []
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # ============ Workout Session Schemas ============
@@ -139,8 +136,7 @@ class SessionDetailResponse(BaseModel):
     completed_at: datetime
 
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class WorkoutSessionCreate(BaseModel):
@@ -163,8 +159,7 @@ class WorkoutSessionResponse(BaseModel):
     status: str
     details: List[SessionDetailResponse] = []
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # ============ Exercise Log Schemas (Legacy - to be deprecated) ============
@@ -188,8 +183,7 @@ class ExerciseLogResponse(BaseModel):
     session_duration: Decimal
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # ============ Week Plan Schemas ============
@@ -201,9 +195,10 @@ class WeekPlanCreate(BaseModel):
     description: Optional[str] = None
     start_date: date
     end_date: date
-    exercises: List[AssignmentCreate] = Field(..., min_items=1)
+    exercises: List[AssignmentCreate] = Field(..., min_length=1)
 
-    @validator('end_date')
+    @classmethod
+    @field_validator('end_date')
     def validate_dates(cls, v, values):
         """Ensure end_date is after start_date"""
         if 'start_date' in values and v <= values['start_date']:
@@ -232,8 +227,7 @@ class WeekPlanResponse(BaseModel):
     updated_at: datetime
     assignments: List[AssignmentResponse] = []
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # ============ Statistics Schemas ============

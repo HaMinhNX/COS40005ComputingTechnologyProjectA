@@ -391,7 +391,8 @@ import {
 } from 'lucide-vue-next'
 
 // API Configuration
-const API_BASE = 'http://localhost:8001/api'
+import { API_BASE_URL } from '../config';
+const API_BASE = API_BASE_URL;
 
 const viewMode = ref('assign') // 'assign' or 'combos'
 const assignType = ref('single') // 'single' or 'combo'

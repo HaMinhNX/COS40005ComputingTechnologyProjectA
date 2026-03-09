@@ -12,4 +12,4 @@ cd /home/tuandat/Documents/September_Semester/Medic1_Le_Minh/backend
 source medic1/bin/activate
 
 # Start backend
-uvicorn main:app --reload
+uvicorn main:app --host 0.0.0.0 --port 8001 --reload
