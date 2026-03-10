@@ -36,8 +36,6 @@ def get_current_user(
         HTTPException: If token is invalid or user not found
     """
     if credentials is None:
-        with open("debug_auth.log", "a") as f:
-            f.write("DEBUG: No credentials provided\n")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
@@ -45,22 +43,17 @@ def get_current_user(
         )
     
     token = credentials.credentials
-    with open("debug_auth.log", "a") as f:
-        f.write(f"DEBUG: Token received: {token[:10]}...\n")
     
     # Verify and decode token
     payload = verify_token(token)
     if payload is None:
-        with open("debug_auth.log", "a") as f:
-            f.write("DEBUG: Token verification failed\n")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    with open("debug_auth.log", "a") as f:
-        f.write(f"DEBUG: Payload: {payload}\n")
+
     
     # Extract user_id from token
     user_id_str = payload.get("sub")
