@@ -11,11 +11,11 @@ from fastapi import Query
 
 
 router = APIRouter(
-    prefix="/api/messages",
+    prefix="/api",
     tags=["messages"]
 )
 
-@router.get("/{user1_id}/{user2_id}", response_model=Page[MessageResponse])
+@router.get("/messages/{user1_id}/{user2_id}", response_model=Page[MessageResponse])
 async def get_conversation(
     user1_id: UUID, 
     user2_id: UUID, 
@@ -33,7 +33,7 @@ async def get_conversation(
     return paginate(query, page, size)
 
 
-@router.get("/{user_id}", response_model=Page[MessageResponse])
+@router.get("/messages/{user_id}", response_model=Page[MessageResponse])
 async def get_user_messages(
     user_id: UUID, 
     page: int = Query(1, ge=1),
@@ -49,7 +49,7 @@ async def get_user_messages(
     return paginate(query, page, size)
 
 
-@router.post("", response_model=MessageResponse)
+@router.post("/messages", response_model=MessageResponse)
 async def send_message(data: MessageCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Send a message"""
     try:

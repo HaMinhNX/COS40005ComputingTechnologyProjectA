@@ -80,8 +80,8 @@ def send_otp_email(recipient: str, otp_code: str):
     msg.attach(MIMEText(body, 'plain'))
     
     try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        # server.starttls() # Not needed for SSL
         server.login(sender, password)
         server.send_message(msg)
         server.quit()
@@ -105,8 +105,8 @@ def send_forgot_password_email(recipient: str, otp_code: str):
     msg.attach(MIMEText(body, 'plain'))
     
     try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        # server.starttls() # Not needed for SSL
         server.login(sender, password)
         server.send_message(msg)
         server.quit()

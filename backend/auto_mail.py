@@ -232,9 +232,8 @@ def send_health_email(receiver: str = RECEIVER_EMAIL, name: str = "Bệnh nhân"
 
     # 4. Gửi qua SMTP tới tất cả receivers
     try:
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.ehlo()
-            server.starttls()
+        with smtplib.SMTP_SSL(SMTP_SERVER, 465) as server:
+            # server.starttls()  # StartTLS is not used when connecting via SSL directly
             server.login(SENDER_EMAIL, SENDER_PASS)
             for email in receivers:
                 # Tạo message mới cho mỗi recipient
