@@ -136,16 +136,26 @@
             >
               <div
                 :class="[
-                  'px-5 py-3 rounded-2xl text-sm font-medium shadow-sm',
+                  'px-5 py-3 rounded-2xl text-sm font-medium shadow-sm transition-all',
                   msg.sender_id === currentUserId
                     ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white rounded-tr-none'
                     : 'bg-white text-slate-700 border border-slate-100 rounded-tl-none',
+                  msg.status === 'sending' ? 'opacity-70' : '',
+                  msg.status === 'error' ? 'bg-red-50 text-red-900 border border-red-200 opacity-90' : ''
                 ]"
               >
                 {{ msg.content }}
               </div>
-              <span class="text-[10px] font-bold text-slate-400 mt-1 px-1">
+              <span 
+                class="text-[10px] font-bold mt-1 flex items-center gap-1"
+                :class="msg.sender_id === currentUserId ? 'justify-end text-indigo-200' : 'px-1 text-slate-400'"
+              >
                 {{ formatTime(msg.created_at) }}
+                <template v-if="msg.sender_id === currentUserId">
+                  <span v-if="msg.status === 'sending'" class="animate-pulse">· Đang gửi...</span>
+                  <span v-else-if="msg.status === 'error'" class="text-red-400">· Ôi lỗi gửi (thử lại sau)</span>
+                  <span v-else class="text-indigo-400">· Đã nhận</span>
+                </template>
               </span>
             </div>
           </div>
@@ -264,9 +274,12 @@ async function loadMessages() {
     )
     if (res.ok) {
       const data = await res.json()
-      // API returns pagination: { items: [...], ... } or just list
       const items = data.items || data
-      messages.value = items.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+      
+      const tempMsgs = messages.value.filter(m => m.status === 'sending' || m.status === 'error')
+      const loadedMsgs = items.map(m => ({ ...m, status: 'delivered' }))
+      
+      messages.value = [...loadedMsgs, ...tempMsgs].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
       scrollToBottom()
     }
   } catch (e) {
@@ -277,10 +290,26 @@ async function loadMessages() {
 async function sendMessage() {
   if (!newMessage.value.trim() || !selectedDoctor.value) return
 
+  const contentToSend = newMessage.value.trim()
+  newMessage.value = ''
+
+  const tempId = Date.now()
+  const tempMsg = {
+    message_id: tempId,
+    sender_id: currentUserId.value,
+    receiver_id: selectedDoctor.value.user_id,
+    content: contentToSend,
+    created_at: new Date().toISOString(),
+    status: 'sending'
+  }
+
+  messages.value.push(tempMsg)
+  scrollToBottom()
+
   try {
     const payload = {
       receiver_id: selectedDoctor.value.user_id,
-      content: newMessage.value,
+      content: contentToSend,
     }
 
     const token = localStorage.getItem('token')
@@ -293,13 +322,24 @@ async function sendMessage() {
       body: JSON.stringify(payload),
     })
 
+    const idx = messages.value.findIndex(m => m.message_id === tempId)
+
     if (res.ok) {
       const sentMsg = await res.json()
-      messages.value.push(sentMsg)
-      newMessage.value = ''
-      scrollToBottom()
+      if (idx !== -1) {
+        messages.value[idx] = { ...sentMsg, status: 'delivered' }
+      }
+    } else {
+      if (idx !== -1) {
+        messages.value[idx].status = 'error'
+      }
+      console.error('Lỗi khi gửi')
     }
   } catch (e) {
+    const idx = messages.value.findIndex(m => m.message_id === tempId)
+    if (idx !== -1) {
+      messages.value[idx].status = 'error'
+    }
     console.error('Error sending message:', e)
   }
 }
