@@ -37,6 +37,8 @@ app.dependency_overrides[get_db] = override_get_db
 
 client = TestClient(app)
 
+VALID_PASSWORD = "SecurePass1!"   # meets all rules: 8+ chars, upper, lower, digit, special
+
 @pytest.fixture(scope="module", autouse=True)
 def setup_database():
     """Setup and teardown the database once per test module."""
@@ -51,12 +53,12 @@ def test_signup_success():
         json={
             "username": "newtestuser",
             "email": "newtestuser@example.com",
-            "password": "SecurePassword123!",
+            "password": VALID_PASSWORD,
             "full_name": "Test User",
             "role": "patient"
         }
     )
-    assert response.status_code == 200
+    assert response.status_code == 200, response.json()
     
     # Get the OTP from the in-memory DB directly using a separate session
     db = TestingSessionLocal()
@@ -86,7 +88,7 @@ def test_signup_existing_username():
         json={
             "username": "newtestuser",
             "email": "differentemail@example.com",
-            "password": "SecurePassword123!",
+            "password": VALID_PASSWORD,
             "full_name": "Test User Two",
             "role": "patient"
         }
@@ -100,20 +102,51 @@ def test_signup_existing_email():
         json={
             "username": "differentusername",
             "email": "newtestuser@example.com",
-            "password": "SecurePassword123!",
+            "password": VALID_PASSWORD,
             "full_name": "Test User Three",
             "role": "patient"
         }
     )
     assert response.status_code == 400
     assert response.json()["detail"] == "Email đã được sử dụng"
-    
+
+
+def test_signup_weak_password_no_special_char():
+    """Ensure passwords without special characters are rejected."""
+    response = client.post(
+        "/api/signup/request-otp",
+        json={
+            "username": "weakpwduser",
+            "email": "weakpwd@example.com",
+            "password": "Password123",   # no special char
+            "full_name": "Weak Pwd",
+            "role": "patient"
+        }
+    )
+    assert response.status_code == 422, response.json()
+
+
+def test_signup_weak_password_too_short():
+    """Ensure passwords shorter than 8 chars are rejected."""
+    response = client.post(
+        "/api/signup/request-otp",
+        json={
+            "username": "weakpwduser2",
+            "email": "weakpwd2@example.com",
+            "password": "Ab1!",   # too short
+            "full_name": "Weak Pwd Two",
+            "role": "patient"
+        }
+    )
+    assert response.status_code == 422, response.json()
+
+
 def test_login_success():
     response = client.post(
         "/api/login",
         json={
             "username": "newtestuser@example.com",
-            "password": "SecurePassword123!"
+            "password": VALID_PASSWORD
         }
     )
     assert response.status_code == 200
@@ -156,4 +189,3 @@ def test_google_login_invalid_token():
     # Expected to fail since google.oauth2.id_token.verify_oauth2_token will raise ValueError
     assert response.status_code == 401
     assert response.json()["detail"] == "Invalid Google token"
-

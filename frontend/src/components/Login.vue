@@ -131,6 +131,7 @@
               </div>
             </div>
 
+            <!-- Password Field -->
             <div class="form-group">
               <label class="form-label">Mật khẩu</label>
               <div class="password-input-group">
@@ -140,9 +141,9 @@
                     v-model="signupForm.password"
                     :type="showPassword ? 'text' : 'password'"
                     required
-                    minlength="8"
-                    placeholder="Tối thiểu 8 ký tự, có Hoa, thường, số"
+                    placeholder="Nhập mật khẩu"
                     class="form-input with-icon"
+                    @input="checkPasswordStrength(signupForm.password, 'signup')"
                   />
                 </div>
                 <button
@@ -156,7 +157,78 @@
               </div>
             </div>
 
+            <!-- Confirm Password Field -->
             <div class="form-group">
+              <label class="form-label">Xác nhận mật khẩu</label>
+              <div class="password-input-group">
+                <div class="input-wrapper-inner">
+                  <Lock :size="18" class="input-icon" />
+                  <input
+                    v-model="signupForm.confirmPassword"
+                    :type="showConfirmPassword ? 'text' : 'password'"
+                    required
+                    placeholder="Nhập lại mật khẩu"
+                    class="form-input with-icon"
+                  />
+                </div>
+                <button
+                  type="button"
+                  @click="showConfirmPassword = !showConfirmPassword"
+                  class="password-toggle-external"
+                >
+                  <Eye v-if="!showConfirmPassword" :size="20" />
+                  <EyeOff v-else :size="20" />
+                </button>
+              </div>
+              <!-- Match indicator -->
+              <div v-if="signupForm.confirmPassword" class="password-match-indicator">
+                <span v-if="signupForm.password === signupForm.confirmPassword" class="match-ok">
+                  <CheckCircle :size="14" /> Mật khẩu khớp
+                </span>
+                <span v-else class="match-fail">
+                  <AlertCircle :size="14" /> Mật khẩu không khớp
+                </span>
+              </div>
+            </div>
+
+            <!-- Password Requirements -->
+            <div class="password-requirements" v-if="signupForm.password">
+              <p class="req-title">Yêu cầu mật khẩu:</p>
+              <div class="req-list">
+                <div :class="['req-item', signupPasswordRules.minLength ? 'req-met' : 'req-unmet']">
+                  <CheckCircle v-if="signupPasswordRules.minLength" :size="13" />
+                  <AlertCircle v-else :size="13" />
+                  Ít nhất 8 ký tự
+                </div>
+                <div :class="['req-item', signupPasswordRules.maxLength ? 'req-met' : 'req-unmet']">
+                  <CheckCircle v-if="signupPasswordRules.maxLength" :size="13" />
+                  <AlertCircle v-else :size="13" />
+                  Không quá 40 ký tự
+                </div>
+                <div :class="['req-item', signupPasswordRules.hasUpper ? 'req-met' : 'req-unmet']">
+                  <CheckCircle v-if="signupPasswordRules.hasUpper" :size="13" />
+                  <AlertCircle v-else :size="13" />
+                  Có chữ hoa (A-Z)
+                </div>
+                <div :class="['req-item', signupPasswordRules.hasLower ? 'req-met' : 'req-unmet']">
+                  <CheckCircle v-if="signupPasswordRules.hasLower" :size="13" />
+                  <AlertCircle v-else :size="13" />
+                  Có chữ thường (a-z)
+                </div>
+                <div :class="['req-item', signupPasswordRules.hasDigit ? 'req-met' : 'req-unmet']">
+                  <CheckCircle v-if="signupPasswordRules.hasDigit" :size="13" />
+                  <AlertCircle v-else :size="13" />
+                  Có chữ số (0-9)
+                </div>
+                <div :class="['req-item', signupPasswordRules.hasSpecial ? 'req-met' : 'req-unmet']">
+                  <CheckCircle v-if="signupPasswordRules.hasSpecial" :size="13" />
+                  <AlertCircle v-else :size="13" />
+                  Có ký tự đặc biệt (!@#$%...)
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 1rem;">
               <label class="form-label">Vai trò</label>
               <div class="input-wrapper">
                 <ShieldCheck :size="18" class="input-icon" />
@@ -168,8 +240,8 @@
               </div>
             </div>
 
-            <button type="button" @click="onRequestOTP" class="btn-submit" :disabled="loading">
-              <span v-if="!loading" class="btn-text">Đăng ký & Nhận mã OTP</span>
+            <button type="button" @click="onRequestOTP" class="btn-submit" :disabled="loading || !isSignupPasswordValid || signupForm.password !== signupForm.confirmPassword">
+              <span v-if="!loading" class="btn-text">Đăng ký &amp; Nhận mã OTP</span>
               <span v-else class="btn-text">Đang xử lý...</span>
               <ArrowRight class="btn-icon" :size="20" />
             </button>
@@ -192,7 +264,7 @@
             </div>
             
             <button type="submit" class="btn-submit" :disabled="loading">
-              <span v-if="!loading" class="btn-text">Xác nhận OTP & Đăng ký</span>
+              <span v-if="!loading" class="btn-text">Xác nhận OTP &amp; Đăng ký</span>
               <span v-else class="btn-text">Đang xử lý...</span>
               <CheckCircle class="btn-icon" :size="20" />
             </button>
@@ -245,6 +317,7 @@
           </div>
 
           <div v-else-if="forgotPasswordStep === 3">
+            <!-- New Password -->
             <div class="form-group">
               <label class="form-label">Mật khẩu mới</label>
               <div class="password-input-group">
@@ -254,9 +327,9 @@
                     v-model="forgotPasswordForm.newPassword"
                     :type="showPassword ? 'text' : 'password'"
                     required
-                    minlength="8"
-                    placeholder="Tối thiểu 8 ký tự, có Hoa, thường, số"
+                    placeholder="Nhập mật khẩu mới"
                     class="form-input with-icon"
+                    @input="checkPasswordStrength(forgotPasswordForm.newPassword, 'forgot')"
                   />
                 </div>
                 <button
@@ -269,9 +342,84 @@
                 </button>
               </div>
             </div>
+
+            <!-- Confirm New Password -->
+            <div class="form-group">
+              <label class="form-label">Xác nhận mật khẩu mới</label>
+              <div class="password-input-group">
+                <div class="input-wrapper-inner">
+                  <Lock :size="18" class="input-icon" />
+                  <input
+                    v-model="forgotPasswordForm.confirmNewPassword"
+                    :type="showConfirmPassword ? 'text' : 'password'"
+                    required
+                    placeholder="Nhập lại mật khẩu mới"
+                    class="form-input with-icon"
+                  />
+                </div>
+                <button
+                  type="button"
+                  @click="showConfirmPassword = !showConfirmPassword"
+                  class="password-toggle-external"
+                >
+                  <Eye v-if="!showConfirmPassword" :size="20" />
+                  <EyeOff v-else :size="20" />
+                </button>
+              </div>
+              <!-- Match indicator -->
+              <div v-if="forgotPasswordForm.confirmNewPassword" class="password-match-indicator">
+                <span v-if="forgotPasswordForm.newPassword === forgotPasswordForm.confirmNewPassword" class="match-ok">
+                  <CheckCircle :size="14" /> Mật khẩu khớp
+                </span>
+                <span v-else class="match-fail">
+                  <AlertCircle :size="14" /> Mật khẩu không khớp
+                </span>
+              </div>
+            </div>
+
+            <!-- Password Requirements -->
+            <div class="password-requirements" v-if="forgotPasswordForm.newPassword">
+              <p class="req-title">Yêu cầu mật khẩu:</p>
+              <div class="req-list">
+                <div :class="['req-item', forgotPasswordRules.minLength ? 'req-met' : 'req-unmet']">
+                  <CheckCircle v-if="forgotPasswordRules.minLength" :size="13" />
+                  <AlertCircle v-else :size="13" />
+                  Ít nhất 8 ký tự
+                </div>
+                <div :class="['req-item', forgotPasswordRules.maxLength ? 'req-met' : 'req-unmet']">
+                  <CheckCircle v-if="forgotPasswordRules.maxLength" :size="13" />
+                  <AlertCircle v-else :size="13" />
+                  Không quá 40 ký tự
+                </div>
+                <div :class="['req-item', forgotPasswordRules.hasUpper ? 'req-met' : 'req-unmet']">
+                  <CheckCircle v-if="forgotPasswordRules.hasUpper" :size="13" />
+                  <AlertCircle v-else :size="13" />
+                  Có chữ hoa (A-Z)
+                </div>
+                <div :class="['req-item', forgotPasswordRules.hasLower ? 'req-met' : 'req-unmet']">
+                  <CheckCircle v-if="forgotPasswordRules.hasLower" :size="13" />
+                  <AlertCircle v-else :size="13" />
+                  Có chữ thường (a-z)
+                </div>
+                <div :class="['req-item', forgotPasswordRules.hasDigit ? 'req-met' : 'req-unmet']">
+                  <CheckCircle v-if="forgotPasswordRules.hasDigit" :size="13" />
+                  <AlertCircle v-else :size="13" />
+                  Có chữ số (0-9)
+                </div>
+                <div :class="['req-item', forgotPasswordRules.hasSpecial ? 'req-met' : 'req-unmet']">
+                  <CheckCircle v-if="forgotPasswordRules.hasSpecial" :size="13" />
+                  <AlertCircle v-else :size="13" />
+                  Có ký tự đặc biệt (!@#$%...)
+                </div>
+              </div>
+            </div>
           </div>
 
-          <button type="submit" class="btn-submit" :disabled="loading">
+          <button 
+            type="submit" 
+            class="btn-submit" 
+            :disabled="loading || (forgotPasswordStep === 3 && (!isForgotPasswordValid || forgotPasswordForm.newPassword !== forgotPasswordForm.confirmNewPassword))"
+          >
             <span v-if="!loading" class="btn-text">
               <span v-if="forgotPasswordStep === 1">Gửi mã OTP</span>
               <span v-else-if="forgotPasswordStep === 2">Xác nhận OTP</span>
@@ -303,7 +451,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Activity,
@@ -326,6 +474,7 @@ const isForgotPassword = ref(false)
 const isOTPStep = ref(false)
 const forgotPasswordStep = ref(1)
 const showPassword = ref(false)
+const showConfirmPassword = ref(false)
 const loading = ref(false)
 const message = ref({ text: '', type: '' })
 const otpCode = ref('')
@@ -339,14 +488,57 @@ const forgotPasswordForm = ref({
   email: '',
   otpCode: '',
   newPassword: '',
+  confirmNewPassword: '',
 })
 
 const signupForm = ref({
   username: '',
   password: '',
+  confirmPassword: '',
   full_name: '',
   email: '',
   role: '',
+})
+
+// --- Password Rules State ---
+const defaultRules = () => ({
+  minLength: false,
+  maxLength: true,
+  hasUpper: false,
+  hasLower: false,
+  hasDigit: false,
+  hasSpecial: false,
+})
+
+const signupPasswordRules = ref(defaultRules())
+const forgotPasswordRules = ref(defaultRules())
+
+const SPECIAL_CHAR_REGEX = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/
+
+const checkPasswordStrength = (password, form) => {
+  const rules = {
+    minLength: password.length >= 8,
+    maxLength: password.length <= 40,
+    hasUpper: /[A-Z]/.test(password),
+    hasLower: /[a-z]/.test(password),
+    hasDigit: /[0-9]/.test(password),
+    hasSpecial: SPECIAL_CHAR_REGEX.test(password),
+  }
+  if (form === 'signup') {
+    signupPasswordRules.value = rules
+  } else {
+    forgotPasswordRules.value = rules
+  }
+}
+
+const isSignupPasswordValid = computed(() => {
+  const r = signupPasswordRules.value
+  return r.minLength && r.maxLength && r.hasUpper && r.hasLower && r.hasDigit && r.hasSpecial
+})
+
+const isForgotPasswordValid = computed(() => {
+  const r = forgotPasswordRules.value
+  return r.minLength && r.maxLength && r.hasUpper && r.hasLower && r.hasDigit && r.hasSpecial
 })
 
 const showMessage = (text, type = 'error') => {
@@ -374,18 +566,11 @@ const getErrorMessage = (data) => {
 
     return data.detail
       .map((err) => {
-        // 1. Get raw field name and translate
         let rawField = err.loc ? err.loc[err.loc.length - 1] : 'Lỗi'
         const fieldName = fieldMap[rawField] || rawField
 
-        // 2. Clean up message
         let msg = err.msg
-
-        // Remove "Value error, " prefix from custom validators
         msg = msg.replace(/^Value error,\s*/i, '')
-
-        // 3. Translate specific messages
-        // Translate dynamic length errors
         msg = msg.replace(
           /String should have at least (\d+) characters/i,
           'Phải có ít nhất $1 ký tự',
@@ -394,18 +579,17 @@ const getErrorMessage = (data) => {
 
         const lowerMsg = msg.toLowerCase()
 
-        // Standard Pydantic errors
         if (lowerMsg === 'field required') msg = 'Bắt buộc nhập'
         if (lowerMsg.includes('not a valid email')) msg = 'Email không hợp lệ'
         if (lowerMsg.includes('input should be a valid string')) msg = 'Giá trị phải là chuỗi ký tự'
-
-        // Custom password validators
         if (lowerMsg.includes('at least 8 characters')) msg = 'Phải có ít nhất 8 ký tự'
         if (lowerMsg.includes('must contain at least one uppercase letter'))
           msg = 'Phải có ít nhất 1 chữ in hoa'
         if (lowerMsg.includes('must contain at least one lowercase letter'))
           msg = 'Phải có ít nhất 1 chữ thường'
         if (lowerMsg.includes('must contain at least one digit')) msg = 'Phải có ít nhất 1 số'
+        if (lowerMsg.includes('must contain at least one special character'))
+          msg = 'Phải có ít nhất 1 ký tự đặc biệt'
 
         return `${fieldName}: ${msg}`
       })
@@ -465,15 +649,26 @@ const onRequestOTP = async () => {
     showMessage("Vui lòng điền đủ thông tin", 'error')
     return
   }
+
+  if (!isSignupPasswordValid.value) {
+    showMessage("Mật khẩu chưa đáp ứng yêu cầu bảo mật", 'error')
+    return
+  }
+
+  if (signupForm.value.password !== signupForm.value.confirmPassword) {
+    showMessage("Mật khẩu xác nhận không khớp", 'error')
+    return
+  }
   
   loading.value = true
   message.value = { text: '', type: '' }
 
   try {
+    const { confirmPassword, ...payload } = signupForm.value
     const res = await fetch(`${API_BASE_URL}/signup/request-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(signupForm.value),
+      body: JSON.stringify(payload),
     })
 
     const data = await res.json()
@@ -558,6 +753,16 @@ const onForgotPasswordSubmit = async () => {
       showMessage("Vui lòng nhập mật khẩu mới", 'error')
       return
     }
+
+    if (!isForgotPasswordValid.value) {
+      showMessage("Mật khẩu mới chưa đáp ứng yêu cầu bảo mật", 'error')
+      return
+    }
+
+    if (forgotPasswordForm.value.newPassword !== forgotPasswordForm.value.confirmNewPassword) {
+      showMessage("Mật khẩu xác nhận không khớp", 'error')
+      return
+    }
     
     loading.value = true
     message.value = { text: '', type: '' }
@@ -583,7 +788,7 @@ const onForgotPasswordSubmit = async () => {
       isForgotPassword.value = false
       isLogin.value = true
       forgotPasswordStep.value = 1
-      forgotPasswordForm.value = { email: '', otpCode: '', newPassword: '' }
+      forgotPasswordForm.value = { email: '', otpCode: '', newPassword: '', confirmNewPassword: '' }
     } catch (e) {
       showMessage(e.message, 'error')
     } finally {
@@ -712,12 +917,15 @@ const onSignup = async () => {
   position: relative;
   z-index: 10;
   width: 100%;
-  max-width: 500px;
+  max-width: 520px;
   padding: 3rem;
   border-radius: 2rem;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
+  max-height: 92vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 .logo-section {
@@ -876,6 +1084,71 @@ const onSignup = async () => {
   box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
 }
 
+/* Password Match Indicator */
+.password-match-indicator {
+  display: flex;
+  align-items: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.match-ok {
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.match-fail {
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Password Requirements */
+.password-requirements {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin-top: -0.5rem;
+}
+
+.req-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  margin: 0 0 0.5rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.req-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem 0.75rem;
+}
+
+.req-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: all 0.25s;
+}
+
+.req-met {
+  color: #16a34a;
+}
+
+.req-unmet {
+  color: #94a3b8;
+  opacity: 0.6;
+}
+
 .btn-submit {
   margin-top: 1rem;
   padding: 1rem;
@@ -900,8 +1173,9 @@ const onSignup = async () => {
 }
 
 .btn-submit:disabled {
-  opacity: 0.7;
+  opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
 .message {
@@ -924,61 +1198,6 @@ const onSignup = async () => {
   background: #f0fdf4;
   color: #166534;
   border: 1px solid #dcfce7;
-}
-
-.demo-section {
-  margin-top: 2rem;
-  text-align: center;
-}
-
-.demo-toggle-btn {
-  background: none;
-  border: none;
-  color: #667eea;
-  font-weight: 700;
-  font-size: 0.875rem;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  transition: background 0.2s;
-}
-
-.demo-toggle-btn:hover {
-  background: rgba(102, 126, 234, 0.1);
-}
-
-.demo-accounts {
-  margin-top: 1rem;
-  padding: 1rem;
-  background: #f8fafc;
-  border-radius: 1rem;
-  border: 1px dashed #cbd5e1;
-}
-
-.demo-controls {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.demo-select {
-  flex: 1;
-  padding: 0.5rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-}
-
-.slide-fade-enter-active,
-.slide-fade-leave-active {
-  transition: all 0.3s ease-out;
-}
-.slide-fade-enter-from,
-.slide-fade-leave-to {
-  transform: translateY(-10px);
-  opacity: 0;
 }
 
 .animate-fade-in {

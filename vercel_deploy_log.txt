@@ -1,0 +1,55 @@
+Retrieving project…
+Deploying conniebwines-projects/medic1-le-minh
+Uploading [--------------------] (0.0B/69B)
+Uploading [====================] (69.0B/69B)
+Inspect: https://vercel.com/conniebwines-projects/medic1-le-minh/7DPvQ5itRg2vGkTNcaVTgQU4nWw3 [3s]
+Production: https://medic1-le-minh-e6do6bsop-conniebwines-projects.vercel.app [3s]
+https://medic1-le-minh-e6do6bsop-conniebwines-projects.vercel.appBuilding...
+Building...
+Building: Running build in Washington, D.C., USA (East) – iad1
+Building: Build machine configuration: 2 cores, 8 GB
+Building: Retrieving list of deployment files...
+Building: Downloading 1021 deployment files...
+Building: Restored build cache from previous deployment (6y428V9rAQLJpCdwNCFZntt9qfgL)
+Building: Running "vercel build"
+Building: Vercel CLI 50.28.0
+Building: WARN! Due to `builds` existing in your configuration file, the Build and Development Settings defined in your Project Settings will not apply. Learn More: https://vercel.link/unused-build-settings
+Building: Warning: Detected "engines": { "node": "^20.19.0 || >=22.12.0" } in your `package.json` that will automatically upgrade when a new major Node.js Version is released. Learn More: https://vercel.link/node-version
+Building: Installing dependencies...
+Building: up to date in 1s
+Building: 90 packages are looking for funding
+Building: run `npm fund` for details
+Building: Running "npm run build"
+Building: > vinawork-app@0.0.0 build
+Building: > vite build
+Building: vite v7.1.12 building for production...
+Building: transforming...
+Building: [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+Building: ✓ 2279 modules transformed.
+Building: rendering chunks...
+Building: computing gzip size...
+Building: dist/index.html                                      0.71 kB │ gzip:  0.40 kB
+Building: dist/assets/Login-DP4gzJdn.css                       5.75 kB │ gzip:  1.60 kB
+Building: dist/assets/Dashboard-DkuNANXQ.css                   8.88 kB │ gzip:  2.08 kB
+Building: dist/assets/index-DAtG54ON.css                      22.82 kB │ gzip:  3.88 kB
+Building: dist/assets/PatientTabs-RMJJ6aF4.css                37.23 kB │ gzip:  6.25 kB
+Building: dist/assets/index-DkI9Ojhh.css                      80.45 kB │ gzip: 12.67 kB
+Building: dist/assets/user-C0g2pi6k.js                         1.01 kB │ gzip:  0.44 kB
+Building: dist/assets/_plugin-vue_export-helper-CwWA4W87.js    2.94 kB │ gzip:  1.09 kB
+Building: dist/assets/Dashboard-B7Lysn6n.js                   16.02 kB │ gzip:  5.67 kB
+Building: dist/assets/Login-D4hpMyxU.js                       16.68 kB │ gzip:  4.60 kB
+Building: dist/assets/transform-Cd-YtiHd.js                   52.23 kB │ gzip: 18.18 kB
+Building: dist/assets/index-inn9PQ_m.js                      101.36 kB │ gzip: 39.53 kB
+Building: dist/assets/index-Bt7qlj-P.js                      113.00 kB │ gzip: 28.16 kB
+Building: dist/assets/PatientTabs-DJTk_yZg.js                262.78 kB │ gzip: 78.53 kB
+Building: ✓ built in 5.92s
+Building: No Python version specified in .python-version, pyproject.toml, or Pipfile.lock. Using python version: 3.12
+Building: Creating virtual environment at "/vercel/path1/.vercel/python/.venv"...
+Building: Using uv at "/usr/local/bin/uv"
+Building: Installing required dependencies from requirements.txt...
+Building: Build Completed in /vercel/output [15s]
+Building: Deploying outputs...
+[2K[1A[2K[GProduction: https://medic1-le-minh-e6do6bsop-conniebwines-projects.vercel.app [52s]
+Completing...
+Aliased: https://medic1-le-minh.vercel.app [52s]
+Due to `builds` existing in your configuration file, the Build and Development Settings defined in your Project Settings will not apply. Learn More: https://vercel.link/unused-build-settings

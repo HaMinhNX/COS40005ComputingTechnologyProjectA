@@ -13,10 +13,6 @@
           <Plus :size="20" />
           <span>Thêm bệnh nhân</span>
         </button>
-        <!-- <button class="action-btn secondary">
-          <Bell :size="20" />
-          <span class="notification-badge">3</span>
-        </button> -->
       </div>
     </header>
 
@@ -97,6 +93,7 @@
           <table class="patient-table">
             <thead>
               <tr>
+                <th class="th-num">#</th>
                 <th>Bệnh nhân</th>
                 <th>Trạng thái</th>
                 <th>Tiến độ</th>
@@ -106,11 +103,12 @@
             </thead>
             <tbody>
               <tr
-                v-for="patient in filteredPatients"
+                v-for="(patient, index) in filteredPatients"
                 :key="patient.patient_id"
                 @click="selectPatient(patient)"
                 :class="{ 'active-row': selectedPatientId === patient.patient_id }"
               >
+                <td class="td-num">{{ index + 1 }}</td>
                 <td>
                   <div class="patient-cell">
                     <div class="avatar">{{ getInitials(patient.full_name) }}</div>
@@ -142,12 +140,15 @@
                   </button>
                 </td>
               </tr>
+              <tr v-if="filteredPatients.length === 0">
+                <td colspan="6" class="empty-table-row">Không tìm thấy bệnh nhân</td>
+              </tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- Right: Detail Panel (Slide over or embedded) -->
+      <!-- Right: Detail Panel -->
       <div class="content-card detail-section" v-if="selectedPatient">
         <div class="detail-header">
           <div class="patient-profile">
@@ -175,15 +176,86 @@
         </div>
 
         <div class="detail-content custom-scrollbar">
-          <!-- Overview Tab -->
+          <!-- Overview Tab: real multi-chart dashboard -->
           <div v-if="activeTab === 'overview'" class="tab-pane fade-in">
-            <div class="chart-box">
-              <h4>Biểu đồ phong độ</h4>
-              <div ref="progressChart" class="chart-canvas"></div>
+
+            <!-- Quick Stats Row -->
+            <div class="overview-stats-row">
+              <div class="ov-stat">
+                <span class="ov-stat-val">{{ patientCharts.totalReps || 0 }}</span>
+                <span class="ov-stat-label">Tổng reps</span>
+              </div>
+              <div class="ov-stat">
+                <span class="ov-stat-val">{{ patientCharts.totalSessions || 0 }}</span>
+                <span class="ov-stat-label">Buổi tập</span>
+              </div>
+              <div class="ov-stat accuracy">
+                <span class="ov-stat-val">{{ patientCharts.avgAccuracy || 0 }}%</span>
+                <span class="ov-stat-label">Độ chính xác TB</span>
+              </div>
+              <div class="ov-stat">
+                <span class="ov-stat-val">{{ patientCharts.activeDays || 0 }}</span>
+                <span class="ov-stat-label">Ngày tập</span>
+              </div>
             </div>
 
+            <!-- Weekly Activity Bar Chart -->
+            <div class="chart-box">
+              <h4 class="chart-title">
+                <BarChart2 :size="16" /> Hoạt động tuần này (Số reps theo ngày)
+              </h4>
+              <div class="bar-chart">
+                <div
+                  v-for="day in weeklyActivity"
+                  :key="day.date"
+                  class="bar-col"
+                >
+                  <div class="bar-wrap">
+                    <div
+                      class="bar-fill"
+                      :style="{ height: `${day.heightPct}%` }"
+                      :title="`${day.reps} reps`"
+                    ></div>
+                  </div>
+                  <span class="bar-label">{{ day.label }}</span>
+                  <span class="bar-val">{{ day.reps }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Accuracy Trend Line Chart (SVG) -->
+            <div class="chart-box">
+              <h4 class="chart-title">
+                <TrendingUp :size="16" /> Xu hướng độ chính xác (10 buổi gần nhất)
+              </h4>
+              <div ref="accuracyChart" class="chart-canvas"></div>
+              <div v-if="!accuracyTrendData.length" class="empty-chart-msg">Chưa có dữ liệu</div>
+            </div>
+
+            <!-- Exercise Distribution -->
+            <div class="chart-box" v-if="exerciseDistribution.length">
+              <h4 class="chart-title">
+                <PieChart :size="16" /> Phân bố bài tập
+              </h4>
+              <div class="exercise-dist">
+                <div v-for="ex in exerciseDistribution" :key="ex.exercise_type" class="ex-dist-item">
+                  <div class="ex-dist-bar-wrap">
+                    <div
+                      class="ex-dist-bar"
+                      :style="{ width: `${ex.pct}%`, background: ex.color }"
+                    ></div>
+                  </div>
+                  <div class="ex-dist-info">
+                    <span class="ex-name">{{ ex.exercise_type }}</span>
+                    <span class="ex-count">{{ ex.count }} lần ({{ ex.pct }}%)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent Sessions -->
             <div class="recent-activity-list">
-              <h4>Hoạt động gần đây</h4>
+              <h4>Buổi tập gần đây</h4>
               <div v-if="recentSessions.length === 0" class="empty-state">
                 Chưa có dữ liệu tập luyện
               </div>
@@ -204,7 +276,7 @@
             </div>
           </div>
 
-          <!-- Other tabs placeholders -->
+          <!-- History Tab -->
           <div v-else-if="activeTab === 'history'" class="tab-pane fade-in">
             <h4>Lịch sử tập luyện</h4>
             <div v-if="logs.length === 0" class="empty-state">Chưa có lịch sử tập luyện</div>
@@ -273,13 +345,12 @@ import {
   TrendingUp,
   AlertCircle,
   Plus,
-  Bell,
   Search,
   ChevronRight,
   MessageSquare,
   Phone,
-  Calendar,
-  Clock,
+  BarChart2,
+  PieChart,
 } from 'lucide-vue-next'
 import { API_BASE_URL } from '../config'
 
@@ -306,8 +377,19 @@ const trends = ref({
 const patientNotes = ref([])
 const currentUser = ref({ full_name: 'Bác sĩ' })
 
+// Patient charts data
+const patientCharts = ref({
+  totalReps: 0,
+  totalSessions: 0,
+  avgAccuracy: 0,
+  activeDays: 0,
+  weeklyActivity: [],
+  accuracyTrend: [],
+  muscleFocus: [],
+})
+
 // Refs for charts
-const progressChart = ref(null)
+const accuracyChart = ref(null)
 
 // Computed
 const currentDate = new Date().toLocaleDateString('vi-VN', {
@@ -342,6 +424,35 @@ const criticalPatientsCount = ref(0)
 
 const recentSessions = computed(() => sessions.value.slice(0, 5))
 
+// Weekly activity derived from chart data
+const weeklyActivity = computed(() => {
+  const data = patientCharts.value.weeklyActivity || []
+  if (!data.length) return []
+  const maxReps = Math.max(...data.map((d) => d.reps), 1)
+  const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
+  return data.map((d) => ({
+    date: d.date,
+    reps: d.reps,
+    label: dayNames[new Date(d.date).getDay()],
+    heightPct: Math.round((d.reps / maxReps) * 100),
+  }))
+})
+
+// Accuracy trend derived from chart data
+const accuracyTrendData = computed(() => patientCharts.value.accuracyTrend || [])
+
+// Exercise distribution with color
+const CHART_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']
+const exerciseDistribution = computed(() => {
+  const data = patientCharts.value.muscleFocus || []
+  const total = data.reduce((a, b) => a + b.count, 0) || 1
+  return data.map((d, i) => ({
+    ...d,
+    pct: Math.round((d.count / total) * 100),
+    color: CHART_COLORS[i % CHART_COLORS.length],
+  }))
+})
+
 // Methods
 const getInitials = (name) =>
   name
@@ -359,7 +470,6 @@ const getTabLabel = (tab) => {
 }
 
 const getPatientStatus = (patient) => {
-  // Use real status from API data
   return patient.status || 'active'
 }
 
@@ -400,6 +510,7 @@ const getSessionQuality = (session) => {
 const selectPatient = async (patient) => {
   selectedPatientId.value = patient.patient_id
   selectedPatient.value = patient
+  activeTab.value = 'overview'
   await loadPatientData(patient.patient_id)
 }
 
@@ -407,7 +518,6 @@ const loadPatients = async () => {
   try {
     const token = localStorage.getItem('token')
 
-    // Load patients with status
     const res = await fetch(`${API_BASE}/patients-with-status`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -416,7 +526,6 @@ const loadPatients = async () => {
       stats.value.totalPatients = patients.value.length
     }
 
-    // Load dashboard summary for active/critical counts and trends
     const summaryRes = await fetch(`${API_BASE}/dashboard/summary`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -437,7 +546,7 @@ const loadPatients = async () => {
 const loadPatientData = async (id) => {
   try {
     const token = localStorage.getItem('token')
-    const [sessRes, logsRes, notesRes] = await Promise.all([
+    const [sessRes, logsRes, notesRes, chartsRes, statsRes] = await Promise.all([
       fetch(`${API_BASE}/patient-sessions/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       }),
@@ -447,96 +556,155 @@ const loadPatientData = async (id) => {
       fetch(`${API_BASE}/patient-notes/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       }),
+      fetch(`${API_BASE}/patient/charts/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      fetch(`${API_BASE}/overall-stats?user_id=${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
     ])
 
     if (sessRes.ok) sessions.value = await sessRes.json()
     if (logsRes.ok) logs.value = await logsRes.json()
     if (notesRes.ok) patientNotes.value = await notesRes.json()
 
-    // Update stats
+    if (chartsRes.ok) {
+      const chartsData = await chartsRes.json()
+      patientCharts.value.weeklyActivity = chartsData.weekly_activity || []
+      patientCharts.value.accuracyTrend = chartsData.accuracy_trend || []
+      patientCharts.value.muscleFocus = chartsData.muscle_focus || []
+    }
+
+    if (statsRes.ok) {
+      const st = await statsRes.json()
+      patientCharts.value.totalReps = st.total_reps || 0
+      patientCharts.value.totalSessions = st.total_sessions || 0
+      patientCharts.value.activeDays = st.total_days || 0
+    }
+
+    // Calculate avg accuracy
     if (logs.value.length) {
       const avg = logs.value.reduce((a, b) => a + (b.accuracy_score || 0), 0) / logs.value.length
+      patientCharts.value.avgAccuracy = Math.round(avg)
       stats.value.avgFormScore = Math.round(avg)
     }
 
-    nextTick(() => drawChart())
+    nextTick(() => drawAccuracyChart())
   } catch (e) {
     console.error(e)
   }
 }
 
-const drawChart = () => {
-  if (!progressChart.value || !logs.value.length) return
+const drawAccuracyChart = () => {
+  if (!accuracyChart.value) return
+  const data = accuracyTrendData.value
+  if (!data.length) return
 
-  const container = d3.select(progressChart.value)
+  const container = d3.select(accuracyChart.value)
   container.selectAll('*').remove()
 
-  const width = progressChart.value.clientWidth
-  const height = progressChart.value.clientHeight
-  const margin = { top: 10, right: 10, bottom: 20, left: 30 }
+  const width = accuracyChart.value.clientWidth || 300
+  const height = 160
+  const margin = { top: 16, right: 16, bottom: 28, left: 36 }
+  const innerW = width - margin.left - margin.right
+  const innerH = height - margin.top - margin.bottom
 
-  const svg = container.append('svg').attr('width', width).attr('height', height)
+  const svg = container
+    .append('svg')
+    .attr('width', width)
+    .attr('height', height)
 
-  // Filter data to ensure we have valid scores
-  const rawData = logs.value.slice(0, 10).reverse()
-  const data = rawData.filter((d) => d.accuracy_score != null && !isNaN(d.accuracy_score))
+  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`)
 
-  if (data.length < 2) {
-    // Not enough valid data points for chart
-    return
-  }
+  const x = d3.scaleLinear().domain([0, data.length - 1]).range([0, innerW])
+  const y = d3.scaleLinear().domain([0, 100]).range([innerH, 0])
 
-  const x = d3
-    .scaleLinear()
-    .domain([0, data.length - 1])
-    .range([margin.left, width - margin.right])
+  // Grid lines
+  g.selectAll('.grid-line')
+    .data([0, 25, 50, 75, 100])
+    .enter()
+    .append('line')
+    .attr('class', 'grid-line')
+    .attr('x1', 0).attr('x2', innerW)
+    .attr('y1', d => y(d)).attr('y2', d => y(d))
+    .attr('stroke', '#f1f5f9')
+    .attr('stroke-width', 1)
 
-  const y = d3
-    .scaleLinear()
-    .domain([0, 100])
-    .range([height - margin.bottom, margin.top])
-
-  // Gradient
-  const gradient = svg
-    .append('defs')
-    .append('linearGradient')
-    .attr('id', 'line-gradient')
-    .attr('gradientUnits', 'userSpaceOnUse')
-    .attr('x1', 0)
-    .attr('y1', y(0))
-    .attr('x2', 0)
-    .attr('y2', y(100))
-
-  gradient.append('stop').attr('offset', '0%').attr('stop-color', '#6366f1')
-  gradient.append('stop').attr('offset', '100%').attr('stop-color', '#a855f7')
-
-  const line = d3
-    .line()
+  // Area fill
+  const area = d3.area()
     .x((d, i) => x(i))
-    .y((d) => y(d.accuracy_score || 0))
+    .y0(innerH)
+    .y1(d => y(d.score))
     .curve(d3.curveCatmullRom)
 
-  svg
-    .append('path')
+  const defs = svg.append('defs')
+  const areaGrad = defs.append('linearGradient')
+    .attr('id', 'area-grad')
+    .attr('x1', 0).attr('x2', 0)
+    .attr('y1', 0).attr('y2', 1)
+  areaGrad.append('stop').attr('offset', '0%').attr('stop-color', '#6366f1').attr('stop-opacity', 0.25)
+  areaGrad.append('stop').attr('offset', '100%').attr('stop-color', '#6366f1').attr('stop-opacity', 0.02)
+
+  g.append('path')
+    .datum(data)
+    .attr('fill', 'url(#area-grad)')
+    .attr('d', area)
+
+  // Line
+  const line = d3.line()
+    .x((d, i) => x(i))
+    .y(d => y(d.score))
+    .curve(d3.curveCatmullRom)
+
+  g.append('path')
     .datum(data)
     .attr('fill', 'none')
-    .attr('stroke', 'url(#line-gradient)')
-    .attr('stroke-width', 3)
+    .attr('stroke', '#6366f1')
+    .attr('stroke-width', 2.5)
     .attr('d', line)
 
   // Dots
-  svg
-    .selectAll('circle')
+  g.selectAll('.dot')
     .data(data)
     .enter()
     .append('circle')
     .attr('cx', (d, i) => x(i))
-    .attr('cy', (d) => y(d.accuracy_score || 0))
+    .attr('cy', d => y(d.score))
     .attr('r', 4)
     .attr('fill', 'white')
     .attr('stroke', '#6366f1')
     .attr('stroke-width', 2)
+
+  // Y-axis labels
+  g.selectAll('.y-label')
+    .data([0, 50, 100])
+    .enter()
+    .append('text')
+    .attr('x', -8)
+    .attr('y', d => y(d) + 4)
+    .attr('text-anchor', 'end')
+    .attr('font-size', 10)
+    .attr('fill', '#94a3b8')
+    .text(d => `${d}%`)
+
+  // X-axis date labels (every 2nd point)
+  data.forEach((d, i) => {
+    if (i % 2 === 0 || i === data.length - 1) {
+      const dateStr = new Date(d.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
+      g.append('text')
+        .attr('x', x(i))
+        .attr('y', innerH + 18)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', 10)
+        .attr('fill', '#94a3b8')
+        .text(dateStr)
+    }
+  })
 }
+
+watch(activeTab, (newTab) => {
+  if (newTab === 'overview') nextTick(() => drawAccuracyChart())
+})
 </script>
 
 <style scoped>
@@ -604,30 +772,6 @@ const drawChart = () => {
   transform: translateY(-2px);
 }
 
-.action-btn.secondary {
-  background: white;
-  color: #64748b;
-  border: 1px solid #e2e8f0;
-  position: relative;
-}
-
-.action-btn.secondary:hover {
-  background: #f8fafc;
-  color: #6366f1;
-}
-
-.notification-badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  background: #ef4444;
-  color: white;
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 10px;
-  border: 2px solid white;
-}
-
 /* Stats Row */
 .stats-row {
   display: grid;
@@ -664,18 +808,10 @@ const drawChart = () => {
   z-index: 2;
 }
 
-.stat-card.blue .stat-icon {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-}
-.stat-card.green .stat-icon {
-  background: linear-gradient(135deg, #10b981, #059669);
-}
-.stat-card.orange .stat-icon {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-}
-.stat-card.purple .stat-icon {
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-}
+.stat-card.blue .stat-icon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.stat-card.green .stat-icon { background: linear-gradient(135deg, #10b981, #059669); }
+.stat-card.orange .stat-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.stat-card.purple .stat-icon { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
 
 .stat-info {
   position: relative;
@@ -703,12 +839,8 @@ const drawChart = () => {
   gap: 4px;
 }
 
-.stat-trend.positive {
-  color: #10b981;
-}
-.stat-trend.negative {
-  color: #ef4444;
-}
+.stat-trend.positive { color: #10b981; }
+.stat-trend.negative { color: #ef4444; }
 
 .stat-bg-icon {
   position: absolute;
@@ -799,6 +931,13 @@ const drawChart = () => {
   overflow-y: auto;
 }
 
+.empty-table-row {
+  text-align: center;
+  color: #94a3b8;
+  padding: 32px;
+  font-size: 14px;
+}
+
 .patient-table {
   width: 100%;
   border-collapse: collapse;
@@ -806,7 +945,7 @@ const drawChart = () => {
 
 .patient-table th {
   text-align: left;
-  padding: 16px 24px;
+  padding: 14px 20px;
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
@@ -817,11 +956,24 @@ const drawChart = () => {
   z-index: 10;
 }
 
+.th-num {
+  width: 42px;
+  text-align: center !important;
+}
+
 .patient-table td {
-  padding: 16px 24px;
+  padding: 14px 20px;
   border-bottom: 1px solid #f1f5f9;
   font-size: 14px;
   color: #334155;
+}
+
+.td-num {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #94a3b8;
+  background: #f8fafc;
 }
 
 .patient-table tr:hover {
@@ -850,6 +1002,7 @@ const drawChart = () => {
   justify-content: center;
   font-weight: 700;
   font-size: 14px;
+  flex-shrink: 0;
 }
 
 .info {
@@ -873,14 +1026,9 @@ const drawChart = () => {
   font-weight: 600;
 }
 
-.status-badge.active {
-  background: #dcfce7;
-  color: #166534;
-}
-.status-badge.warning {
-  background: #fef3c7;
-  color: #92400e;
-}
+.status-badge.active { background: #dcfce7; color: #166534; }
+.status-badge.needs_attention { background: #fef3c7; color: #92400e; }
+.status-badge.inactive { background: #f1f5f9; color: #64748b; }
 
 .progress-cell {
   display: flex;
@@ -1010,6 +1158,7 @@ const drawChart = () => {
   color: #94a3b8;
   cursor: pointer;
   position: relative;
+  font-size: 14px;
 }
 
 .tab-item.active {
@@ -1029,31 +1178,172 @@ const drawChart = () => {
 .detail-content {
   flex: 1;
   overflow-y: auto;
-  padding: 24px;
+  padding: 20px;
 }
 
-.chart-box {
+/* =========== OVERVIEW STATS =========== */
+.overview-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.ov-stat {
   background: #f8fafc;
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 24px;
+  border-radius: 12px;
+  padding: 12px 10px;
+  text-align: center;
   border: 1px solid #f1f5f9;
 }
 
-.chart-box h4 {
-  margin: 0 0 16px 0;
-  font-size: 14px;
+.ov-stat-val {
+  display: block;
+  font-size: 22px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.ov-stat.accuracy .ov-stat-val {
+  color: #6366f1;
+}
+
+.ov-stat-label {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 600;
+  margin-top: 2px;
+  display: block;
+}
+
+/* =========== CHART BOXES =========== */
+.chart-box {
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid #f1f5f9;
+}
+
+.chart-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+}
+
+/* Bar Chart */
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 90px;
+  padding: 0 4px;
+}
+
+.bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+}
+
+.bar-wrap {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.bar-fill {
+  width: 70%;
+  min-height: 4px;
+  background: linear-gradient(180deg, #6366f1 0%, #8b5cf6 100%);
+  border-radius: 4px 4px 0 0;
+  transition: height 0.4s ease;
+}
+
+.bar-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.bar-val {
+  font-size: 9px;
+  color: #6366f1;
+  font-weight: 700;
+}
+
+/* Accuracy chart canvas */
+.chart-canvas {
+  width: 100%;
+  min-height: 160px;
+}
+
+.empty-chart-msg {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+  padding: 20px;
+}
+
+/* Exercise distribution */
+.exercise-dist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ex-dist-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ex-dist-bar-wrap {
+  flex: 1;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.ex-dist-bar {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.4s ease;
+}
+
+.ex-dist-info {
+  min-width: 120px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ex-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  text-transform: capitalize;
+}
+
+.ex-count {
+  font-size: 11px;
   color: #64748b;
 }
 
-.chart-canvas {
-  height: 200px;
-  width: 100%;
-}
-
+/* Recent activity */
 .recent-activity-list h4 {
-  margin: 0 0 16px 0;
-  font-size: 16px;
+  margin: 0 0 12px 0;
+  font-size: 14px;
   font-weight: 700;
   color: #1e293b;
 }
@@ -1061,9 +1351,9 @@ const drawChart = () => {
 .activity-item {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 12px;
-  border-radius: 12px;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 10px;
   transition: background 0.2s;
 }
 
@@ -1072,23 +1362,16 @@ const drawChart = () => {
 }
 
 .activity-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
 }
 
-.activity-icon.good {
-  background: #dcfce7;
-  color: #166534;
-}
-.activity-icon.poor {
-  background: #fee2e2;
-  color: #991b1b;
-}
+.activity-icon.good { background: #dcfce7; color: #166534; }
+.activity-icon.poor { background: #fee2e2; color: #991b1b; }
 
 .activity-details {
   flex: 1;
@@ -1099,16 +1382,127 @@ const drawChart = () => {
 .act-name {
   font-weight: 600;
   color: #334155;
-  font-size: 14px;
+  font-size: 13px;
 }
 .act-time {
-  font-size: 12px;
+  font-size: 11px;
   color: #94a3b8;
 }
 
 .activity-score {
   font-weight: 700;
   color: #6366f1;
+  font-size: 13px;
+}
+
+/* History / Notes */
+.history-list, .notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #f1f5f9;
+}
+
+.history-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #e0e7ff;
+  color: #4f46e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.history-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.history-exercise {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  text-transform: capitalize;
+}
+
+.history-date {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.history-stats {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.reps {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6366f1;
+}
+
+.score {
+  font-size: 11px;
+  font-weight: 700;
+  color: #10b981;
+  background: #dcfce7;
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+
+.note-item {
+  padding: 12px;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+
+.note-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.note-title {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 14px;
+}
+
+.note-date {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.note-content {
+  font-size: 13px;
+  color: #475569;
+  margin: 0 0 6px 0;
+}
+
+.note-author {
+  font-size: 11px;
+  color: #6366f1;
+  font-weight: 700;
+}
+
+/* Empty states */
+.empty-state {
+  text-align: center;
+  color: #94a3b8;
+  padding: 24px;
   font-size: 14px;
 }
 
@@ -1128,16 +1522,26 @@ const drawChart = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 24px;
+  margin: 0 auto 24px;
   color: #cbd5e1;
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+.text-muted {
+  color: #94a3b8;
+  font-size: 13px;
 }
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+
+.fade-in {
+  animation: fadeIn 0.25s ease-out;
 }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background-color: #e2e8f0;
   border-radius: 20px;

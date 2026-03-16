@@ -16,7 +16,7 @@ import random
 import string
 import json
 from datetime import datetime, timezone, timedelta
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from models import User, OTPVerification
 
 
@@ -59,6 +59,12 @@ class OTPRequestSchema(BaseModel):
     email: str
     full_name: str
     role: str
+
+    @field_validator('password')
+    @classmethod
+    def validate_password(cls, v):
+        from schemas.user import validate_password_strength
+        return validate_password_strength(v)
 
 class OTPVerifySchema(BaseModel):
     email: str
