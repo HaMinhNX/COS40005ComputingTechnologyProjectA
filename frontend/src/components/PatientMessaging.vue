@@ -161,6 +161,18 @@
           </div>
         </div>
 
+        <!-- Suggested Questions (The fix for "it fails to give chat questions") -->
+        <div v-if="selectedDoctor && messages.length < 10" class="px-6 py-3 flex gap-2 overflow-x-auto custom-scrollbar no-scrollbar scroll-smooth">
+          <button 
+            v-for="q in suggestedQuestions" 
+            :key="q"
+            @click="useSuggestedQuestion(q)"
+            class="whitespace-nowrap px-4 py-2 bg-indigo-50 border border-indigo-100 rounded-full text-xs font-bold text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all shadow-sm active:scale-95 flex-shrink-0"
+          >
+            {{ q }}
+          </button>
+        </div>
+
         <!-- Input Area -->
         <div class="p-4 bg-white border-t border-slate-100">
           <div
@@ -213,6 +225,17 @@ const messages = ref([])
 const newMessage = ref('')
 const currentUserId = ref(null)
 const msgList = ref(null)
+
+const suggestedQuestions = [
+  'Bác sĩ ơi, bài tập hôm nay của tôi là gì?',
+  'Tôi cảm thấy hơi đau sau khi tập, có bình thường không?',
+  'Khi nào là buổi hẹn tiếp theo của tôi?',
+  'Tôi đã hoàn thành mục tiêu gập tay!',
+]
+
+function useSuggestedQuestion(q) {
+  newMessage.value = q
+}
 
 // Remove Vietnamese diacritics for search
 function removeVietnameseTones(str) {
@@ -391,5 +414,12 @@ onMounted(async () => {
 }
 .animate-bounce-slow {
   animation: bounce 3s infinite;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }
 </style>

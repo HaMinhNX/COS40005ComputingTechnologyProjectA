@@ -10,7 +10,7 @@ import logging
 from database import engine, Base, get_db
 from dependencies import validate_environment, get_current_user
 from models import User
-from routers import auth, patients, medical_records, assignments, schedules, messages, exercises, dashboard, doctors, plans, notifications
+from routers import auth, patients, medical_records, assignments, schedules, messages, exercises, dashboard, doctors, plans, notifications, ai_chat
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -99,6 +99,7 @@ app.include_router(dashboard.router)
 app.include_router(doctors.router)
 app.include_router(plans.router)
 app.include_router(notifications.router)
+app.include_router(ai_chat.router)
 
 # === Legacy/Compatibility Endpoints ===
 @app.get("/api/doctor-id")

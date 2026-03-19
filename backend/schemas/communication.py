@@ -102,3 +102,16 @@ class NotificationResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# ============ AI Chat Schemas ============
+
+class AIChatRequest(BaseModel):
+    """Schema for AI chat request"""
+    patient_id: Optional[UUID] = None # Required for doctors to specify which patient
+    message: str = Field(..., min_length=1)
+
+class AIChatResponse(BaseModel):
+    """Schema for AI chat response (non-streaming fallback)"""
+    response: str
+    created_at: datetime = Field(default_factory=datetime.now)

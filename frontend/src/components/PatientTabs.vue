@@ -101,7 +101,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Activity, LogOut, BarChart3, Brain, Calendar, MessageSquare } from 'lucide-vue-next'
+import { Activity, LogOut, BarChart3, Brain, Calendar, MessageSquare, Sparkles } from 'lucide-vue-next'
 
 // Import các component con (đảm bảo đã tạo chúng)
 import PatientDashboard from './PatientDashboard.vue'
@@ -110,6 +110,7 @@ import BrainExercise from './BrainExercise.vue'
 import SportsTraining from './SportsTraining.vue'
 import PatientScheduling from './PatientScheduling.vue'
 import PatientMessaging from './PatientMessaging.vue'
+import AIChatbox from './AIChatbox.vue'
 
 const router = useRouter()
 
@@ -124,6 +125,7 @@ const tabs = [
   { id: 'brain', label: 'Trí tuệ', iconComponent: Brain },
   { id: 'sports', label: 'Thể thao', iconComponent: Activity },
   { id: 'messages', label: 'Tin nhắn', iconComponent: MessageSquare },
+  { id: 'aiChat', label: 'Trợ lý AI', iconComponent: Sparkles },
   { id: 'scheduling', label: 'Lịch hẹn', iconComponent: Calendar },
 ]
 
@@ -139,6 +141,8 @@ const currentComponent = computed(() => {
       return SportsTraining
     case 'messages':
       return PatientMessaging
+    case 'aiChat':
+      return AIChatbox
     case 'scheduling':
       return PatientScheduling
     default:

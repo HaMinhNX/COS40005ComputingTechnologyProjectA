@@ -187,6 +187,18 @@
           </div>
         </div>
 
+        <!-- Suggested Questions (The fix for "it fails to give chat questions") -->
+        <div v-if="selectedUser && messages.length < 10" class="px-6 py-3 flex gap-2 overflow-x-auto custom-scrollbar no-scrollbar scroll-smooth">
+          <button 
+            v-for="q in suggestedQuestions" 
+            :key="q"
+            @click="useSuggestedQuestion(q)"
+            class="whitespace-nowrap px-4 py-2 bg-indigo-50 border border-indigo-100 rounded-full text-xs font-bold text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all shadow-sm active:scale-95 flex-shrink-0"
+          >
+            {{ q }}
+          </button>
+        </div>
+
         <!-- Input Area -->
         <div class="p-4 bg-white border-t border-slate-100">
           <div
@@ -241,6 +253,27 @@ const newMessage = ref('')
 const currentUserId = ref(null)
 const msgList = ref(null)
 const activeTab = ref('doctors') // 'doctors' | 'patients'
+
+const suggestedQuestions = computed(() => {
+  if (activeTab.value === 'patients') {
+    return [
+      'Chào bạn, hôm nay bạn thấy thế nào?',
+      'Hãy nhớ hoàn thành bài tập phục hồi nhé.',
+      'Tôi đã xem kết quả của bạn, rất tốt!',
+      'Bạn có gặp khó khăn gì với bài tập mới không?',
+    ]
+  } else {
+    return [
+      'Chào đồng nghiệp, bạn có thể xem ca này giúp tôi không?',
+      'Cuộc họp giao ban sáng nay lúc mấy giờ nhỉ?',
+      'Đã gửi hồ sơ bệnh nhân qua cho bạn rồi nhé.',
+    ]
+  }
+})
+
+function useSuggestedQuestion(q) {
+  newMessage.value = q
+}
 
 // Remove Vietnamese diacritics for search
 function removeVietnameseTones(str) {
@@ -457,5 +490,12 @@ onMounted(async () => {
 
 .animate-bounce-slow {
   animation: bounce 3s infinite;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }
 </style>

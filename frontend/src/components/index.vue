@@ -285,6 +285,7 @@ import ExerciseLibrary from './ExerciseLibrary.vue'
 import DoctorMessaging from './DoctorMessaging.vue'
 import Assignment from './Assignment.vue'
 import PatientTabs from './PatientTabs.vue'
+import AIChatbox from './AIChatbox.vue'
 
 // State
 const sidebarCollapsed = ref(false)
@@ -365,7 +366,10 @@ const groupedMenu = {
     items: [{ id: 'library', label: 'Thư viện bài tập', icon: Dumbbell }],
   },
   communication: {
-    items: [{ id: 'messages', label: 'Tin nhắn', icon: MessageSquare }],
+    items: [
+      { id: 'messages', label: 'Tin nhắn', icon: MessageSquare },
+      { id: 'aiChat', label: 'AI Chatbox', icon: MessageSquare },
+    ],
   },
   patientUI: {
     items: [{ id: 'patientView', label: 'Giao diện Bệnh nhân', icon: Activity }],
@@ -380,6 +384,7 @@ const components = {
   library: ExerciseLibrary,
   assignment: Assignment,
   messages: DoctorMessaging,
+  aiChat: AIChatbox,
   patientView: PatientTabs,
 }
 
