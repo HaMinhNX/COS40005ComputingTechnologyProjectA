@@ -8,6 +8,9 @@ from uuid import uuid4
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Set test environment variables BEFORE importing main to avoid connecting to production DB
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+
 from main import app
 from database import Base, get_db
 from models import User, MedicalRecord
@@ -15,6 +18,10 @@ from dependencies import get_current_user, verify_patient_access
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+import routers.ai_chat
+
+# Ensure GEMINI_API_KEY is set for tests
+routers.ai_chat.GEMINI_API_KEY = "test_key"
 
 # Setup test DB
 engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
@@ -50,15 +57,19 @@ def test_ai_chat_streaming_success():
     db.add(doctor)
     db.add(patient)
     db.add(medical_record)
+    db.add(doctor)
+    db.add(patient)
+    db.add(medical_record)
     db.commit()
-    db.close()
+    # Don't close session here to avoid DetachedInstanceError when accessed by FastAPI
+    # db.close() 
 
     # Mock dependencies and Gemini
     app.dependency_overrides[get_current_user] = lambda: doctor
     
     with patch("dependencies.verify_patient_access", return_value=patient):
         with patch("os.getenv", return_value="test_key"):
-            with patch("google.generativeai.GenerativeModel") as mock_model:
+            with patch("routers.ai_chat.genai.GenerativeModel") as mock_model:
                 mock_instance = mock_model.return_value
                 
                 # Mock streaming response
