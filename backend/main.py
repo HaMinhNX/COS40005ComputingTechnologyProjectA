@@ -18,12 +18,16 @@ async def lifespan(app: FastAPI):
     try:
         validate_environment()
         print("✅ Environment variables validated")
-        # Initialize database tables
-        Base.metadata.create_all(bind=engine)
-        print("✅ Database tables synchronized")
     except RuntimeError as e:
         print(f"❌ Startup Error: {e}")
     yield
+
+# Initialize database tables on module load (Supported by Vercel cold starts)
+try:
+    Base.metadata.create_all(bind=engine)
+    print("✅ Database tables synchronized")
+except Exception as e:
+    print(f"⚠️ Database sync skipped or failed: {e}")
 
 app = FastAPI(title="Medic1 Rehabilitation API", version="2.0", lifespan=lifespan)
 

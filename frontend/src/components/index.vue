@@ -275,6 +275,7 @@ import {
   Bell,
   Calendar as CalendarIcon,
   Phone,
+  Sparkles,
 } from 'lucide-vue-next'
 
 // Import Components
@@ -368,7 +369,7 @@ const groupedMenu = {
   communication: {
     items: [
       { id: 'messages', label: 'Tin nhắn', icon: MessageSquare },
-      { id: 'aiChat', label: 'AI Chatbox', icon: MessageSquare },
+      { id: 'aiChat', label: 'Trợ lý AI', icon: Sparkles },
     ],
   },
   patientUI: {
