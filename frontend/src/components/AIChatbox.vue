@@ -96,7 +96,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, computed } from 'vue'
+import { ref, onMounted, nextTick, computed, watch } from 'vue'
 import { Sparkles, Send, Bot, Trash2 } from 'lucide-vue-next'
 import { API_BASE_URL } from '../config'
 
@@ -113,6 +113,14 @@ const patients = ref([])
 const userRole = ref('')
 const currentUser = ref(null)
 const currentStreamingMessage = ref(null)
+
+// Watch for prop changes (e.g. from Dashboard)
+watch(() => props.initialPatientId, (newId) => {
+  if (newId !== selectedPatientId.value) {
+    selectedPatientId.value = newId
+    clearChat()
+  }
+})
 
 const suggestedPrompts = computed(() => {
   if (userRole.value === 'doctor') {
@@ -139,6 +147,10 @@ onMounted(async () => {
     userRole.value = currentUser.value.role
     if (userRole.value === 'doctor') {
       await fetchPatients()
+      // If we have an initial ID, ensure it's selected
+      if (props.initialPatientId) {
+        selectedPatientId.value = props.initialPatientId
+      }
     } else {
       selectedPatientId.value = currentUser.value.user_id
     }

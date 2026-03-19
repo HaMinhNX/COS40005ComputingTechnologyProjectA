@@ -439,6 +439,7 @@ async function sendMessage() {
 
 function selectUser(user) {
   selectedUser.value = user
+  messages.value = [] // Clear messages to prevent lingering from previous user
   loadMessages()
 }
 

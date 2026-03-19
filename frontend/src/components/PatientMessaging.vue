@@ -369,6 +369,7 @@ async function sendMessage() {
 
 function selectDoctor(doctor) {
   selectedDoctor.value = doctor
+  messages.value = [] // Clear messages to prevent lingering from previous doctor
   loadMessages()
 }
 
