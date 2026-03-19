@@ -299,7 +299,7 @@
             </div>
           </div>
 
-          <!-- Notes Tab -->
+           <!-- Notes Tab -->
           <div v-else-if="activeTab === 'notes'" class="tab-pane fade-in">
             <h4>Ghi chú bệnh nhân</h4>
             <div v-if="patientNotes.length === 0" class="empty-state">Chưa có ghi chú nào</div>
@@ -313,6 +313,11 @@
                 <span class="note-author">{{ note.doctor_name }}</span>
               </div>
             </div>
+          </div>
+
+          <!-- AI Chat Tab (New) -->
+          <div v-else-if="activeTab === 'ai_chat'" class="tab-pane fade-in h-[600px]">
+            <AIChatbox :initialPatientId="selectedPatientId" />
           </div>
         </div>
       </div>
@@ -352,6 +357,7 @@ import {
   BarChart2,
   PieChart,
 } from 'lucide-vue-next'
+import AIChatbox from './AIChatbox.vue'
 import { API_BASE_URL } from '../config'
 
 // State
@@ -363,7 +369,7 @@ const sessions = ref([])
 const logs = ref([])
 const searchQuery = ref('')
 const activeTab = ref('overview')
-const tabs = ['overview', 'history', 'notes']
+const tabs = ['overview', 'history', 'notes', 'ai_chat']
 const stats = ref({
   totalPatients: 0,
   avgFormScore: 0,
@@ -465,7 +471,7 @@ const getInitials = (name) =>
     : '??'
 
 const getTabLabel = (tab) => {
-  const map = { overview: 'Tổng quan', history: 'Lịch sử', notes: 'Ghi chú' }
+  const map = { overview: 'Tổng quan', history: 'Lịch sử', notes: 'Ghi chú', ai_chat: 'Trợ lý AI' }
   return map[tab] || tab
 }
 

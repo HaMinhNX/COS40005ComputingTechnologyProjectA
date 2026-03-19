@@ -18,6 +18,9 @@ async def lifespan(app: FastAPI):
     try:
         validate_environment()
         print("✅ Environment variables validated")
+        # Initialize database tables
+        Base.metadata.create_all(bind=engine)
+        print("✅ Database tables synchronized")
     except RuntimeError as e:
         print(f"❌ Startup Error: {e}")
     yield
@@ -47,9 +50,6 @@ app.add_middleware(
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Database initialization
-Base.metadata.create_all(bind=engine)
-
 # Exception Handlers
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -75,9 +75,6 @@ async def general_exception_handler(request: Request, exc: Exception):
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"detail": "An unexpected error occurred."},
     )
-
-
-
 
 @app.get("/")
 async def root():
@@ -129,8 +126,7 @@ async def get_doctor_id_legacy(
         if not doctor_id:
             assign = db.query(Assignment).filter(
                 Assignment.patient_id == current_user.user_id
-            ).order_by(Assignment.created_at.desc()).first() # Assuming created_at exists or use assignment_id/date
-            # Assignment doesn't have created_at default, use assigned_date
+            ).order_by(Assignment.created_at.desc()).first()
             if assign:
                 doctor_id = assign.doctor_id
 

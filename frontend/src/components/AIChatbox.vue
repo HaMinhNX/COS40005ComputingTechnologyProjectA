@@ -1,127 +1,136 @@
 <template>
-  <div class="flex flex-col h-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
+  <div class="ai-chatbox-container glass-morphism">
     <!-- Header -->
-    <header class="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
-          <Sparkles :size="20" />
+    <header class="chat-header">
+      <div class="header-main">
+        <div class="logo-orb">
+          <Sparkles :size="20" class="sparkle-icon" />
         </div>
-        <div>
-          <h2 class="text-lg font-black text-slate-900 leading-tight">Trợ lý MEDIC1 AI</h2>
-          <p class="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Sức mạnh từ Gemini 1.5</p>
+        <div class="header-text">
+          <h2>MEDIC1 Intelligence</h2>
+          <span class="status-badge">Powered by Gemini 1.5 Pro</span>
         </div>
       </div>
       
       <!-- Patient Selector for Doctors -->
-      <div v-if="userRole === 'doctor'" class="flex items-center gap-2">
-        <span class="text-xs font-bold text-slate-400">Đang hỏi về:</span>
-        <select 
-          v-model="selectedPatientId" 
-          @change="clearChat"
-          class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm"
-        >
-          <option :value="null" disabled>Chọn bệnh nhân...</option>
+      <div v-if="userRole === 'doctor'" class="patient-selector-wrapper">
+        <select v-model="selectedPatientId" @change="clearChat" class="premium-select">
+          <option :value="null" disabled>Chọn bệnh nhân phân tích...</option>
           <option v-for="p in patients" :key="p.patient_id" :value="p.patient_id">
             {{ p.full_name }}
           </option>
         </select>
       </div>
+
+      <button @click="clearChat" class="icon-button" title="Xóa hội thoại">
+        <Trash2 :size="18" />
+      </button>
     </header>
 
     <!-- Chat Messages -->
-    <div ref="messageContainer" class="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:24px_24px]">
-      <div v-if="messages.length === 0" class="h-full flex flex-col items-center justify-center text-center opacity-40 py-12">
-        <div class="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
-          <Bot :size="32" class="text-slate-400" />
+    <div ref="messageContainer" class="chat-messages custom-scrollbar">
+      <div v-if="messages.length === 0" class="empty-state">
+        <div class="empty-icon-wrapper">
+          <Bot :size="48" />
         </div>
-        <h3 class="text-xl font-black text-slate-900 mb-2">Xin chào! Tôi có thể giúp gì?</h3>
-        <p class="text-sm font-medium text-slate-500 max-w-sm">Hãy đặt câu hỏi về bệnh nhân, các bài tập hoặc kết quả phục hồi chức năng.</p>
+        <h3 class="font-black text-2xl text-slate-900 mb-2">Tôi có thể giúp gì cho bạn?</h3>
+        <p class="text-slate-500 max-w-sm mx-auto font-medium">
+          Hỏi về bệnh nhân, phân tích chỉ số sức khỏe, hoặc yêu cầu tóm tắt quá trình phục hồi.
+        </p>
       </div>
 
       <div v-for="(msg, idx) in messages" :key="idx" 
-           :class="['flex gap-4 animate-in slide-in-from-bottom-2 duration-300', msg.role === 'user' ? 'justify-end' : '']">
+           :class="['message-row', msg.role === 'user' ? 'user' : 'assistant']">
         
-        <!-- AI Avatar -->
-        <div v-if="msg.role === 'assistant'" class="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shrink-0 shadow-lg">
-          <Sparkles :size="18" />
-        </div>
-
-        <div :class="[
-          'max-w-[85%] rounded-2xl p-4 shadow-sm relative',
-          msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white border border-slate-100 text-slate-800 rounded-tl-none'
-        ]">
-          <!-- Simple formatting -->
-          <div class="text-sm leading-relaxed whitespace-pre-wrap font-medium" v-html="formatContent(msg.content)"></div>
-          <div :class="['text-[10px] mt-2 opacity-50 font-bold', msg.role === 'user' ? 'text-indigo-100' : 'text-slate-400']">
+        <div class="message-bubble" :class="{ 'streaming': msg.isStreaming }">
+          <div class="message-content" v-html="formatContent(msg.content)"></div>
+          <div class="message-meta">
             {{ msg.timestamp }}
           </div>
         </div>
       </div>
 
-      <!-- Typing indicator / Streaming target -->
-      <div v-if="isStreaming" class="flex gap-4 animate-pulse">
-        <div class="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shrink-0 shadow-lg">
-          <Sparkles :size="18" />
-        </div>
-        <div class="bg-white border border-slate-100 p-4 rounded-2xl rounded-tl-none max-w-[85%] shadow-sm">
-          <div class="flex gap-1">
-            <div class="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce"></div>
-            <div class="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-            <div class="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+      <!-- Streaming Indicator -->
+      <div v-if="isStreaming && !currentStreamingMessage" class="message-row assistant">
+        <div class="message-bubble thinking">
+          <div class="dot-typing">
+            <span></span><span></span><span></span>
           </div>
         </div>
+      </div>
+      <!-- Suggested Questions (The fix for "it fails to give chat questions") -->
+      <div v-if="selectedPatientId && messages.length < 30" class="px-6 py-3 flex gap-2 overflow-x-auto custom-scrollbar no-scrollbar scroll-smooth">
+        <button 
+          v-for="sug in suggestedPrompts" 
+          :key="sug"
+          @click="useSuggestion(sug)"
+          class="suggestion-pill"
+        >
+          {{ sug }}
+        </button>
       </div>
     </div>
 
     <!-- Input Area -->
-    <div class="p-6 bg-slate-50/80 border-t border-slate-200">
-      <div class="relative max-w-4xl mx-auto flex gap-3">
-        <button v-if="messages.length > 0" @click="clearChat" 
-                class="p-4 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-red-500 hover:border-red-200 transition-all shadow-sm">
-          <Trash2 :size="20" />
+    <div class="input-container">
+      <div class="input-wrapper">
+        <textarea
+          v-model="inputMessage"
+          @keydown.enter.prevent="sendMessage"
+          placeholder="Nhắn tin cho MEDIC1 AI..."
+          :disabled="isStreaming || (userRole === 'doctor' && !selectedPatientId)"
+          rows="1"
+          ref="inputRef"
+        ></textarea>
+        <button 
+          @click="sendMessage"
+          :disabled="!inputMessage.trim() || isStreaming || (userRole === 'doctor' && !selectedPatientId)"
+          class="send-button"
+        >
+          <Send :size="20" />
         </button>
-        
-        <div class="flex-1 relative group">
-          <textarea
-            v-model="inputMessage"
-            @keydown.enter.prevent="sendMessage"
-            rows="1"
-            placeholder="Đặt câu hỏi cho MEDIC1 AI..."
-            class="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 pr-14 text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none shadow-sm resize-none"
-            :disabled="isStreaming || (userRole === 'doctor' && !selectedPatientId)"
-          ></textarea>
-          <button 
-            @click="sendMessage"
-            :disabled="!inputMessage.trim() || isStreaming || (userRole === 'doctor' && !selectedPatientId)"
-            class="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center hover:bg-indigo-700 disabled:opacity-30 disabled:hover:bg-indigo-600 transition-all shadow-md active:scale-95"
-          >
-            <Send :size="18" />
-          </button>
-        </div>
       </div>
-      <p v-if="userRole === 'doctor' && !selectedPatientId" class="text-[10px] text-red-500 font-bold mt-2 text-center uppercase tracking-widest">Vui lòng chọn bệnh nhân phía trên để bắt đầu hỏi đáp</p>
-      <p class="text-[10px] text-slate-400 font-bold mt-2 text-center uppercase tracking-widest text-center block w-full">AI có thể cung cấp thông tin không hoàn toàn chính xác. Hãy tham khảo chuyên gia.</p>
+      <p v-if="userRole === 'doctor' && !selectedPatientId" class="error-text">Vui lòng chọn một bệnh nhân để bắt đầu phân tích</p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, computed } from 'vue'
 import { Sparkles, Send, Bot, Trash2 } from 'lucide-vue-next'
 import { API_BASE_URL } from '../config'
 
 const props = defineProps({
-  userId: { type: String, default: null }
+  initialPatientId: { type: String, default: null }
 })
 
 const messages = ref([])
 const inputMessage = ref('')
 const isStreaming = ref(false)
 const messageContainer = ref(null)
-const selectedPatientId = ref(null)
+const selectedPatientId = ref(props.initialPatientId)
 const patients = ref([])
 const userRole = ref('')
 const currentUser = ref(null)
+const currentStreamingMessage = ref(null)
+
+const suggestedPrompts = computed(() => {
+  if (userRole.value === 'doctor') {
+    return [
+      'Tóm tắt tình trạng bệnh nhân này',
+      'Phân tích hiệu suất tập luyện gần đây',
+      'Bệnh nhân có tiến bộ không?',
+      'Các chỉ số sức khỏe có gì bất thường?'
+    ]
+  } else {
+    return [
+      'Tóm tắt tuần tập luyện của tôi',
+      'Độ chính xác của tôi thế nào?',
+      'Tôi cần cải thiện bài tập nào?',
+      'Phân tích xu hướng nhịp tim của tôi'
+    ]
+  }
+})
 
 onMounted(async () => {
   const userStr = localStorage.getItem('user')
@@ -146,15 +155,15 @@ const fetchPatients = async () => {
       patients.value = await res.json()
     }
   } catch (e) {
-    console.error('Lỗi khi lấy danh sách bệnh nhân:', e)
+    console.error('Lỗi lấy danh sách:', e)
   }
 }
 
 const formatContent = (content) => {
-  // Simple bold and list formatting
+  if (!content) return ''
   return content
-    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-black text-slate-900">$1</strong>')
-    .replace(/^\* (.*)$/gm, '<li class="ml-4">$1</li>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^\* (.*)$/gm, '<li>$1</li>')
     .replace(/\n/g, '<br/>')
 }
 
@@ -168,6 +177,11 @@ const scrollToEnd = () => {
 
 const clearChat = () => {
   messages.value = []
+}
+
+const useSuggestion = (text) => {
+  inputMessage.value = text
+  sendMessage()
 }
 
 const sendMessage = async () => {
@@ -200,10 +214,7 @@ const sendMessage = async () => {
       })
     })
 
-    if (!response.ok) {
-      const errData = await response.json();
-      throw new Error(errData.detail || 'Yêu cầu thất bại');
-    }
+    if (!response.ok) throw new Error('Yêu cầu thất bại')
 
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
@@ -211,9 +222,11 @@ const sendMessage = async () => {
     let assistantMsg = {
       role: 'assistant',
       content: '',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isStreaming: true
     }
     messages.value.push(assistantMsg)
+    currentStreamingMessage.value = assistantMsg
 
     while (true) {
       const { value, done } = await reader.read()
@@ -226,48 +239,338 @@ const sendMessage = async () => {
         if (line.startsWith('data: ')) {
           const data = line.slice(6).trim()
           if (data === '[DONE]') break
-          if (!data) continue
           try {
             const parsed = JSON.parse(data)
             assistantMsg.content += parsed.text
             scrollToEnd()
-          } catch (e) {
-             console.error("JSON Parse Error during streaming:", e, "Data:", data)
-          }
+          } catch (err) {}
         }
       }
     }
-  } catch (e) {
-    console.error('AI Error:', e)
-    messages.value.push({
-      role: 'assistant',
-      content: `Xin lỗi, đã có lỗi xảy ra: ${e.message}`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    })
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      console.error('AI Stream Error:', err)
+      messages.value.push({
+        role: 'assistant',
+        content: `Lỗi: ${err.message}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      })
+    }
   } finally {
     isStreaming.value = false
+    currentStreamingMessage.value = null
     scrollToEnd()
   }
 }
 </script>
 
 <style scoped>
-.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.ai-chatbox-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: white;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.05);
+}
+
+.glass-morphism {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.chat-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.header-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo-orb {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2);
+}
+
+.sparkle-icon {
+  color: white;
+  filter: drop-shadow(0 0 4px rgba(255,255,255,0.5));
+}
+
+.header-text h2 {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1e293b;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.status-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.premium-select {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  outline: none;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.premium-select:focus {
+  border-color: #6366f1;
+  ring: 4px rgba(99, 102, 241, 0.1);
+}
+
+.icon-button {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  color: #94a3b8;
+  transition: all 0.2s;
+}
+
+.icon-button:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.empty-state {
+  margin-top: auto;
+  margin-bottom: auto;
+  text-align: center;
+  animation: fadeUp 0.6s ease-out;
+}
+
+.empty-icon-wrapper {
+  width: 80px;
+  height: 80px;
+  background: #f8fafc;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+  color: #cbd5e1;
+}
+
+.message-row {
+  display: flex;
+  width: 100%;
+}
+
+.message-row.user {
+  justify-content: flex-end;
+}
+
+.message-bubble {
+  max-width: 80%;
+  padding: 16px 20px;
+  border-radius: 18px;
+  font-size: 15px;
+  line-height: 1.6;
+  position: relative;
+  transition: transform 0.2s ease;
+}
+
+.user .message-bubble {
+  background: #1e293b;
+  color: white;
+  border-bottom-right-radius: 4px;
+  box-shadow: 0 10px 25px rgba(30, 41, 59, 0.1);
+}
+
+.assistant .message-bubble {
+  background: white;
+  color: #334155;
+  border: 1px solid #f1f5f9;
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+}
+
+.message-meta {
+  font-size: 10px;
+  font-weight: 600;
+  margin-top: 8px;
+  opacity: 0.5;
+}
+
+.user .message-meta {
+  text-align: right;
+}
+
+.thinking {
+  padding: 12px 18px;
+}
+
+.dot-typing {
+  display: flex;
+  gap: 4px;
+}
+
+.dot-typing span {
+  width: 6px;
+  height: 6px;
+  background: #cbd5e1;
+  border-radius: 50%;
+  animation: dotPulse 1.4s infinite ease-in-out both;
+}
+
+.dot-typing span:nth-child(2) { animation-delay: 0.2s; }
+.dot-typing span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dotPulse {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
+
+.input-container {
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.input-wrapper {
+  max-width: 800px;
+  margin: 0 auto;
+  position: relative;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 8px;
+  display: flex;
+  align-items: flex-end;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.input-wrapper:focus-within {
+  transform: translateY(-2px);
+  border-color: #6366f1;
+  box-shadow: 0 15px 40px rgba(99, 102, 241, 0.1);
+}
+
+textarea {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #1e293b;
+  outline: none;
+  resize: none;
+  max-height: 200px;
+}
+
+.send-button {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #6366f1;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.send-button:disabled {
+  background: #f1f5f9;
+  color: #cbd5e1;
+}
+
+.send-button:not(:disabled):hover {
+  background: #4f46e5;
+  transform: scale(1.05);
+}
+
+.error-text {
+  font-size: 11px;
+  color: #ef4444;
+  font-weight: 700;
+  text-align: center;
+  margin-top: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
 
-.animate-in {
-  animation-duration: 0.3s;
-  animation-fill-mode: both;
+.suggestions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  max-width: 600px;
+  margin: 32px auto 0;
+  animation: fadeUp 0.8s ease-out 0.2s both;
 }
 
-@keyframes slide-in-bottom {
-  from { transform: translateY(10px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+.suggestion-pill {
+  background: white;
+  border: 1px solid #f1f5f9;
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  text-align: left;
+  transition: all 0.2s;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.02);
 }
 
-.slide-in-from-bottom-2 {
-  animation-name: slide-in-bottom;
+.suggestion-pill:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(99, 102, 241, 0.05);
 }
 </style>

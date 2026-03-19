@@ -188,7 +188,7 @@
         </div>
 
         <!-- Suggested Questions (The fix for "it fails to give chat questions") -->
-        <div v-if="selectedUser && messages.length < 10" class="px-6 py-3 flex gap-2 overflow-x-auto custom-scrollbar no-scrollbar scroll-smooth">
+        <div v-if="selectedUser && messages.length < 30" class="px-6 py-3 flex gap-2 overflow-x-auto custom-scrollbar no-scrollbar scroll-smooth">
           <button 
             v-for="q in suggestedQuestions" 
             :key="q"
