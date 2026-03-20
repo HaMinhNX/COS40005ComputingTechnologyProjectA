@@ -50,6 +50,9 @@ def verify_token(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
-    except JWTError:
+    except JWTError as e:
+        # Use simple string slicing with explicit type safety for the IDE
+        token_preview = str(token)[:10] if token else "None"
+        print(f"DEBUG AUTH: JWTError: {e} for token: {token_preview}...")
         return None
 

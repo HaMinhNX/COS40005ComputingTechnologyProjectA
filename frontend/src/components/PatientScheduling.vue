@@ -2,7 +2,7 @@
   <div class="h-full flex flex-col space-y-6" data-isolated-ui>
     <!-- Header with Gradient -->
     <div
-      class="relative overflow-hidden bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 p-8 rounded-3xl shadow-2xl shadow-purple-500/20 text-white"
+      class="relative overflow-hidden bg-indigo-600 p-8 rounded-3xl shadow-2xl text-white"
     >
       <div
         class="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20"
@@ -45,7 +45,7 @@
     >
       <!-- Toolbar -->
       <div
-        class="p-6 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 to-white"
+        class="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50"
       >
         <div class="flex items-center gap-4">
           <button
@@ -76,7 +76,7 @@
       <div v-if="currentView === 'Tháng'" class="flex-1 flex flex-col min-h-0 w-full">
         <!-- Days Header -->
         <div
-          class="grid grid-cols-7 border-b border-slate-200 bg-gradient-to-r from-purple-50 to-fuchsia-50 w-full"
+          class="grid grid-cols-7 border-b border-slate-200 bg-indigo-50 w-full"
         >
           <div
             v-for="day in ['CN', 'Hai', 'Ba', 'Tư', 'Năm', 'Sáu', 'Bảy']"
@@ -96,7 +96,7 @@
               'border-b border-r border-slate-100 p-2 transition-all relative flex flex-col gap-1 min-h-[100px]',
               !cell.inMonth ? 'bg-slate-50/50 text-slate-400' : 'bg-white',
               cell.isToday
-                ? 'bg-gradient-to-br from-purple-50/50 to-fuchsia-50/50 ring-2 ring-inset ring-purple-200'
+                ? 'bg-indigo-50 ring-2 ring-inset ring-indigo-200'
                 : '',
             ]"
           >
@@ -105,7 +105,7 @@
                 :class="[
                   'w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold transition-all',
                   cell.isToday
-                    ? 'bg-gradient-to-br from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/40 scale-110'
+                    ? 'bg-indigo-600 text-white shadow-lg scale-110'
                     : cell.inMonth
                       ? 'text-slate-700 hover:bg-slate-100'
                       : 'text-slate-400',
@@ -140,7 +140,7 @@
       <div v-else-if="currentView === 'Tuần'" class="flex-1 flex flex-col min-h-0">
         <!-- Week Days Header -->
         <div
-          class="grid grid-cols-8 border-b border-slate-200 bg-gradient-to-r from-purple-50 to-fuchsia-50 sticky top-0 z-10"
+          class="grid grid-cols-8 border-b border-slate-200 bg-indigo-50 sticky top-0 z-10"
         >
           <div
             class="py-3 px-2 text-center text-xs font-black text-slate-600 uppercase tracking-wider border-r border-slate-200"
@@ -203,7 +203,7 @@
 
       <!-- Day View -->
       <div v-else-if="currentView === 'Ngày'" class="flex-1 flex flex-col min-h-0">
-        <div class="p-6 border-b border-slate-200 bg-gradient-to-r from-purple-50 to-fuchsia-50">
+        <div class="p-6 border-b border-slate-200 bg-indigo-50">
           <div class="flex items-center justify-between">
             <div>
               <h3 class="text-2xl font-black text-slate-900">{{ formatDayViewDate(current) }}</h3>
@@ -265,7 +265,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 
 import { API_BASE_URL } from '../config'
 const API_BASE = API_BASE_URL
@@ -275,9 +275,7 @@ const current = ref(new Date())
 const openNew = ref(false)
 const editingEvent = ref(null)
 const form = ref({ date: '', time: '09:00', type: 'Khám', notes: '' })
-const doctorId = ref(null)
 const patientId = ref(null)
-const isSaving = ref(false)
 const events = ref([])
 
 const monthYear = computed(() =>
@@ -413,30 +411,6 @@ function formatDayViewDate(date) {
 
 function today() {
   current.value = new Date()
-}
-
-function selectDate(date) {
-  const offset = date.getTimezoneOffset()
-  const adjustedDate = new Date(date.getTime() - offset * 60 * 1000)
-  form.value.date = adjustedDate.toISOString().split('T')[0]
-  openNew.value = true
-}
-
-function getEventClass(type) {
-  switch (type) {
-    case 'Khám':
-      return 'bg-blue-100 text-blue-800 border-blue-500 hover:bg-blue-200'
-    case 'Tái khám':
-      return 'bg-purple-100 text-purple-800 border-purple-500 hover:bg-purple-200'
-    default:
-      return 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-500 hover:bg-fuchsia-200'
-  }
-}
-
-function closeModal() {
-  openNew.value = false
-  editingEvent.value = null
-  form.value = { date: '', time: '09:00', type: 'Khám', notes: '' }
 }
 
 function edit(ev) {

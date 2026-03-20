@@ -371,23 +371,17 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import {
-  Plus,
-  Clock,
-  Repeat,
-  Calendar,
   Trash2,
-  Edit2,
   X,
   Search,
-  Check,
-  Users,
-  Mail,
   ChevronLeft,
   ChevronRight,
   List,
   RefreshCw,
+  Calendar,
+  Plus,
 } from 'lucide-vue-next'
 
 // API Configuration
@@ -673,19 +667,6 @@ const removeExercise = async (idx) => {
   }
 }
 
-const getDifficultyClass = (diff) => {
-  switch (diff) {
-    case 'Easy':
-      return 'difficulty-easy'
-    case 'Medium':
-      return 'difficulty-medium'
-    case 'Hard':
-      return 'difficulty-hard'
-    default:
-      return 'difficulty-medium'
-  }
-}
-
 // Calendar State
 const calendarDate = ref(new Date())
 const calendarTitle = computed(() =>
@@ -696,7 +677,6 @@ const calendarCells = computed(() => {
   const year = calendarDate.value.getFullYear()
   const month = calendarDate.value.getMonth()
   const firstDay = new Date(year, month, 1)
-  const lastDay = new Date(year, month + 1, 0)
 
   const startDate = new Date(firstDay)
   startDate.setDate(startDate.getDate() - startDate.getDay())
@@ -799,12 +779,12 @@ onMounted(async () => {
 }
 
 .toast-notification.success {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: #10b981;
   color: white;
 }
 
 .toast-notification.error {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  background: #ef4444;
   color: white;
 }
 
@@ -904,7 +884,7 @@ onMounted(async () => {
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: #6366f1;
   color: white;
   display: flex;
   align-items: center;
@@ -917,7 +897,7 @@ onMounted(async () => {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: #6366f1;
   color: white;
   display: flex;
   align-items: center;
@@ -1050,7 +1030,7 @@ onMounted(async () => {
   align-items: center;
   gap: 6px;
   padding: 10px 16px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: #6366f1;
   color: white;
   border: none;
   border-radius: 10px;
@@ -1093,7 +1073,7 @@ onMounted(async () => {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background: #e2e8f0;
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s infinite;
   border-radius: 6px;
@@ -1410,7 +1390,7 @@ onMounted(async () => {
 .patient-avatar-sm {
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: #6366f1;
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -1451,7 +1431,7 @@ onMounted(async () => {
   right: 0;
   width: 200px;
   height: 200px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: #6366f1;
   border-radius: 50%;
   opacity: 0.1;
   z-index: 0;
@@ -1470,7 +1450,7 @@ onMounted(async () => {
 .profile-avatar-large {
   width: 96px;
   height: 96px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: #6366f1;
   border-radius: 24px;
   display: flex;
   align-items: center;
@@ -1616,7 +1596,7 @@ onMounted(async () => {
 
 .add-btn {
   padding: 12px 24px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: #6366f1;
   color: white;
   border: none;
   border-radius: 16px;
@@ -1793,7 +1773,7 @@ onMounted(async () => {
 .empty-state {
   text-align: center;
   padding: 64px 32px;
-  background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+  background: #f8fafc;
   border-radius: 20px;
   border: 2px dashed #cbd5e1;
 }
@@ -1830,7 +1810,7 @@ onMounted(async () => {
 
 .empty-btn {
   padding: 12px 32px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: #6366f1;
   color: white;
   border: none;
   border-radius: 16px;
@@ -1916,7 +1896,7 @@ onMounted(async () => {
 
 .notes-save {
   padding: 10px 24px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: #6366f1;
   color: white;
   border: none;
   border-radius: 12px;
@@ -2059,7 +2039,7 @@ onMounted(async () => {
 
 .modal-btn-save {
   padding: 12px 32px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: #6366f1;
   color: white;
   border: none;
   border-radius: 12px;

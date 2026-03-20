@@ -27,6 +27,7 @@ A full-stack web application for managing elderly rehabilitation care. Doctors c
 
 ### For Doctors
 - **Dashboard** — Real-time overview of all patients with status indicators (Active / Needs Attention / Inactive), numbered patient list, progress bars, and a rich patient detail panel
+- **AI Health Assistant** — Premium, context-aware AI chat for analyzing patient performance, medical history, and generating treatment insights
 - **Patient Detail** — Click any patient to see:
   - Weekly activity bar chart (reps per day)
   - Accuracy trend line chart (last 10 sessions)
@@ -43,6 +44,7 @@ A full-stack web application for managing elderly rehabilitation care. Doctors c
 - **Brain Exercises** — Cognitive training games
 - **Scheduling** — View upcoming appointments
 - **Messaging** — Message your assigned doctor
+- **AI Health Assistant** — Premium chat interface for personal health analysis, exercise feedback, and recovery tracking (powered by Gemini 3 Flash)
 
 ### Authentication
 - Email-based signup with **OTP verification** sent to your email
@@ -212,6 +214,9 @@ cd backend
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 
+#this is used in Tuan Dat Machine every time created 
+source /home/tuandat/ProjectB/backend/.venv/bin/activate
+
 # Install dependencies
 pip install -r requirements.txt
 
@@ -294,6 +299,12 @@ All endpoints are prefixed with `/api`.
 | `POST` | `/api/forgot-password/reset` | Set new password |
 | `POST` | `/api/google` | Login/register with Google |
 | `GET`  | `/api/me` | Get current user info (requires JWT) |
+
+### AI Assistant (New)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/ai/chat` | AI Health Assistant with streaming response & data context |
 
 ### Dashboard (Doctor)
 

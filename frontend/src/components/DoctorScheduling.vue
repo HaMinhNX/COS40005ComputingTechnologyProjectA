@@ -2,7 +2,7 @@
   <div class="h-full flex flex-col space-y-6" data-isolated-ui>
     <!-- Header with Gradient -->
     <div
-      class="relative overflow-hidden bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600 p-8 rounded-3xl shadow-2xl shadow-purple-500/20 text-white"
+      class="relative overflow-hidden bg-indigo-600 p-8 rounded-3xl shadow-2xl shadow-indigo-500/20 text-white"
     >
       <div
         class="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20"
@@ -67,7 +67,7 @@
         >
           <!-- Toolbar -->
           <div
-            class="p-6 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 to-white"
+            class="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50"
           >
             <div class="flex items-center gap-4">
               <button
@@ -117,7 +117,7 @@
           <div v-if="currentView === 'Tháng'" class="flex-1 flex flex-col min-h-0 w-full">
             <!-- Days Header -->
             <div
-              class="grid grid-cols-7 border-b border-slate-200 bg-gradient-to-r from-indigo-50 to-purple-50 w-full"
+              class="grid grid-cols-7 border-b border-slate-200 bg-indigo-50 w-full"
             >
               <div
                 v-for="day in ['CN', 'Hai', 'Ba', 'Tư', 'Năm', 'Sáu', 'Bảy']"
@@ -135,10 +135,10 @@
                 :key="i"
                 @click="selectDate(cell.date)"
                 :class="[
-                  'border-b border-r border-slate-100 p-2 transition-all hover:bg-gradient-to-br hover:from-indigo-50 hover:to-purple-50 cursor-pointer relative flex flex-col gap-1 min-h-[100px]',
+                  'border-b border-r border-slate-100 p-2 transition-all hover:bg-indigo-50 cursor-pointer relative flex flex-col gap-1 min-h-[100px]',
                   !cell.inMonth ? 'bg-slate-50/50 text-slate-400' : 'bg-white',
                   cell.isToday
-                    ? 'bg-gradient-to-br from-indigo-50/50 to-purple-50/50 ring-2 ring-inset ring-indigo-200'
+                    ? 'bg-indigo-50/50 ring-2 ring-inset ring-indigo-200'
                     : '',
                 ]"
               >
@@ -147,7 +147,7 @@
                     :class="[
                       'w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold transition-all',
                       cell.isToday
-                        ? 'bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/40 scale-110'
+                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/40 scale-110'
                         : cell.inMonth
                           ? 'text-slate-700 hover:bg-slate-100'
                           : 'text-slate-400',
@@ -189,7 +189,7 @@
           <div v-else-if="currentView === 'Tuần'" class="flex-1 flex flex-col min-h-0">
             <!-- Week Days Header -->
             <div
-              class="grid grid-cols-8 border-b border-slate-200 bg-gradient-to-r from-indigo-50 to-purple-50 sticky top-0 z-10"
+              class="grid grid-cols-8 border-b border-slate-200 bg-indigo-50 sticky top-0 z-10"
             >
               <div
                 class="py-3 px-2 text-center text-xs font-black text-slate-600 uppercase tracking-wider border-r border-slate-200"
@@ -263,7 +263,7 @@
           <!-- Day View -->
           <div v-else-if="currentView === 'Ngày'" class="flex-1 flex flex-col min-h-0">
             <!-- Day Header -->
-            <div class="p-6 border-b border-slate-200 bg-gradient-to-r from-indigo-50 to-purple-50">
+            <div class="p-6 border-b border-slate-200 bg-indigo-50">
               <div class="flex items-center justify-between">
                 <div>
                   <h3 class="text-2xl font-black text-slate-900">
@@ -461,7 +461,7 @@
                   'px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all flex items-center gap-2',
                   isSaving
                     ? 'bg-slate-400 text-white cursor-not-allowed'
-                    : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-indigo-500/30',
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-500/30',
                 ]"
               >
                 <span
@@ -522,7 +522,7 @@
             </button>
             <button
               @click="confirmDelete"
-              class="flex-1 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl text-sm font-bold hover:from-red-700 hover:to-red-800 shadow-lg shadow-red-500/30 transition-all"
+              class="flex-1 px-6 py-3 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 shadow-lg shadow-red-500/30 transition-all"
             >
               Xóa
             </button>
@@ -574,11 +574,9 @@ import {
   ChevronRight,
   Plus,
   X,
-  Calendar,
   Trash2,
   Settings,
   AlertTriangle,
-  Clock,
 } from 'lucide-vue-next'
 import { API_BASE_URL } from '../config'
 
@@ -603,8 +601,6 @@ const dontShowDeleteConfirm = ref(false)
 const eventToDelete = ref(null)
 
 const events = ref([])
-const requests = ref([])
-const selectedRequest = ref(null)
 
 // Computed property to check if delete confirmation is disabled
 const hasDeleteConfirmationDisabled = computed(() => {
@@ -619,7 +615,6 @@ const calendarCells = computed(() => {
   const year = current.value.getFullYear()
   const month = current.value.getMonth()
   const firstDay = new Date(year, month, 1)
-  const lastDay = new Date(year, month + 1, 0)
 
   const startDate = new Date(firstDay)
   startDate.setDate(startDate.getDate() - startDate.getDay())

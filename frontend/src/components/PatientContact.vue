@@ -27,7 +27,7 @@
           ]"
         >
           <div class="relative">
-            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
+            <div class="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-md">
               {{ getInitials(doc.full_name) }}
             </div>
             <span class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></span>
@@ -65,7 +65,7 @@
                :class="['flex w-full', msg.sender_id === userId ? 'justify-end' : 'justify-start']">
             <div :class="['max-w-[70%] rounded-2xl p-4 shadow-sm font-medium text-sm leading-relaxed',
               msg.sender_id === userId 
-                ? 'bg-gradient-to-br from-indigo-600 to-violet-600 text-white rounded-tr-none' 
+                ? 'bg-indigo-600 text-white rounded-tr-none' 
                 : 'bg-white border border-slate-100 text-slate-600 rounded-tl-none'
             ]">
               {{ msg.content }}
@@ -110,7 +110,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { Search, Send, MessageCircle } from 'lucide-vue-next'
 
 const props = defineProps(['userId'])

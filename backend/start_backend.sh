@@ -1,15 +1,22 @@
 #!/bin/bash
 
-echo "🚀 Starting Backend (Database-Optional Mode)..."
-echo ""
-echo "This will start the backend even if database is unavailable."
-echo "Camera functionality will work, but data won't be saved."
+echo "🚀 Starting Backend (Medic1 Rehabilitation API)..."
 echo ""
 
-cd /home/tuandat/Documents/September_Semester/Medic1_Le_Minh/backend
+# Get the directory where the script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$SCRIPT_DIR"
 
-# Activate virtual environment
-source medic1/bin/activate
+# Activate virtual environment (check standard names)
+if [ -d ".venv" ]; then
+    source .venv/bin/activate
+elif [ -d "venv" ]; then
+    source venv/bin/activate
+elif [ -d "../.venv" ]; then
+    # In case script is run from a subfolder although we cd'd above
+    source ../.venv/bin/activate
+fi
 
-# Start backend
+# Start backend on port 8001
 uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+

@@ -4,7 +4,7 @@
     <header class="dashboard-header">
       <div class="header-left">
         <h1 class="welcome-text">
-          Xin chào, <span class="text-gradient">{{ currentUser.full_name }}</span> 👋
+          Xin chào, <span class="text-primary">{{ currentUser.full_name }}</span> 👋
         </h1>
         <p class="date-text">{{ currentDate }} • Chúc bác sĩ một ngày làm việc hiệu quả!</p>
       </div>
@@ -648,8 +648,8 @@ const drawAccuracyChart = () => {
     .attr('id', 'area-grad')
     .attr('x1', 0).attr('x2', 0)
     .attr('y1', 0).attr('y2', 1)
-  areaGrad.append('stop').attr('offset', '0%').attr('stop-color', '#6366f1').attr('stop-opacity', 0.25)
-  areaGrad.append('stop').attr('offset', '100%').attr('stop-color', '#6366f1').attr('stop-opacity', 0.02)
+  areaGrad.append('stop').attr('offset', '0%').attr('stop-color', '#6366f1').attr('stop-opacity', 0.2)
+  areaGrad.append('stop').attr('offset', '100%').attr('stop-color', '#6366f1').attr('stop-opacity', 0.05)
 
   g.append('path')
     .datum(data)
@@ -738,10 +738,8 @@ watch(activeTab, (newTab) => {
   margin: 0;
 }
 
-.text-gradient {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+.text-primary {
+  color: #6366f1;
 }
 
 .date-text {
@@ -814,10 +812,10 @@ watch(activeTab, (newTab) => {
   z-index: 2;
 }
 
-.stat-card.blue .stat-icon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-.stat-card.green .stat-icon { background: linear-gradient(135deg, #10b981, #059669); }
-.stat-card.orange .stat-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
-.stat-card.purple .stat-icon { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+.stat-card.blue .stat-icon { background: #3b82f6; }
+.stat-card.green .stat-icon { background: #10b981; }
+.stat-card.orange .stat-icon { background: #f59e0b; }
+.stat-card.purple .stat-icon { background: #8b5cf6; }
 
 .stat-info {
   position: relative;
@@ -1089,7 +1087,7 @@ watch(activeTab, (newTab) => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  background: #f8fafc;
 }
 
 .patient-profile {
@@ -1101,7 +1099,7 @@ watch(activeTab, (newTab) => {
 .large-avatar {
   width: 64px;
   height: 64px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: #6366f1;
   color: white;
   border-radius: 20px;
   display: flex;
@@ -1270,7 +1268,7 @@ watch(activeTab, (newTab) => {
 .bar-fill {
   width: 70%;
   min-height: 4px;
-  background: linear-gradient(180deg, #6366f1 0%, #8b5cf6 100%);
+  background: #6366f1;
   border-radius: 4px 4px 0 0;
   transition: height 0.4s ease;
 }

@@ -1,7 +1,7 @@
 <template>
   <div class="h-full flex flex-col space-y-5" data-isolated-ui>
     <!-- Vibrant Header - Scaled Down -->
-    <div class="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 p-6 rounded-[1.75rem] shadow-xl shadow-indigo-500/20 text-white">
+    <div class="relative overflow-hidden bg-indigo-600 p-6 rounded-[1.75rem] shadow-xl text-white">
       <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
       <div class="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-2xl -ml-10 -mb-10"></div>
       
@@ -51,7 +51,7 @@
     </div>
 
     <!-- Categories with Colorful Pills (Only for Exercises) - Sticky to prevent being covered -->
-    <div v-if="viewMode === 'exercises'" class="sticky top-0 z-50 bg-gradient-to-b from-[#f8fafc] via-[#f8fafc] to-transparent pb-4 -mx-4 px-4 pt-2">
+    <div v-if="viewMode === 'exercises'" class="sticky top-0 z-50 bg-[#f8fafc] pb-4 -mx-4 px-4 pt-2">
       <div class="flex gap-2.5 overflow-x-auto pb-3 custom-scrollbar px-1">
         <button 
           v-for="(cat, idx) in categories" 
@@ -106,7 +106,7 @@
         </div>
 
         <!-- Action Button - Always visible with white background, gradient on hover -->
-        <button @click="openDetailModal(exercise)" class="mt-4 w-full py-2.5 bg-white border-2 border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-md hover:bg-gradient-to-r hover:from-indigo-600 hover:to-purple-600 hover:text-white hover:border-transparent hover:shadow-xl hover:shadow-indigo-500/30 flex items-center justify-center gap-2 group-hover:scale-[1.02]">
+        <button @click="openDetailModal(exercise)" class="mt-4 w-full py-2.5 bg-white border-2 border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-md hover:bg-indigo-600 hover:text-white hover:border-transparent hover:shadow-xl flex items-center justify-center gap-2 group-hover:scale-[1.02]">
           <span>Xem Chi Tiết</span>
           <ChevronRight :size="16" />
         </button>
@@ -144,7 +144,7 @@
           </span>
         </div>
 
-        <button class="mt-auto w-full py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl text-xs font-bold opacity-0 group-hover:opacity-100 transition-all shadow-lg shadow-amber-500/20 hover:shadow-xl hover:shadow-amber-500/30 flex items-center justify-center gap-2 transform translate-y-4 group-hover:translate-y-0">
+        <button class="mt-auto w-full py-2.5 bg-amber-500 text-white rounded-xl text-xs font-bold opacity-0 group-hover:opacity-100 transition-all shadow-lg flex items-center justify-center gap-2 transform translate-y-4 group-hover:translate-y-0">
           <span>Xem Chi Tiết</span>
           <ChevronRight :size="16" />
         </button>
@@ -192,7 +192,7 @@
 
         <div class="flex justify-end gap-3 mt-6">
           <button @click="showAddModal = false" class="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors">Hủy bỏ</button>
-          <button @click="showAddModal = false" class="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl text-xs font-bold hover:from-emerald-700 hover:to-teal-700 shadow-lg shadow-emerald-600/30 transition-all transform hover:-translate-y-1">Tạo Bài Tập</button>
+          <button @click="showAddModal = false" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 shadow-lg transition-all transform hover:-translate-y-1">Tạo Bài Tập</button>
         </div>
       </div>
     </div>
@@ -265,7 +265,7 @@
 
         <div class="flex justify-end gap-3 mt-5 pt-3 border-t border-slate-100 flex-shrink-0">
           <button @click="showComboModal = false" class="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors">Hủy bỏ</button>
-          <button @click="saveCombo" class="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl text-xs font-bold hover:from-amber-600 hover:to-orange-600 shadow-lg shadow-amber-500/30 transition-all transform hover:-translate-y-1">Lưu Combo</button>
+          <button @click="saveCombo" class="px-5 py-2.5 bg-amber-500 text-white rounded-xl text-xs font-bold hover:bg-amber-600 shadow-lg transition-all transform hover:-translate-y-1">Lưu Combo</button>
         </div>
       </div>
     </div>
@@ -273,7 +273,7 @@
     <div v-if="showDetailModal && selectedExercise" @click="showDetailModal = false" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] p-4">
       <div @click.stop class="bg-white rounded-[2rem] w-full max-w-4xl shadow-2xl border border-slate-100 overflow-hidden max-h-[90vh] flex flex-col">
         <!-- Header with Close Button -->
-        <div class="relative bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 p-6 text-white flex-shrink-0">
+        <div class="relative bg-indigo-600 p-6 text-white flex-shrink-0">
           <div class="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
           <button @click="showDetailModal = false" class="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-xl transition-colors text-white z-50 hover:scale-110 active:scale-95">
             <X :size="20" />
@@ -299,21 +299,21 @@
           <div class="max-w-3xl mx-auto space-y-6">
             <!-- Stats Row -->
             <div class="grid grid-cols-3 gap-3">
-              <div class="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-100">
+              <div class="p-4 bg-indigo-50 rounded-xl border border-indigo-100">
                 <div class="flex items-center gap-1.5 mb-1.5 text-indigo-600">
                   <Clock :size="16" />
                   <span class="text-[10px] font-black uppercase">Thời lượng</span>
                 </div>
                 <p class="text-xl font-black text-slate-800">{{ selectedExercise.duration }} <span class="text-xs font-medium text-slate-500">phút</span></p>
               </div>
-              <div class="p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-100">
+              <div class="p-4 bg-purple-50 rounded-xl border border-purple-100">
                 <div class="flex items-center gap-1.5 mb-1.5 text-purple-600">
                   <Target :size="16" />
                   <span class="text-[10px] font-black uppercase">Tác động</span>
                 </div>
                 <p class="text-xl font-black text-slate-800">{{ selectedExercise.target }}</p>
               </div>
-              <div class="p-4 bg-gradient-to-br from-pink-50 to-rose-50 rounded-xl border border-pink-100">
+              <div class="p-4 bg-pink-50 rounded-xl border border-pink-100">
                 <div class="flex items-center gap-1.5 mb-1.5 text-pink-600">
                   <Activity :size="16" />
                   <span class="text-[10px] font-black uppercase">Độ khó</span>
@@ -339,21 +339,21 @@
               </h4>
               <ul class="space-y-3">
                 <li class="flex gap-3 items-start">
-                  <span class="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 text-white flex items-center justify-center text-xs font-black flex-shrink-0 shadow-lg">1</span>
+                  <span class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs font-black flex-shrink-0 shadow-lg">1</span>
                   <div class="flex-1 pt-0.5">
                     <p class="text-slate-700 font-semibold mb-0.5 text-sm">Chuẩn bị tư thế</p>
                     <p class="text-slate-500 text-xs">Đứng thẳng, hai chân rộng bằng vai, hít thở sâu để chuẩn bị.</p>
                   </div>
                 </li>
                 <li class="flex gap-3 items-start">
-                  <span class="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-600 to-pink-600 text-white flex items-center justify-center text-xs font-black flex-shrink-0 shadow-lg">2</span>
+                  <span class="w-7 h-7 rounded-lg bg-purple-600 text-white flex items-center justify-center text-xs font-black flex-shrink-0 shadow-lg">2</span>
                   <div class="flex-1 pt-0.5">
                     <p class="text-slate-700 font-semibold mb-0.5 text-sm">Thực hiện động tác</p>
                     <p class="text-slate-500 text-xs">Thực hiện động tác chậm rãi, kiểm soát từng bước di chuyển.</p>
                   </div>
                 </li>
                 <li class="flex gap-3 items-start">
-                  <span class="w-7 h-7 rounded-lg bg-gradient-to-br from-pink-600 to-rose-600 text-white flex items-center justify-center text-xs font-black flex-shrink-0 shadow-lg">3</span>
+                  <span class="w-7 h-7 rounded-lg bg-pink-600 text-white flex items-center justify-center text-xs font-black flex-shrink-0 shadow-lg">3</span>
                   <div class="flex-1 pt-0.5">
                     <p class="text-slate-700 font-semibold mb-0.5 text-sm">Lặp lại và nghỉ ngơi</p>
                     <p class="text-slate-500 text-xs">Lặp lại theo số lần quy định, nghỉ ngơi giữa các hiệp.</p>
@@ -368,7 +368,7 @@
                 <span class="w-1 h-4 bg-gradient-to-b from-indigo-600 to-purple-600 rounded-full"></span>
                 Video Hướng Dẫn
               </h4>
-              <div class="aspect-video bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl flex items-center justify-center text-white/70 font-bold shadow-xl border border-slate-700">
+              <div class="aspect-video bg-slate-900 rounded-xl flex items-center justify-center text-white/70 font-bold shadow-xl border border-slate-700">
                 <span class="flex flex-col items-center gap-2">
                   <PlayCircle :size="40" class="text-white/50" />
                   <span class="text-base">Video hướng dẫn sẽ được cập nhật</span>
@@ -523,35 +523,35 @@ function getDifficultyClass(diff) {
 
 function getCategoryActiveClass(idx) {
   const classes = [
-    'bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-indigo-600',
-    'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-600',
-    'bg-gradient-to-r from-amber-600 to-orange-600 text-white border-amber-600',
-    'bg-gradient-to-r from-blue-600 to-cyan-600 text-white border-blue-600',
-    'bg-gradient-to-r from-rose-600 to-pink-600 text-white border-rose-600',
-    'bg-gradient-to-r from-violet-600 to-purple-600 text-white border-violet-600',
+    'bg-indigo-600 text-white border-indigo-600',
+    'bg-emerald-600 text-white border-emerald-600',
+    'bg-amber-600 text-white border-amber-600',
+    'bg-blue-600 text-white border-blue-600',
+    'bg-rose-600 text-white border-rose-600',
+    'bg-violet-600 text-white border-violet-600',
   ]
   return classes[idx % classes.length]
 }
 
 function getGradientClass(category) {
   switch(category) {
-    case 'Sức mạnh': return 'bg-gradient-to-r from-emerald-500 to-teal-500'
-    case 'Linh hoạt': return 'bg-gradient-to-r from-amber-500 to-orange-500'
-    case 'Cân bằng': return 'bg-gradient-to-r from-blue-500 to-cyan-500'
-    case 'Tim mạch': return 'bg-gradient-to-r from-rose-500 to-pink-500'
-    case 'Phục hồi': return 'bg-gradient-to-r from-violet-500 to-purple-500'
-    default: return 'bg-gradient-to-r from-indigo-500 to-purple-500'
+    case 'Sức mạnh': return 'bg-emerald-500'
+    case 'Linh hoạt': return 'bg-amber-500'
+    case 'Cân bằng': return 'bg-blue-500'
+    case 'Tim mạch': return 'bg-rose-500'
+    case 'Phục hồi': return 'bg-violet-500'
+    default: return 'bg-indigo-500'
   }
 }
 
 function getIconBgClass(category) {
   switch(category) {
-    case 'Sức mạnh': return 'bg-gradient-to-br from-emerald-100 to-teal-100'
-    case 'Linh hoạt': return 'bg-gradient-to-br from-amber-100 to-orange-100'
-    case 'Cân bằng': return 'bg-gradient-to-br from-blue-100 to-cyan-100'
-    case 'Tim mạch': return 'bg-gradient-to-br from-rose-100 to-pink-100'
-    case 'Phục hồi': return 'bg-gradient-to-br from-violet-100 to-purple-100'
-    default: return 'bg-gradient-to-br from-indigo-100 to-purple-100'
+    case 'Sức mạnh': return 'bg-emerald-100'
+    case 'Linh hoạt': return 'bg-amber-100'
+    case 'Cân bằng': return 'bg-blue-100'
+    case 'Tim mạch': return 'bg-rose-100'
+    case 'Phục hồi': return 'bg-violet-100'
+    default: return 'bg-indigo-100'
   }
 }
 

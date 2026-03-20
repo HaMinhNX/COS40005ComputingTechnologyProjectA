@@ -187,7 +187,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, markRaw } from 'vue'
+import { ref, computed, onMounted, onUnmounted, markRaw } from 'vue'
 import { FilesetResolver, PoseLandmarker, DrawingUtils } from '@mediapipe/tasks-vision'
 import BrainExercise from './BrainExercise.vue'
 import { API_BASE_URL, CAMERA_API_URL } from '../config'
@@ -196,19 +196,12 @@ import {
   Activity,
   User,
   Brain,
-  Timer,
   CheckCircle2,
   AlertCircle,
-  ChevronRight,
-  Play,
-  Calendar,
   Info,
   Trophy,
   FastForward,
-  Loader2,
   Check,
-  X,
-  Clock,
 } from 'lucide-vue-next'
 
 const props = defineProps(['userId'])
@@ -523,7 +516,7 @@ const predictWebcam = async () => {
 
   try {
     results = await poseLandmarker.detectForVideo(videoEl.value, startTimeMs)
-  } catch (e) {
+  } catch {
     return
   }
 
@@ -1023,7 +1016,7 @@ canvas {
 }
 
 .fb-success {
-  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  background: #ecfdf5;
   border-left: 6px solid #10b981;
   box-shadow: 0 10px 30px rgba(16, 185, 129, 0.2);
 }
@@ -1033,7 +1026,7 @@ canvas {
 }
 
 .fb-warning {
-  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  background: #fffbeb;
   border-left: 6px solid #f59e0b;
   box-shadow: 0 10px 30px rgba(245, 158, 11, 0.2);
 }
@@ -1086,7 +1079,7 @@ canvas {
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+  background: #6366f1;
   transition: width 0.3s ease;
   box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
 }

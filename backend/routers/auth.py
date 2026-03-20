@@ -34,10 +34,14 @@ async def login(data: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == username).first()
     
     if user:
+        print(f"DEBUG LOGIN: Found user for email={username}, role={user.role}")
         # Check password (hashed only - legacy plain text support removed)
-        if verify_password(password, user.password_hash):
+        result = verify_password(password, user.password_hash)
+        print(f"DEBUG LOGIN: verify_password result={result}")
+        if result:
             # Create real JWT token
             access_token = create_access_token(data={"sub": str(user.user_id), "role": user.role})
+            print(f"DEBUG LOGIN: Created token for user_id={user.user_id}")
             
             return {
                 "access_token": access_token,
@@ -50,6 +54,8 @@ async def login(data: UserLogin, db: Session = Depends(get_db)):
                 "email": user.email or "",
                 "created_at": user.created_at
             }
+    else:
+        print(f"DEBUG LOGIN: User NOT found for email={username}")
     
     raise HTTPException(status_code=401, detail="Tên đăng nhập hoặc mật khẩu không đúng")
 
@@ -88,7 +94,11 @@ def send_otp_email(recipient: str, otp_code: str):
     try:
         server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
         # server.starttls() # Not needed for SSL
-        server.login(sender, password)
+        if sender and password:
+            server.login(sender, password)
+        else:
+            print("ERROR: SMTP credentials missing")
+            return
         server.send_message(msg)
         server.quit()
         print(f"DEBUG: Sent OTP to {recipient}")
@@ -113,7 +123,11 @@ def send_forgot_password_email(recipient: str, otp_code: str):
     try:
         server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
         # server.starttls() # Not needed for SSL
-        server.login(sender, password)
+        if sender and password:
+            server.login(sender, password)
+        else:
+            print("ERROR: SMTP credentials missing")
+            return
         server.send_message(msg)
         server.quit()
         print(f"DEBUG: Sent forgot password OTP to {recipient}")

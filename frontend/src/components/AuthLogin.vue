@@ -1,11 +1,7 @@
 <template>
   <div class="login-container">
-    <!-- Animated Background -->
-    <div class="animated-background">
-      <div class="gradient-orb orb-1"></div>
-      <div class="gradient-orb orb-2"></div>
-      <div class="gradient-orb orb-3"></div>
-    </div>
+    <!-- Clean Background -->
+    <div class="clean-background"></div>
 
     <!-- Login/Signup Card -->
     <div class="login-card glass-card animate-fade-in">
@@ -513,7 +509,7 @@ const defaultRules = () => ({
 const signupPasswordRules = ref(defaultRules())
 const forgotPasswordRules = ref(defaultRules())
 
-const SPECIAL_CHAR_REGEX = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/
+const SPECIAL_CHAR_REGEX = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/
 
 const checkPasswordStrength = (password, form) => {
   const rules = {
@@ -664,7 +660,8 @@ const onRequestOTP = async () => {
   message.value = { text: '', type: '' }
 
   try {
-    const { confirmPassword, ...payload } = signupForm.value
+    const payload = { ...signupForm.value }
+    delete payload.confirmPassword
     const res = await fetch(`${API_BASE_URL}/signup/request-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -860,57 +857,20 @@ const onSignup = async () => {
   background: #f8fafc;
 }
 
-.animated-background {
+.clean-background {
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-  z-index: 0;
-}
-
-.gradient-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.6;
-  animation: float 6s ease-in-out infinite;
-}
-
-.orb-1 {
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, #ff6b6b 0%, transparent 70%);
-  top: -100px;
-  left: -100px;
-}
-.orb-2 {
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, #4ecdc4 0%, transparent 70%);
-  bottom: -150px;
-  right: -150px;
-  animation-delay: 2s;
-}
-.orb-3 {
-  width: 350px;
-  height: 350px;
-  background: radial-gradient(circle, #ffe66d 0%, transparent 70%);
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  animation-delay: 4s;
-}
-
-@keyframes float {
-  0%,
-  100% {
-    transform: translate(0, 0);
-  }
-  50% {
-    transform: translate(20px, 20px);
-  }
+  right: 0;
+  bottom: 0;
+  background-color: #f8fafc;
+  background-image: 
+    radial-gradient(#e2e8f0 1px, transparent 1px),
+    radial-gradient(#e2e8f0 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: 0 0, 20px 20px;
+  opacity: 0.5;
+  z-index: 1;
 }
 
 .login-card {
@@ -942,9 +902,7 @@ const onSignup = async () => {
   font-size: 2.5rem;
   font-weight: 900;
   margin: 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #6366f1;
   letter-spacing: -1px;
 }
 
@@ -1152,7 +1110,7 @@ const onSignup = async () => {
 .btn-submit {
   margin-top: 1rem;
   padding: 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #6366f1;
   color: white;
   border: none;
   border-radius: 1rem;
@@ -1164,7 +1122,7 @@ const onSignup = async () => {
   justify-content: center;
   gap: 0.75rem;
   transition: all 0.2s;
-  box-shadow: 0 10px 15px -3px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .btn-submit:hover:not(:disabled) {

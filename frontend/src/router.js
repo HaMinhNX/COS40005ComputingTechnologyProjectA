@@ -1,10 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 // Lazy-loaded routes
-const LoginPage = () => import('./components/Login.vue')
+const LoginPage = () => import('./components/AuthLogin.vue')
 const PatientTabs = () => import('./components/PatientTabs.vue')
-const PatientManagementPage = () => import('./components/index.vue')
-const Dashboard = () => import('./components/Dashboard.vue')
+const PatientManagementPage = () => import('./components/MainLayout.vue')
+const Dashboard = () => import('./components/DoctorDashboard.vue')
 
 const routes = [
   { path: '/', redirect: '/login' },
@@ -38,10 +38,10 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
-  let user = null
+  let user;
   try {
     user = JSON.parse(localStorage.getItem('user'))
-  } catch (e) {
+  } catch {
     user = null
   }
 

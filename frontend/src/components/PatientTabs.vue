@@ -6,7 +6,7 @@
     >
       <div class="flex items-center gap-4">
         <div
-          class="w-12 h-12 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/20"
+          class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/20"
         >
           <Activity :size="24" />
         </div>
@@ -19,7 +19,7 @@
       <!-- Logout Button -->
       <button
         @click="showLogoutModal = true"
-        class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 text-white hover:from-red-600 hover:to-rose-600 transition-all font-bold text-sm shadow-lg shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30 group"
+        class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-all font-bold text-sm shadow-lg shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30 group"
       >
         <LogOut :size="18" class="group-hover:scale-110 transition-transform" />
         <span>Đăng xuất</span>
@@ -87,7 +87,7 @@
             </button>
             <button
               @click="handleLogout"
-              class="flex-1 py-3.5 rounded-xl font-bold text-white bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 shadow-lg shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40 transition-all"
+              class="flex-1 py-3.5 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40 transition-all"
             >
               Đăng xuất
             </button>

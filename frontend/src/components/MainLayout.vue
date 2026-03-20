@@ -22,7 +22,7 @@
         <div :class="['flex items-center', sidebarCollapsed ? 'justify-center' : 'gap-3']">
           <div v-if="!sidebarCollapsed" class="relative group">
             <div
-              class="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full blur opacity-40 group-hover:opacity-70 transition-opacity"
+              class="absolute inset-0 bg-indigo-500 rounded-full blur opacity-40 group-hover:opacity-70 transition-opacity"
             ></div>
             <img
               src="https://ui-avatars.com/api/?name=Dr+Minh&background=6366f1&color=fff"
@@ -43,7 +43,7 @@
           <!-- Enhanced Collapse Toggle Button -->
           <button
             @click="sidebarCollapsed = !sidebarCollapsed"
-            class="p-2 bg-gradient-to-br from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 rounded-xl transition-all text-white group flex-shrink-0 shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40"
+            class="p-2 bg-indigo-500 hover:bg-indigo-600 rounded-xl transition-all text-white group flex-shrink-0 shadow-lg group-hover:shadow-xl"
             :title="sidebarCollapsed ? 'Mở rộng' : 'Thu gọn'"
           >
             <component
@@ -75,7 +75,7 @@
                 sidebarCollapsed ? 'px-2 py-2.5 justify-center' : 'px-3 py-2.5 gap-3',
                 'text-[13px] font-bold',
                 active === item.id
-                  ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/30'
+                  ? 'bg-indigo-600 text-white shadow-lg'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-indigo-600',
               ]"
               :title="sidebarCollapsed ? item.label : ''"
@@ -104,7 +104,7 @@
         <button
           @click="showLogoutModal = true"
           :class="[
-            'w-full py-2.5 rounded-xl flex items-center justify-center bg-gradient-to-r from-red-500 to-rose-500 text-white hover:from-red-600 hover:to-rose-600 transition-all font-bold text-xs shadow-lg shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30 group',
+            'w-full py-2.5 rounded-xl flex items-center justify-center bg-red-500 text-white hover:bg-red-600 transition-all font-bold text-xs shadow-lg group',
             sidebarCollapsed ? 'px-2' : 'px-3 gap-2',
           ]"
           :title="sidebarCollapsed ? 'Đăng xuất' : ''"
@@ -163,7 +163,7 @@
                 class="absolute right-0 top-full mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50"
               >
                 <div
-                  class="p-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-indigo-50 to-purple-50"
+                  class="p-4 border-b border-slate-100 flex items-center justify-between bg-indigo-50"
                 >
                   <h3 class="font-bold text-slate-900">Thông báo</h3>
                   <button
@@ -249,7 +249,7 @@
             </button>
             <button
               @click="handleLogout"
-              class="flex-1 py-3.5 rounded-xl font-bold text-white bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 shadow-lg shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40 transition-all"
+              class="flex-1 py-3.5 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg transition-all"
             >
               Đăng xuất
             </button>
@@ -274,17 +274,16 @@ import {
   ChevronRight,
   Bell,
   Calendar as CalendarIcon,
-  Phone,
   Sparkles,
 } from 'lucide-vue-next'
 
 // Import Components
-import Dashboard from './Dashboard.vue'
+import Dashboard from './DoctorDashboard.vue'
 import PatientManagement from './PatientManagement.vue'
-import Scheduling from './Scheduling.vue'
+import Scheduling from './DoctorScheduling.vue'
 import ExerciseLibrary from './ExerciseLibrary.vue'
 import DoctorMessaging from './DoctorMessaging.vue'
-import Assignment from './Assignment.vue'
+import PatientAssignment from './PatientAssignment.vue'
 import PatientTabs from './PatientTabs.vue'
 import AIChatbox from './AIChatbox.vue'
 
@@ -383,7 +382,7 @@ const components = {
   patients: PatientManagement,
   scheduling: Scheduling,
   library: ExerciseLibrary,
-  assignment: Assignment,
+  assignment: PatientAssignment,
   messages: DoctorMessaging,
   aiChat: AIChatbox,
   patientView: PatientTabs,

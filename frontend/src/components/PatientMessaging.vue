@@ -5,7 +5,7 @@
       class="w-80 bg-white rounded-[2rem] shadow-xl border border-slate-100 flex flex-col overflow-hidden"
     >
       <div
-        class="p-6 border-b border-slate-100 bg-gradient-to-r from-indigo-500 to-violet-500 text-white"
+        class="p-6 border-b border-slate-100 bg-indigo-600 text-white"
       >
         <h3 class="text-xl font-black tracking-tight mb-1">Tin Nhắn</h3>
         <p class="text-xs text-indigo-100 font-medium">Chat với bác sĩ của bạn</p>
@@ -37,7 +37,7 @@
         >
           <div class="relative">
             <div
-              class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-400 flex items-center justify-center text-white font-bold text-sm shadow-md"
+              class="w-10 h-10 rounded-full bg-indigo-400 flex items-center justify-center text-white font-bold text-sm shadow-md"
             >
               {{ getInitials(doctor.full_name) }}
             </div>
@@ -87,7 +87,7 @@
         >
           <div class="flex items-center gap-4">
             <div
-              class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-lg shadow-lg"
+              class="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-lg"
             >
               {{ getInitials(selectedDoctor.full_name) }}
             </div>
@@ -138,7 +138,7 @@
                 :class="[
                   'px-5 py-3 rounded-2xl text-sm font-medium shadow-sm transition-all',
                   msg.sender_id === currentUserId
-                    ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white rounded-tr-none'
+                    ? 'bg-indigo-600 text-white rounded-tr-none'
                     : 'bg-white text-slate-700 border border-slate-100 rounded-tl-none',
                   msg.status === 'sending' ? 'opacity-70' : '',
                   msg.status === 'error' ? 'bg-red-50 text-red-900 border border-red-200 opacity-90' : ''

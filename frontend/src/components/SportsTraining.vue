@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full flex flex-col bg-gradient-to-br from-slate-50 to-slate-100 p-4 gap-4 overflow-hidden">
+  <div class="h-full flex flex-col bg-slate-50 p-4 gap-4 overflow-hidden">
     <!-- Header -->
     <div class="flex justify-between items-center shrink-0">
       <div>
@@ -30,7 +30,7 @@
           </div>
 
           <!-- Overlay: Rep Counter (Top Right) -->
-          <div v-if="isCameraOn" class="absolute top-4 right-4 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl px-6 py-4 shadow-2xl border-2 border-white/30">
+          <div v-if="isCameraOn" class="absolute top-4 right-4 bg-indigo-600 rounded-2xl px-6 py-4 shadow-2xl border-2 border-white/30">
             <div class="text-white/80 text-xs font-bold uppercase tracking-widest mb-1">Số lần</div>
             <div class="flex items-baseline gap-2">
               <span class="text-6xl font-black text-white leading-none">{{ currentReps }}</span>
@@ -49,7 +49,7 @@
           </div>
           
           <!-- Placeholder when camera is off -->
-          <div v-if="!isCameraOn" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 bg-gradient-to-br from-slate-900 to-slate-800">
+          <div v-if="!isCameraOn" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 bg-slate-900">
             <Activity :size="100" class="opacity-20 mb-6" />
             <p class="text-2xl font-bold opacity-60 mb-2">Sẵn sàng luyện tập</p>
             <p class="text-sm opacity-40">Chọn bài tập và nhấn "BẮT ĐẦU TẬP"</p>
@@ -104,7 +104,7 @@
           v-if="!isCameraOn"
           @click="startTraining" 
           :disabled="!currentExercise"
-          class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-2xl py-4 font-black text-base shadow-xl shadow-indigo-300/50 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl py-4 font-black text-base shadow-xl flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
         >
           <Play :size="22" class="fill-current" />
           BẮT ĐẦU TẬP
@@ -112,14 +112,14 @@
         <button 
           v-else
           @click="stopTraining" 
-          class="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-2xl py-4 font-black text-base shadow-xl shadow-red-300/50 flex items-center justify-center gap-2 transition-all active:scale-95"
+          class="bg-red-500 hover:bg-red-600 text-white rounded-2xl py-4 font-black text-base shadow-xl flex items-center justify-center gap-2 transition-all active:scale-95"
         >
           <Square :size="22" class="fill-current" />
           DỪNG LẠI
         </button>
 
         <!-- 4. Exercise Info Card -->
-        <div v-if="currentExercise" class="bg-gradient-to-br from-slate-100 to-slate-50 rounded-2xl p-4 border border-slate-200">
+        <div v-if="currentExercise" class="bg-slate-100 rounded-2xl p-4 border border-slate-200">
           <div class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Đang chọn</div>
           <div class="text-lg font-black text-slate-900">{{ currentExercise.name }}</div>
           <div class="text-xs text-slate-600 mt-1">{{ currentExercise.desc }}</div>
@@ -137,7 +137,7 @@
         <h2 class="text-3xl font-black text-slate-900 mb-2">XUẤT SẮC!</h2>
         <p class="text-slate-500 text-lg font-medium mb-6">Bạn đã hoàn thành mục tiêu.</p>
         
-        <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-5 mb-6 border border-indigo-100">
+        <div class="bg-indigo-50 rounded-2xl p-5 mb-6 border border-indigo-100">
           <div class="grid grid-cols-2 gap-4">
             <div class="text-left">
               <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Bài tập</div>
@@ -150,7 +150,7 @@
           </div>
         </div>
 
-        <button @click="resetSession" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-bold text-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-xl shadow-indigo-200 active:scale-95">
+        <button @click="resetSession" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold text-lg hover:bg-indigo-700 transition-all shadow-xl active:scale-95">
           Tập tiếp bài khác
         </button>
       </div>

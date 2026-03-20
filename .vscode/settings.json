@@ -10,5 +10,9 @@
   },
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "ROS2.distro": "jazzy"
+  "ROS2.distro": "jazzy",
+  "python.analysis.extraPaths": ["./backend"],
+  "python.analysis.autoImportCompletions": true,
+  "python.defaultInterpreterPath": "./backend/.venv/bin/python",
+  "python.languageServer": "Default"
 }

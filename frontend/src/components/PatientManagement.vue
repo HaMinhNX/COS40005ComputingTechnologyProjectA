@@ -81,7 +81,7 @@
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
                   <div
-                    class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-100 to-violet-100 text-indigo-600 flex items-center justify-center font-black text-sm"
+                    class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-sm"
                   >
                     {{ getInitials(patient.full_name) }}
                   </div>
@@ -233,8 +233,6 @@ import { ref, computed, onMounted } from 'vue'
 import {
   Search,
   Plus,
-  Filter,
-  MoreHorizontal,
   X,
   Dumbbell,
   Activity,

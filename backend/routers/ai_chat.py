@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 import google.generativeai as genai
 import os
 import json
+from dotenv import load_dotenv
 from datetime import datetime
 from typing import AsyncGenerator
 from uuid import UUID
@@ -19,6 +20,7 @@ router = APIRouter(
 )
 
 # Gemini Configuration
+load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
@@ -33,9 +35,31 @@ def get_patient_context(db: Session, patient_id: UUID) -> str:
     
     # NEW: Fetch health metrics (simulated or from a metrics table if exists)
     # For now, we'll use historical data from WorkoutSession to build a performance summary
-    total_reps = sum(s.total_reps_completed for s in sessions if s.total_reps_completed)
-    workout_count = len([s for s in sessions if s.avg_accuracy is not None])
-    avg_accuracy = sum(s.avg_accuracy for s in sessions if s.avg_accuracy is not None) / workout_count if workout_count > 0 else 0
+    total_reps = 0
+    accuracies = []
+    session_details_list = []
+    
+    for s in sessions:
+        # Sum reps and collect exercises from details
+        session_reps = sum(d.reps_completed for d in s.details if d.reps_completed)
+        total_reps += session_reps
+        
+        exercises = list(set(d.exercise_type for d in s.details if d.exercise_type))
+        exercise_str = ", ".join(exercises) if exercises else "Unknown"
+        
+        # Calculate session accuracy if details exist
+        session_acc = 0
+        if s.details:
+            valid_details = [d for d in s.details if d.accuracy_score is not None]
+            if valid_details:
+                session_acc = sum(float(d.accuracy_score) for d in valid_details) / len(valid_details)
+                accuracies.append(session_acc)
+        
+        session_details_list.append(
+            f"  + [{s.start_time.strftime('%Y-%m-%d %H:%M')}] {exercise_str}: {session_reps} reps, Accuracy: {session_acc:.1f}%"
+        )
+
+    avg_accuracy = sum(accuracies) / len(accuracies) if accuracies else 0
 
     context = f"DỮ LIỆU BỆNH NHÂN (ID: {patient_id}):\n"
     if record:
@@ -43,18 +67,22 @@ def get_patient_context(db: Session, patient_id: UUID) -> str:
         context += f"- Chẩn đoán: {record.diagnosis}\n"
         context += f"- Triệu chứng: {record.symptoms}\n"
         context += f"- Kế hoạch điều trị: {record.treatment_plan}\n"
-        bmi = round(record.weight_kg / ((record.height_cm/100)**2), 1) if record.height_cm and record.weight_kg else 'N/A'
+        bmi = 'N/A'
+        if record.height_cm and record.weight_kg and record.height_cm > 0:
+            try:
+                bmi = round(record.weight_kg / ((record.height_cm/100)**2), 1)
+            except ZeroDivisionError:
+                bmi = 'N/A'
         context += f"- Chỉ số cơ bản: Cao {record.height_cm}cm, Nặng {record.weight_kg}kg, BMI {bmi}, Nhóm máu {record.blood_type}\n"
         context += f"- Tiền sử bệnh: {getattr(record, 'medical_history', 'Không có dữ liệu')}\n"
     
     context += f"\n--- THỐNG KÊ TẬP LUYỆN (10 buổi gần nhất) ---\n"
     context += f"- Tổng số Reps hoàn thành: {total_reps}\n"
-    context += f"- Độ chính xác trung bình: {round(float(avg_accuracy), 1)}%\n"
+    context += f"- Độ chính xác trung bình: {'%.1f' % float(avg_accuracy)}%\n"
     
-    if sessions:
+    if session_details_list:
         context += "- Chi tiết các buổi tập:\n"
-        for s in sessions:
-            context += f"  + Ngày: {s.start_time.strftime('%Y-%m-%d %H:%M')}, Bài tập: {s.exercise_type}, Reps: {s.total_reps_completed}, Chính xác: {s.avg_accuracy}%\n"
+        context += "\n".join(session_details_list) + "\n"
             
     if notes:
         context += f"\n--- GHI CHÚ CHUYÊN MÔN ---\n"
@@ -72,7 +100,7 @@ async def ai_chat(
     if not GEMINI_API_KEY:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Chưa cấu hình Gemini API Key. Vui lòng thêm vào file .env"
+            detail="Chưa cấu hình Gemini API Key. Vui lòng kiểm tra file .env"
         )
     
     # Determine target patient
@@ -113,18 +141,31 @@ async def ai_chat(
     """
     
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-3-flash-preview')
         
         async def generate_response() -> AsyncGenerator[str, None]:
-            response = model.generate_content(
-                [system_prompt, request.message],
-                stream=True
-            )
-            for chunk in response:
-                if chunk.text:
-                    yield f"data: {json.dumps({'text': chunk.text}, ensure_ascii=False)}\n\n"
-            yield "data: [DONE]\n\n"
+            try:
+                # Revert to V1 streaming
+                response = model.generate_content(
+                    [system_prompt, request.message],
+                    stream=True
+                )
+                for chunk in response:
+                    # In V1, we check if text is available to avoid errors on empty chunks
+                    try:
+                        if chunk.text:
+                            yield f"data: {json.dumps({'text': chunk.text}, ensure_ascii=False)}\n\n"
+                    except ValueError:
+                        # Some chunks (like safety filters) don't have text
+                        continue
+                yield "data: [DONE]\n\n"
+            except Exception as stream_err:
+                yield f"data: {json.dumps({'error': str(stream_err)}, ensure_ascii=False)}\n\n"
+                yield "data: [DONE]\n\n"
 
         return StreamingResponse(generate_response(), media_type="text/event-stream")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Lỗi AI: {str(e)}")
+        # Provide much more detail for the 500 error
+        error_detail = f"Lỗi AI ({type(e).__name__}): {str(e)}"
+        print(f"ERROR PATH /chat: {error_detail}")
+        raise HTTPException(status_code=500, detail=error_detail)

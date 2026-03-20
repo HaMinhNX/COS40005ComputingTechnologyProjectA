@@ -9,10 +9,10 @@
           Dữ liệu từ smartwatch
         </p>
       </div>
-      <button
-        @click="showEmailModal = true"
-        class="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:shadow-emerald-500/40 transition-all hover:scale-105 text-sm"
-      >
+    <button
+      @click="showEmailModal = true"
+      class="flex items-center gap-2 px-5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-xl transition-all hover:scale-105 text-sm"
+    >
         <Mail :size="20" />
         Gửi báo cáo phục hồi
       </button>
@@ -137,7 +137,7 @@
 
     <!-- Today's Plan -->
     <div class="bg-white rounded-2xl border-3 border-slate-200 shadow-xl overflow-hidden mb-10">
-      <div class="p-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+      <div class="p-6 bg-indigo-600 text-white">
         <h2 class="text-2xl font-black mb-2 flex items-center gap-3">
           <CalendarCheck :size="28" />
           Kế hoạch hôm nay
@@ -198,10 +198,10 @@
           </span>
         </div>
 
-        <div class="p-6 bg-gradient-to-br from-slate-50 to-indigo-50 flex justify-center">
+        <div class="p-6 bg-slate-50 flex justify-center border-t-2 border-slate-100">
           <button
             @click="$emit('start-workout')"
-            class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black rounded-xl shadow-xl hover:shadow-2xl transition-all flex items-center gap-2 text-base hover:scale-105"
+            class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-xl hover:shadow-2xl transition-all flex items-center gap-2 text-base hover:scale-105"
           >
             <Dumbbell :size="20" />
             Bắt đầu tập luyện
@@ -253,7 +253,7 @@
 
     <!-- Recent Activity -->
     <div class="bg-white rounded-2xl border-3 border-slate-200 shadow-xl overflow-hidden">
-      <div class="p-6 border-b-2 border-slate-100 bg-gradient-to-r from-slate-50 to-indigo-50">
+      <div class="p-6 border-b-2 border-slate-100 bg-slate-50">
         <h2 class="text-2xl font-black text-slate-900">Hoạt động gần đây</h2>
       </div>
 
@@ -265,7 +265,7 @@
         >
           <div class="flex items-center gap-4">
             <div
-              class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-black text-lg shadow-lg"
+              class="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-white font-black text-lg shadow-lg"
             >
               {{ index + 1 }}
             </div>
@@ -306,7 +306,7 @@
         @click.self="showEmailModal = false"
       >
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
-          <div class="p-6 bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
+          <div class="p-6 bg-emerald-500 text-white">
             <h3 class="text-xl font-black flex items-center gap-2">
               <Mail :size="24" />
               Gửi báo cáo phục hồi qua Email
@@ -348,7 +348,7 @@
             <button
               @click="sendReport"
               :disabled="emailSending"
-              class="flex-1 py-3 rounded-xl font-black text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              class="flex-1 py-3 rounded-xl font-black text-white bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <Send v-if="!emailSending" :size="18" />
               <span

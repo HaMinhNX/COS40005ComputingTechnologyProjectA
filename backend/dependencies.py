@@ -36,6 +36,7 @@ def get_current_user(
         HTTPException: If token is invalid or user not found
     """
     if credentials is None:
+        print("DEBUG AUTH: No credentials provided (credentials is None)")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
@@ -43,6 +44,7 @@ def get_current_user(
         )
     
     token = credentials.credentials
+    print(f"DEBUG AUTH: Received token: {token[:10]}...")
     
     # Verify and decode token
     payload = verify_token(token)
@@ -151,19 +153,9 @@ def verify_patient_access(
     Raises:
         HTTPException: If user doesn't have access to this patient
     """
-    # Doctors can access any patient
+    # Doctors can only access patients they have an established relationship with
     if current_user.role == UserRole.DOCTOR.value:
-        patient = db.query(User).filter(
-            User.user_id == patient_id,
-            User.role == UserRole.PATIENT.value
-        ).first()
-        
-        if patient is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Patient not found"
-            )
-        return patient
+        return verify_doctor_patient_relationship(patient_id, current_user, db)
     
     # Patients can only access their own data
     if current_user.role == UserRole.PATIENT.value:
@@ -327,10 +319,13 @@ def optional_auth(
     Returns:
         Optional[User]: The authenticated user or None
     """
-    if authorization is None or not authorization.startswith("Bearer "):
+    if authorization is None:
+        return None
+    auth_header: str = authorization
+    if not auth_header.startswith("Bearer "):
         return None
     
-    token = authorization.replace("Bearer ", "")
+    token = auth_header.replace("Bearer ", "")
     payload = verify_token(token)
     
     if payload is None:

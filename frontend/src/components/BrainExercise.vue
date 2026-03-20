@@ -414,12 +414,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, markRaw } from 'vue';
+import { ref, computed, onMounted, markRaw } from 'vue';
 import { API_BASE_URL } from '../config';
 import { 
   Brain, 
   Calculator, 
-  Puzzle, 
   Grid, 
   Type, 
   Palette, 
@@ -951,7 +950,6 @@ function generateWordQuestion() {
   const level = currentQuestion.value;
 
   let wordList;
-  let meanings = {}; // Map of word -> meaning
 
   // Level 0-2: Simple words
   if (level < 3) {
@@ -1520,7 +1518,7 @@ function submitAnswer(answer) {
     case 'pattern':
       correct = answer === patternAnswer.value;
       break;
-    case 'word':
+    case 'word': {
       let userAnswer;
       if (wordStructure.value.length > 0) {
         // New structure mode - collect characters from slots
@@ -1538,6 +1536,7 @@ function submitAnswer(answer) {
         correctAnswerDisplay.value = correctWord.value;
       }
       break;
+    }
     case 'color':
       correct = answer === colorQuestion.value.correctAnswer;
       break;
@@ -1735,12 +1734,12 @@ onMounted(() => {
    ============================================ */
 
 .brain-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  background: #6366f1;
   color: white;
   padding: var(--spacing-2xl);
   border-radius: var(--border-radius-xl);
   border: 5px solid transparent;
-  border-image: linear-gradient(90deg, #F093FB, #F5576C, #FFE66D) 1;
+  border: 4px solid #f43f5e;
   box-shadow: 0 15px 50px rgba(102, 126, 234, 0.5);
   display: flex;
   justify-content: space-between;
@@ -1871,7 +1870,7 @@ onMounted(() => {
   align-items: center;
   gap: var(--spacing-md);
   padding: var(--spacing-2xl);
-  background: linear-gradient(135deg, #F7FAFC 0%, #EDF2F7 100%);
+  background: #f8fafc;
   border: 3px solid #CBD5E0;
   border-radius: var(--border-radius-lg);
   cursor: pointer;
@@ -1883,7 +1882,7 @@ onMounted(() => {
   transform: translateY(-8px);
   box-shadow: var(--shadow-xl);
   border-color: #F093FB;
-  background: linear-gradient(135deg, #FFFFFF 0%, #F7FAFC 100%);
+  background: #ffffff;
 }
 
 .game-icon {
@@ -1983,7 +1982,7 @@ onMounted(() => {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #F093FB 0%, #F5576C 100%);
+  background: #f43f5e;
   transition: width var(--transition-slow);
 }
 
@@ -2053,7 +2052,7 @@ onMounted(() => {
   color: var(--color-text-primary);
   text-align: center;
   padding: var(--spacing-xl);
-  background: linear-gradient(135deg, #FFF9E6 0%, #FEF3C7 100%);
+  background: #fff9e6;
   border: 4px solid #D97706;
   border-radius: var(--border-radius-lg);
   min-width: 300px;
@@ -2071,7 +2070,7 @@ onMounted(() => {
   padding: var(--spacing-2xl);
   font-size: var(--font-size-3xl);
   font-weight: 900;
-  background: linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 100%);
+  background: #e0f2fe;
   border: 4px solid #0369A1;
   border-radius: var(--border-radius-lg);
   cursor: pointer;
@@ -2082,7 +2081,7 @@ onMounted(() => {
 .answer-btn:hover:not(:disabled) {
   transform: translateY(-4px);
   box-shadow: var(--shadow-lg);
-  background: linear-gradient(135deg, #BAE6FD 0%, #7DD3FC 100%);
+  background: #bae6fd;
 }
 
 .answer-btn:disabled {
@@ -2110,7 +2109,7 @@ onMounted(() => {
   justify-content: center;
   font-size: var(--font-size-4xl);
   font-weight: 900;
-  background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%);
+  background: #dbeafe;
   border: 4px solid #3B82F6;
   border-radius: var(--border-radius-md);
 }
@@ -2201,7 +2200,7 @@ onMounted(() => {
   justify-content: center;
   font-size: var(--font-size-2xl);
   font-weight: 900;
-  background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%);
+  background: #dbeafe;
   border: 3px solid #3B82F6;
   border-radius: var(--border-radius-md);
   cursor: pointer;
@@ -2212,7 +2211,7 @@ onMounted(() => {
 .memory-bank-number:hover:not(.used) {
   transform: translateY(-4px);
   box-shadow: var(--shadow-md);
-  background: linear-gradient(135deg, #BFDBFE 0%, #93C5FD 100%);
+  background: #bfdbfe;
 }
 
 .memory-bank-number.used {
@@ -2314,7 +2313,7 @@ onMounted(() => {
 }
 
 .pattern-question {
-  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+  background: #fff9e6;
   border-color: #D97706;
   font-size: var(--font-size-3xl);
   font-weight: 900;
@@ -2331,7 +2330,7 @@ onMounted(() => {
   width: 100px;
   height: 100px;
   font-size: var(--font-size-4xl);
-  background: linear-gradient(135deg, #F7FAFC 0%, #EDF2F7 100%);
+  background: #f8fafc;
   border: 4px solid #CBD5E0;
   border-radius: var(--border-radius-lg);
   cursor: pointer;
@@ -2357,7 +2356,7 @@ onMounted(() => {
 .word-hint-box {
   width: 100%;
   max-width: 700px;
-  background: linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 100%);
+  background: #e0f2fe;
   border: 3px solid #0369A1;
   border-radius: var(--border-radius-lg);
   padding: var(--spacing-lg);
@@ -2459,7 +2458,7 @@ onMounted(() => {
 }
 
 .char-slot.filled {
-  background: linear-gradient(135deg, #EBF8FF 0%, #DBEAFE 100%);
+  background: #ebf8ff;
   border-color: #4299E1;
 }
 
@@ -2470,7 +2469,7 @@ onMounted(() => {
 }
 
 .char-slot.filled:hover {
-  background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%);
+  background: #dbeafe;
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
 }
@@ -2523,7 +2522,7 @@ onMounted(() => {
   font-weight: 900;
   letter-spacing: 8px;
   padding: var(--spacing-xl) var(--spacing-2xl);
-  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+  background: #fff9e6;
   border: 4px solid #D97706;
   border-radius: var(--border-radius-lg);
 }
@@ -2708,7 +2707,7 @@ onMounted(() => {
 }
 
 .card-front {
-  background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+  background: #6366f1;
   color: white;
 }
 
@@ -2889,7 +2888,7 @@ onMounted(() => {
   align-items: center;
   gap: var(--spacing-md);
   padding: var(--spacing-lg) var(--spacing-2xl);
-  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  background: #10b981;
   color: white;
   border: 4px solid #047857;
   border-radius: var(--border-radius-lg);
@@ -2937,13 +2936,13 @@ onMounted(() => {
 }
 
 .feedback-correct {
-  background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+  background: #d1fae5;
   border-color: #047857;
   color: #065F46;
 }
 
 .feedback-incorrect {
-  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+  background: #fff9e6;
   border-color: #D97706;
   color: #92400E;
 }
@@ -3038,7 +3037,7 @@ onMounted(() => {
   width: 200px;
   height: 200px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #F093FB 0%, #F5576C 100%);
+  background: #f43f5e;
   border: 8px solid #E91E63;
   display: flex;
   flex-direction: column;
@@ -3136,7 +3135,7 @@ onMounted(() => {
 }
 
 .btn-play-again {
-  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  background: #10b981;
   color: white;
   border: 4px solid #047857;
 }

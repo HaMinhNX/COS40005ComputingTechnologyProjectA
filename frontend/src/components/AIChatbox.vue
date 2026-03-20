@@ -1,104 +1,176 @@
 <template>
   <div class="ai-chatbox-container glass-morphism">
     <!-- Header -->
-    <header class="chat-header">
+    <header class="chat-header" :class="{ 'has-patient': selectedPatientId }">
       <div class="header-main">
-        <div class="logo-orb">
-          <Sparkles :size="20" class="sparkle-icon" />
+        <div class="logo-orb-wrapper">
+          <div class="logo-orb">
+            <Sparkles :size="20" class="sparkle-icon" />
+          </div>
+          <div class="status-pulse"></div>
         </div>
         <div class="header-text">
-          <h2>MEDIC1 Intelligence</h2>
-          <span class="status-badge">Powered by Gemini 1.5 Pro</span>
+          <h2 v-if="!selectedPatientId">MEDIC1 Intelligence</h2>
+          <div v-else class="active-patient-profile">
+            <div class="patient-info">
+              <span class="patient-label">Đang phân tích</span>
+              <h2 class="patient-name">{{ currentPatientName }}</h2>
+            </div>
+            <button @click="selectedPatientId = null" class="change-patient-btn">
+              <Users :size="14" />
+              Thay đổi
+            </button>
+          </div>
+          <span class="status-badge">Gemini 3 Flash • Real-time Analysis</span>
         </div>
       </div>
       
-      <!-- Patient Selector for Doctors -->
-      <div v-if="userRole === 'doctor'" class="patient-selector-wrapper">
-        <select v-model="selectedPatientId" @change="clearChat" class="premium-select">
-          <option :value="null" disabled>Chọn bệnh nhân phân tích...</option>
-          <option v-for="p in patients" :key="p.patient_id" :value="p.patient_id">
-            {{ p.full_name }}
-          </option>
-        </select>
+      <div class="header-actions">
+        <button @click="clearChat" class="icon-button trash" title="Xóa hội thoại">
+          <Trash2 :size="18" />
+        </button>
       </div>
-
-      <button @click="clearChat" class="icon-button" title="Xóa hội thoại">
-        <Trash2 :size="18" />
-      </button>
     </header>
 
-    <!-- Chat Messages -->
-    <div ref="messageContainer" class="chat-messages custom-scrollbar">
-      <div v-if="messages.length === 0" class="empty-state">
-        <div class="empty-icon-wrapper">
-          <Bot :size="48" />
+    <!-- Chat Messages & Selection Area -->
+    <div class="chat-main-stage">
+      <!-- Chat History Sidebar (New) -->
+      <aside v-if="selectedPatientId" class="chat-history-sidebar" :class="{ 'collapsed': isHistoryCollapsed }">
+        <div class="sidebar-header">
+          <button @click="isHistoryCollapsed = !isHistoryCollapsed" class="collapse-toggle">
+            <LayoutPanelLeft :size="18" />
+          </button>
+          <span v-if="!isHistoryCollapsed" class="sidebar-title">Lịch sử hội thoại</span>
         </div>
-        <h3 class="font-black text-2xl text-slate-900 mb-2">Tôi có thể giúp gì cho bạn?</h3>
-        <p class="text-slate-500 max-w-sm mx-auto font-medium">
-          Hỏi về bệnh nhân, phân tích chỉ số sức khỏe, hoặc yêu cầu tóm tắt quá trình phục hồi.
-        </p>
-      </div>
-
-      <div v-for="(msg, idx) in messages" :key="idx" 
-           :class="['message-row', msg.role === 'user' ? 'user' : 'assistant']">
         
-        <div class="message-bubble" :class="{ 'streaming': msg.isStreaming }">
-          <div class="message-content" v-html="formatContent(msg.content)"></div>
-          <div class="message-meta">
-            {{ msg.timestamp }}
+        <div v-if="!isHistoryCollapsed" class="history-list-mini custom-scrollbar">
+          <div v-for="h in mockHistory" :key="h.id" class="history-item-brief">
+            <MessageSquare :size="14" />
+            <span class="history-text">{{ h.title }}</span>
           </div>
+          <div v-if="mockHistory.length === 0" class="empty-history-text">Chưa có lịch sử</div>
         </div>
-      </div>
+      </aside>
 
-      <!-- Streaming Indicator -->
-      <div v-if="isStreaming && !currentStreamingMessage" class="message-row assistant">
-        <div class="message-bubble thinking">
-          <div class="dot-typing">
-            <span></span><span></span><span></span>
+      <div ref="messageContainer" 
+           class="chat-viewport custom-scrollbar" 
+           :class="{ 'sidebar-open': !isHistoryCollapsed && selectedPatientId }"
+           @scroll="handleScroll">
+        <!-- Patient Selector Grid (Visible when no patient selected) -->
+        <div v-if="!selectedPatientId && userRole === 'doctor'" class="patient-selection-stage">
+          <div class="selection-content">
+            <div class="selection-header">
+              <div class="icon-circle">
+                <Users :size="32" />
+              </div>
+              <h3>Chọn bệnh nhân để phân tích</h3>
+              <p>Chọn một bệnh nhân từ danh sách để bắt đầu phân tích dữ liệu y tế và hiệu suất tập luyện.</p>
+            </div>
+            
+            <div class="patient-grid">
+              <div v-for="p in patients" :key="p.patient_id" 
+                   @click="selectPatient(p)"
+                   class="patient-card-premium">
+                <div class="card-avatar">
+                  {{ p.full_name.charAt(0) }}
+                </div>
+                <div class="card-body">
+                  <span class="name">{{ p.full_name }}</span>
+                  <span class="status" :class="getStatusClass(p)">{{ getStatusLabel(p) }}</span>
+                </div>
+                <ChevronRight :size="18" class="arrow" />
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-      <!-- Suggested Questions (The fix for "it fails to give chat questions") -->
-      <div v-if="selectedPatientId && messages.length < 30" class="px-6 py-3 flex gap-2 overflow-x-auto custom-scrollbar no-scrollbar scroll-smooth">
-        <button 
-          v-for="sug in suggestedPrompts" 
-          :key="sug"
-          @click="useSuggestion(sug)"
-          class="suggestion-pill"
-        >
-          {{ sug }}
-        </button>
+
+        <!-- Main Chat Flow -->
+        <template v-else>
+          <!-- Empty State with Suggestions -->
+          <div v-if="messages.length === 0" class="empty-state">
+            <div class="ai-hero">
+              <div class="ai-icon-hex">
+                <Bot :size="48" />
+              </div>
+              <h3>Tôi có thể giúp gì cho {{ userRole === 'doctor' ? 'ca bệnh này' : 'bạn' }}?</h3>
+              <p>Hỏi về bệnh nhân, phân tích chỉ số sức khỏe, hoặc yêu cầu tóm tắt quá trình phục hồi.</p>
+            </div>
+            
+            <div class="suggestions-container">
+              <button 
+                v-for="sug in suggestedPrompts" 
+                :key="sug"
+                @click="useSuggestion(sug)"
+                class="suggestion-card"
+              >
+                <span class="sug-text">{{ sug }}</span>
+                <ArrowUpRight :size="16" />
+              </button>
+            </div>
+          </div>
+
+          <!-- Message List -->
+          <div class="messages-list">
+            <div v-for="(msg, idx) in messages" :key="idx" 
+                 :class="['message-row', msg.role === 'user' ? 'user' : 'assistant']">
+              
+              <div class="message-bubble" :class="{ 'streaming': msg.isStreaming }">
+                <div class="message-content markdown-body" v-html="renderMarkdown(msg.displayContent || msg.content)"></div>
+                <div class="message-meta">
+                  <span class="time">{{ msg.timestamp }}</span>
+                  <span v-if="msg.isStreaming" class="streaming-indicator">Đang trả lời...</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Thinking Indicator -->
+            <div v-if="isStreaming && !currentStreamingMessage" class="message-row assistant">
+              <div class="message-bubble thinking-bubble">
+                <div class="typing-indicator">
+                  <span></span><span></span><span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
 
     <!-- Input Area -->
-    <div class="input-container">
-      <div class="input-wrapper">
-        <textarea
-          v-model="inputMessage"
-          @keydown.enter.prevent="sendMessage"
-          placeholder="Nhắn tin cho MEDIC1 AI..."
-          :disabled="isStreaming || (userRole === 'doctor' && !selectedPatientId)"
-          rows="1"
-          ref="inputRef"
-        ></textarea>
-        <button 
-          @click="sendMessage"
-          :disabled="!inputMessage.trim() || isStreaming || (userRole === 'doctor' && !selectedPatientId)"
-          class="send-button"
-        >
-          <Send :size="20" />
-        </button>
+    <div class="chat-input-area" :class="{ 'disabled': !selectedPatientId }">
+      <div class="input-container-inner">
+        <div class="input-wrapper">
+          <textarea
+            v-model="inputMessage"
+            @keydown.enter.prevent="sendMessage"
+            placeholder="Nhập câu hỏi tại đây..."
+            :disabled="isStreaming || !selectedPatientId"
+            rows="1"
+            ref="inputRef"
+            @input="adjustTextarea"
+          ></textarea>
+          <button 
+            @click="sendMessage"
+            :disabled="!inputMessage.trim() || isStreaming || !selectedPatientId"
+            class="send-button-premium"
+          >
+            <Send :size="20" />
+          </button>
+        </div>
+        <p v-if="!selectedPatientId && userRole === 'doctor'" class="helper-text warning">
+          <AlertCircle :size="14" />
+          Vui lòng chọn bệnh nhân phía trên để bắt đầu
+        </p>
       </div>
-      <p v-if="userRole === 'doctor' && !selectedPatientId" class="error-text">Vui lòng chọn một bệnh nhân để bắt đầu phân tích</p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, computed, watch } from 'vue'
-import { Sparkles, Send, Bot, Trash2 } from 'lucide-vue-next'
+import { ref, onMounted, nextTick, computed } from 'vue'
+import { Sparkles, Send, Bot, Trash2, Users, ChevronRight, ArrowUpRight, AlertCircle, LayoutPanelLeft, MessageSquare } from 'lucide-vue-next'
 import { API_BASE_URL } from '../config'
+import { marked } from 'marked'
 
 const props = defineProps({
   initialPatientId: { type: String, default: null }
@@ -113,29 +185,60 @@ const patients = ref([])
 const userRole = ref('')
 const currentUser = ref(null)
 const currentStreamingMessage = ref(null)
+const inputRef = ref(null)
 
-// Watch for prop changes (e.g. from Dashboard)
-watch(() => props.initialPatientId, (newId) => {
-  if (newId !== selectedPatientId.value) {
-    selectedPatientId.value = newId
-    clearChat()
-  }
+// History functionality
+const isHistoryCollapsed = ref(true)
+const mockHistory = ref([
+  { id: 1, title: 'Tư vấn đau vai gáy' },
+  { id: 2, title: 'Phân tích tập squat' },
+  { id: 3, title: 'Báo cáo tuần 12' }
+])
+
+// Markdown configuration
+marked.setOptions({
+  breaks: true,
+  gfm: true
 })
+
+const renderMarkdown = (content) => {
+  if (!content) return ''
+  return marked.parse(content)
+}
+
+const currentPatientName = computed(() => {
+  const p = patients.value.find(p => p.patient_id === selectedPatientId.value)
+  return p ? p.full_name : 'Bệnh nhân'
+})
+
+const getStatusClass = (p) => {
+  const s = p.status?.toLowerCase() || ''
+  if (s === 'active') return 'status-active'
+  if (s === 'inactive') return 'status-inactive'
+  return 'status-warning'
+}
+
+const getStatusLabel = (p) => {
+  const s = p.status?.toLowerCase() || ''
+  if (s === 'active') return 'Hoạt động'
+  if (s === 'inactive') return 'Không hoạt động'
+  return 'Cần chú ý'
+}
 
 const suggestedPrompts = computed(() => {
   if (userRole.value === 'doctor') {
     return [
       'Tóm tắt tình trạng bệnh nhân này',
       'Phân tích hiệu suất tập luyện gần đây',
-      'Bệnh nhân có tiến bộ không?',
-      'Các chỉ số sức khỏe có gì bất thường?'
+      'Đánh giá tiến độ phục hồi',
+      'Cảnh báo các chỉ số bất thường'
     ]
   } else {
     return [
       'Tóm tắt tuần tập luyện của tôi',
       'Độ chính xác của tôi thế nào?',
       'Tôi cần cải thiện bài tập nào?',
-      'Phân tích xu hướng nhịp tim của tôi'
+      'Phân tích xu hướng sức khỏe'
     ]
   }
 })
@@ -147,7 +250,6 @@ onMounted(async () => {
     userRole.value = currentUser.value.role
     if (userRole.value === 'doctor') {
       await fetchPatients()
-      // If we have an initial ID, ensure it's selected
       if (props.initialPatientId) {
         selectedPatientId.value = props.initialPatientId
       }
@@ -171,21 +273,18 @@ const fetchPatients = async () => {
   }
 }
 
-const formatContent = (content) => {
-  if (!content) return ''
-  return content
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/^\* (.*)$/gm, '<li>$1</li>')
-    .replace(/\n/g, '<br/>')
+const selectPatient = (patient) => {
+  selectedPatientId.value = patient.patient_id
+  clearChat()
 }
 
-const scrollToEnd = () => {
-  nextTick(() => {
-    if (messageContainer.value) {
-      messageContainer.value.scrollTop = messageContainer.value.scrollHeight
-    }
-  })
+const adjustTextarea = () => {
+  if (inputRef.value) {
+    inputRef.value.style.height = 'auto'
+    inputRef.value.style.height = inputRef.value.scrollHeight + 'px'
+  }
 }
+
 
 const clearChat = () => {
   messages.value = []
@@ -196,12 +295,59 @@ const useSuggestion = (text) => {
   sendMessage()
 }
 
+// Smart Scroll logic
+const isAtBottom = ref(true)
+const handleScroll = () => {
+  if (!messageContainer.value) return
+  const { scrollTop, scrollHeight, clientHeight } = messageContainer.value
+  // Allowing 50px threshold
+  isAtBottom.value = scrollHeight - scrollTop - clientHeight < 50
+}
+
+const scrollToEnd = (force = false) => {
+  nextTick(() => {
+    if (messageContainer.value && (isAtBottom.value || force)) {
+      messageContainer.value.scrollTo({
+        top: messageContainer.value.scrollHeight,
+        behavior: force ? 'smooth' : 'auto'
+      })
+    }
+  })
+}
+
+// Typing animation queue - now per-session to avoid collisions
+const typingQueue = []
+let isTyping = false
+
+const processTypingQueue = async (msg) => {
+  if (isTyping) return
+  isTyping = true
+  
+  while (typingQueue.length > 0) {
+    const char = typingQueue.shift()
+    if (char) {
+      msg.displayContent += char
+      // Dynamic speed: faster for longer queues to catch up
+      const delay = typingQueue.length > 20 ? 2 : (Math.random() * 8 + 4)
+      await new Promise(r => setTimeout(r, delay))
+      
+      // Throttled scroll: only if we added a significant chunk or at end of loop
+      if (typingQueue.length % 5 === 0 || typingQueue.length === 0) {
+        scrollToEnd()
+      }
+    }
+  }
+  
+  isTyping = false
+}
+
 const sendMessage = async () => {
   if (!inputMessage.value.trim() || isStreaming.value) return
-  if (userRole.value === 'doctor' && !selectedPatientId.value) return
+  if (!selectedPatientId.value) return
 
   const userMsg = inputMessage.value
   inputMessage.value = ''
+  if (inputRef.value) inputRef.value.style.height = 'auto'
   
   messages.value.push({
     role: 'user',
@@ -214,6 +360,7 @@ const sendMessage = async () => {
   
   try {
     const token = localStorage.getItem('token')
+    
     const response = await fetch(`${API_BASE_URL}/ai/chat`, {
       method: 'POST',
       headers: {
@@ -226,7 +373,14 @@ const sendMessage = async () => {
       })
     })
 
-    if (!response.ok) throw new Error('Yêu cầu thất bại')
+    if (!response.ok) {
+      if (response.status === 401) {
+        console.warn('DEBUG: 401 Unauthorized detected')
+        throw new Error('Phiên làm việc hết hạn hoặc không hợp lệ. Vui lòng đăng xuất và đăng nhập lại.')
+      }
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.detail || 'Yêu cầu thất bại')
+    }
 
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
@@ -234,37 +388,61 @@ const sendMessage = async () => {
     let assistantMsg = {
       role: 'assistant',
       content: '',
+      displayContent: '', // For the typing effect
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isStreaming: true
     }
     messages.value.push(assistantMsg)
     currentStreamingMessage.value = assistantMsg
 
+    let buffer = ''
     while (true) {
       const { value, done } = await reader.read()
       if (done) break
       
-      const chunk = decoder.decode(value)
-      const lines = chunk.split('\n')
+      const chunk = decoder.decode(value, { stream: true })
+      buffer += chunk
+      
+      const lines = buffer.split('\n')
+      // Keep the last partial line in the buffer
+      buffer = lines.pop()
       
       for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6).trim()
-          if (data === '[DONE]') break
+        if (line.trim().startsWith('data: ')) {
+          const data = line.trim().slice(6)
+          if (data === '[DONE]') continue
           try {
             const parsed = JSON.parse(data)
-            assistantMsg.content += parsed.text
-            scrollToEnd()
-          } catch (err) {}
+            if (parsed.text) {
+              const text = parsed.text
+              assistantMsg.content += text
+              
+              // Add to typing queue
+              for (const char of text) {
+                typingQueue.push(char)
+              }
+              // Ensure processing starts
+              if (!isTyping) processTypingQueue(assistantMsg)
+            }
+          } catch (err) {
+            // Ignore parse errors for partial JSON if they happen (though rare with line split)
+            console.error('Error parsing AI chunk:', err, 'Line:', line)
+          }
         }
       }
     }
+    
+    // Ensure everything is displayed in the end
+    assistantMsg.isStreaming = false
+    assistantMsg.displayContent = assistantMsg.content
+    
   } catch (err) {
     if (err.name !== 'AbortError') {
       console.error('AI Stream Error:', err)
       messages.value.push({
         role: 'assistant',
         content: `Lỗi: ${err.message}`,
+        displayContent: `Lỗi: ${err.message}`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       })
     }
@@ -281,134 +459,461 @@ const sendMessage = async () => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: white;
-  border-radius: 24px;
+  background: #f8fafc;
+  border-radius: 28px;
   overflow: hidden;
-  border: 1px solid rgba(0,0,0,0.05);
-  box-shadow: 0 20px 50px rgba(0,0,0,0.05);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 25px 80px -20px rgba(0,0,0,0.1);
 }
 
 .glass-morphism {
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
 
+/* Header Styles */
 .chat-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid rgba(0,0,0,0.05);
+  padding: 24px 32px;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(255, 255, 255, 0.5);
+  background: white;
+  z-index: 10;
+}
+
+.chat-header.has-patient {
+  background: linear-gradient(to right, #ffffff, #f1f5f9);
 }
 
 .header-main {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
+}
+
+.logo-orb-wrapper {
+  position: relative;
 }
 
 .logo-orb {
-  width: 44px;
-  height: 44px;
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-  border-radius: 14px;
+  width: 52px;
+  height: 52px;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 8px 16px rgba(99, 102, 241, 0.3);
 }
 
-.sparkle-icon {
-  color: white;
-  filter: drop-shadow(0 0 4px rgba(255,255,255,0.5));
+.status-pulse {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 14px;
+  height: 14px;
+  background: #22c55e;
+  border: 3px solid white;
+  border-radius: 50%;
 }
 
 .header-text h2 {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 800;
-  color: #1e293b;
-  line-height: 1;
-  margin-bottom: 4px;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+
+.active-patient-profile {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.patient-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.patient-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: #6366f1;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.patient-name {
+  font-size: 18px !important;
+  color: #1e293b !important;
+}
+
+.change-patient-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  transition: all 0.2s;
+}
+
+.change-patient-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
 }
 
 .status-badge {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #64748b;
-  background: #f1f5f9;
-  padding: 2px 8px;
-  border-radius: 6px;
-}
-
-.premium-select {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 8px 16px;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
-  color: #475569;
-  outline: none;
-  transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  color: #94a3b8;
 }
 
-.premium-select:focus {
-  border-color: #6366f1;
-  ring: 4px rgba(99, 102, 241, 0.1);
+.header-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .icon-button {
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 14px;
   color: #94a3b8;
+  background: #f8fafc;
   transition: all 0.2s;
 }
 
 .icon-button:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.icon-button.trash:hover {
   background: #fee2e2;
   color: #ef4444;
 }
 
-.chat-messages {
+/* Viewport & Scrolling */
+.chat-main-stage {
   flex: 1;
-  overflow-y: auto;
-  padding: 32px 24px;
+  display: flex;
+  overflow: hidden; /* Prevent stage from scrolling, viewport handles it */
+  position: relative;
+  background: white;
+}
+
+.chat-history-sidebar {
+  width: 260px;
+  background: #f8fafc;
+  border-right: 1px solid #f1f5f9;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  z-index: 5;
 }
 
-.empty-state {
-  margin-top: auto;
-  margin-bottom: auto;
+.chat-history-sidebar.collapsed {
+  width: 60px;
+}
+
+.sidebar-header {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid rgba(0,0,0,0.02);
+}
+
+.collapse-toggle {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.collapse-toggle:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.sidebar-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.history-list-mini {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-item-brief {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #64748b;
+}
+
+.history-item-brief:hover {
+  background: white;
+  color: #6366f1;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+}
+
+.history-text {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.empty-history-text {
+  font-size: 12px;
+  color: #94a3b8;
   text-align: center;
-  animation: fadeUp 0.6s ease-out;
+  margin-top: 20px;
 }
 
-.empty-icon-wrapper {
+.chat-viewport {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  scroll-behavior: smooth;
+}
+
+/* Patient Selection Stage */
+.patient-selection-stage {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.05), transparent);
+}
+
+.selection-content {
+  width: 100%;
+  max-width: 900px;
+}
+
+.selection-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.icon-circle {
   width: 80px;
   height: 80px;
-  background: #f8fafc;
-  border-radius: 20px;
+  background: #f1f5f9;
+  color: #6366f1;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 24px;
+}
+
+.selection-header h3 {
+  font-size: 28px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 12px;
+}
+
+.selection-header p {
+  color: #64748b;
+  font-size: 16px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.patient-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.patient-card-premium {
+  background: white;
+  border: 1px solid #f1f5f9;
+  padding: 20px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+}
+
+.patient-card-premium:hover {
+  transform: translateY(-4px);
+  border-color: #6366f1;
+  box-shadow: 0 15px 30px rgba(99, 102, 241, 0.1);
+}
+
+.card-avatar {
+  width: 48px;
+  height: 48px;
+  background: #eef2ff;
+  color: #6366f1;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-body .name {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 15px;
+}
+
+.card-body .status {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status-active { color: #22c55e; }
+.status-inactive { color: #ef4444; }
+.status-warning { color: #f59e0b; }
+
+.patient-card-premium .arrow {
   color: #cbd5e1;
+  transition: transform 0.2s;
+}
+
+.patient-card-premium:hover .arrow {
+  transform: translateX(4px);
+  color: #6366f1;
+}
+
+/* Empty State */
+.empty-state {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.ai-hero {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.ai-icon-hex {
+  width: 96px;
+  height: 96px;
+  background: white;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 32px;
+  color: #6366f1;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+  border: 1px solid #f1f5f9;
+}
+
+.ai-hero h3 {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 12px;
+}
+
+.ai-hero p {
+  color: #64748b;
+  font-weight: 500;
+  max-width: 400px;
+}
+
+.suggestions-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  width: 100%;
+  max-width: 600px;
+}
+
+.suggestion-card {
+  background: white;
+  border: 1px solid #f1f5f9;
+  padding: 16px 20px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+  transition: all 0.2s;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.02);
+}
+
+.suggestion-card:hover {
+  border-color: #6366f1;
+  background: #f5f3ff;
+  color: #6366f1;
+  transform: translateY(-2px);
+}
+
+.sug-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+}
+
+/* Messages List */
+.messages-list {
+  padding: 40px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  min-height: min-content; /* Ensure container can grow */
 }
 
 .message-row {
   display: flex;
   width: 100%;
+  animation: fadeIn 0.4s ease-out;
 }
 
 .message-row.user {
@@ -416,20 +921,19 @@ const sendMessage = async () => {
 }
 
 .message-bubble {
-  max-width: 80%;
-  padding: 16px 20px;
-  border-radius: 18px;
+  max-width: 85%;
+  padding: 20px 24px;
+  border-radius: 24px;
   font-size: 15px;
   line-height: 1.6;
   position: relative;
-  transition: transform 0.2s ease;
 }
 
 .user .message-bubble {
   background: #1e293b;
   color: white;
   border-bottom-right-radius: 4px;
-  box-shadow: 0 10px 25px rgba(30, 41, 59, 0.1);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
 }
 
 .assistant .message-bubble {
@@ -437,152 +941,220 @@ const sendMessage = async () => {
   color: #334155;
   border: 1px solid #f1f5f9;
   border-bottom-left-radius: 4px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.03);
 }
 
 .message-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
   font-size: 10px;
-  font-weight: 600;
-  margin-top: 8px;
-  opacity: 0.5;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
 }
 
 .user .message-meta {
-  text-align: right;
+  justify-content: flex-end;
 }
 
-.thinking {
-  padding: 12px 18px;
-}
-
-.dot-typing {
+.streaming-indicator {
+  color: #6366f1;
   display: flex;
+  align-items: center;
   gap: 4px;
 }
 
-.dot-typing span {
-  width: 6px;
-  height: 6px;
-  background: #cbd5e1;
+.streaming-indicator::after {
+  content: "";
+  width: 4px;
+  height: 4px;
+  background: #6366f1;
   border-radius: 50%;
-  animation: dotPulse 1.4s infinite ease-in-out both;
+  animation: pulse 1s infinite;
 }
 
-.dot-typing span:nth-child(2) { animation-delay: 0.2s; }
-.dot-typing span:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes dotPulse {
-  0%, 80%, 100% { transform: scale(0); }
-  40% { transform: scale(1); }
+/* Markdown Styling */
+.markdown-body :deep(h1), .markdown-body :deep(h2), .markdown-body :deep(h3) {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  font-weight: 800;
+  color: #0f172a;
 }
 
-.input-container {
-  padding: 24px;
-  background: rgba(255, 255, 255, 0.8);
+.markdown-body :deep(p) {
+  margin-bottom: 12px;
+}
+
+.markdown-body :deep(ul), .markdown-body :deep(ol) {
+  margin-bottom: 12px;
+  padding-left: 20px;
+}
+
+.markdown-body :deep(li) {
+  margin-bottom: 4px;
+}
+
+.markdown-body :deep(strong) {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.markdown-body :deep(table) {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 16px 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.markdown-body :deep(th) {
+  background: #f8fafc;
+  padding: 12px;
+  text-align: left;
+  font-weight: 700;
+  font-size: 13px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.markdown-body :deep(td) {
+  padding: 12px;
+  font-size: 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.markdown-body :deep(tr:last-child td) {
+  border-bottom: none;
+}
+
+.markdown-body :deep(tr:nth-child(even)) {
+  background: #fcfcfd;
+}
+
+/* Input Area */
+.chat-input-area {
+  padding: 32px;
+  background: white;
+  border-top: 1px solid #f1f5f9;
+}
+
+.chat-input-area.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.input-container-inner {
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .input-wrapper {
-  max-width: 800px;
-  margin: 0 auto;
-  position: relative;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 20px;
-  padding: 8px;
+  background: #f8fafc;
+  border: 2px solid #f1f5f9;
+  border-radius: 22px;
+  padding: 10px 14px;
   display: flex;
   align-items: flex-end;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.04);
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: all 0.3s;
 }
 
 .input-wrapper:focus-within {
-  transform: translateY(-2px);
   border-color: #6366f1;
-  box-shadow: 0 15px 40px rgba(99, 102, 241, 0.1);
+  background: white;
+  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.1);
 }
 
 textarea {
   flex: 1;
   background: transparent;
   border: none;
-  padding: 12px 16px;
-  font-size: 15px;
+  padding: 12px;
+  font-size: 16px;
   font-weight: 500;
   color: #1e293b;
   outline: none;
   resize: none;
-  max-height: 200px;
+  max-height: 180px;
+  line-height: 1.5;
 }
 
-.send-button {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+.send-button-premium {
+  width: 48px;
+  height: 48px;
   background: #6366f1;
   color: white;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
-  flex-shrink: 0;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.send-button:disabled {
-  background: #f1f5f9;
-  color: #cbd5e1;
+.send-button-premium:disabled {
+  background: #e2e8f0;
+  cursor: not-allowed;
 }
 
-.send-button:not(:disabled):hover {
+.send-button-premium:not(:disabled):hover {
   background: #4f46e5;
-  transform: scale(1.05);
+  transform: scale(1.05) translateY(-2px);
 }
 
-.error-text {
-  font-size: 11px;
-  color: #ef4444;
-  font-weight: 700;
-  text-align: center;
+.helper-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   margin-top: 12px;
+  font-size: 12px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(20px); }
+.helper-text.warning { color: #f59e0b; }
+
+/* Indicators and animations */
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+  padding: 4px 8px;
+}
+
+.typing-indicator span {
+  width: 6px;
+  height: 6px;
+  background: #cbd5e1;
+  border-radius: 50%;
+  animation: typing 1s infinite alternate;
+}
+
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing {
+  from { opacity: 0.3; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1.1); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes pulse {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.8); opacity: 0.5; }
+}
+
+/* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar { width: 6px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
-
-.suggestions-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  max-width: 600px;
-  margin: 32px auto 0;
-  animation: fadeUp 0.8s ease-out 0.2s both;
-}
-
-.suggestion-pill {
-  background: white;
-  border: 1px solid #f1f5f9;
-  padding: 12px 16px;
-  border-radius: 14px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #475569;
-  text-align: left;
-  transition: all 0.2s;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.02);
-}
-
-.suggestion-pill:hover {
-  border-color: #6366f1;
-  color: #6366f1;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(99, 102, 241, 0.05);
-}
 </style>
