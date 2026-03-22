@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
 from datetime import datetime
 from database import get_db
 from models import User, Schedule, Notification
-from dependencies import get_current_user, get_current_doctor, verify_patient_access
+from dependencies import get_current_user, get_current_doctor
+from middleware.ownership import ResourceAccess
 from schemas import ScheduleCreate, ScheduleResponse
 
 router = APIRouter(
@@ -24,14 +25,25 @@ async def get_doctor_schedules(doctor_id: UUID, db: Session = Depends(get_db), c
     return db.query(Schedule).filter(Schedule.doctor_id == doctor_id).all()
 
 @router.get("/patient-schedules/{patient_id}", response_model=List[ScheduleResponse])
-async def get_patient_schedules(patient_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def get_patient_schedules(
+    patient_id: UUID, 
+    db: Session = Depends(get_db), 
+    patient: User = Depends(ResourceAccess.patient)
+):
     """Get schedules for a patient"""
-    verify_patient_access(patient_id, current_user, db)
+    # Ownership verified via ResourceAccess.patient dependency
     return db.query(Schedule).filter(Schedule.patient_id == patient_id).all()
 
 @router.post("/schedules", response_model=ScheduleResponse)
-async def create_schedule(data: ScheduleCreate, db: Session = Depends(get_db), current_doctor: User = Depends(get_current_doctor)):
+async def create_schedule(
+    data: ScheduleCreate, 
+    db: Session = Depends(get_db), 
+    current_doctor: User = Depends(get_current_doctor)
+):
     """Create a new schedule/appointment"""
+    # Verify relationship
+    await ResourceAccess.patient(data.patient_id, current_doctor, db)
+    
     # Prevent scheduling in the past
     now = datetime.now(data.start_time.tzinfo) if data.start_time.tzinfo else datetime.now()
     if data.start_time < now:
@@ -65,16 +77,13 @@ async def create_schedule(data: ScheduleCreate, db: Session = Depends(get_db), c
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/schedules/{schedule_id}")
-async def delete_schedule(schedule_id: int, db: Session = Depends(get_db), current_doctor: User = Depends(get_current_doctor)):
+async def delete_schedule(
+    schedule_id: int, 
+    db: Session = Depends(get_db), 
+    schedule: Schedule = Depends(ResourceAccess.schedule)
+):
     """Delete a schedule"""
-    schedule = db.query(Schedule).filter(
-        Schedule.schedule_id == schedule_id,
-        Schedule.doctor_id == current_doctor.user_id
-    ).first()
-    
-    if not schedule:
-        raise HTTPException(status_code=404, detail="Schedule not found or unauthorized")
-        
+    # Ownership verified via ResourceAccess.schedule dependency
     try:
         db.delete(schedule)
         db.commit()
@@ -84,16 +93,15 @@ async def delete_schedule(schedule_id: int, db: Session = Depends(get_db), curre
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.put("/schedules/{schedule_id}", response_model=ScheduleResponse)
-async def update_schedule(schedule_id: int, data: ScheduleCreate, db: Session = Depends(get_db), current_doctor: User = Depends(get_current_doctor)):
+async def update_schedule(
+    schedule_id: int, 
+    data: ScheduleCreate, 
+    db: Session = Depends(get_db), 
+    schedule: Schedule = Depends(ResourceAccess.schedule)
+):
     """Update a schedule"""
-    schedule = db.query(Schedule).filter(
-        Schedule.schedule_id == schedule_id,
-        Schedule.doctor_id == current_doctor.user_id
-    ).first()
-
-    if not schedule:
-        raise HTTPException(status_code=404, detail="Schedule not found")
-
+    # Ownership verified via ResourceAccess.schedule dependency
+    
     # Prevent moving schedule to the past
     # Only check if start_time is being changed
     if data.start_time != schedule.start_time:

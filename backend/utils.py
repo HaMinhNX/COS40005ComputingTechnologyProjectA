@@ -1,5 +1,5 @@
-from typing import TypeVar, Generic, List, Optional
-from pydantic import BaseModel, Field
+from typing import TypeVar, Generic, List
+from pydantic import BaseModel
 from sqlalchemy.orm import Query
 
 T = TypeVar("T")

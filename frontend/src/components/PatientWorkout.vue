@@ -95,6 +95,22 @@
               <video ref="videoEl" autoplay playsinline></video>
               <canvas ref="canvasEl"></canvas>
 
+              <!-- TIER 2: CORRECTIONS (3s Sticky) -->
+              <div v-if="showCorrection" class="correction-overlay animate-slide-up">
+                <div class="correction-content">
+                  <AlertCircle :size="32" />
+                  <span>{{ correctionText }}</span>
+                </div>
+              </div>
+
+              <!-- TIER 3: SUCCESS (2s Sticky) -->
+              <div v-if="showSuccess" class="success-overlay animate-pop-in">
+                <div class="success-content">
+                  <Trophy :size="48" />
+                  <span>{{ successText }}</span>
+                </div>
+              </div>
+
               <div v-if="isLoadingCamera" class="loading-overlay">
                 <div class="spinner"></div>
                 <p>Đang khởi động camera...</p>
@@ -208,6 +224,34 @@ const props = defineProps(['userId'])
 const API_URL = API_BASE_URL
 const CAMERA_BASE = CAMERA_API_URL
 
+// Configuration
+const exerciseConfig = ref({
+  exercises: [],
+  daily_targets: {}
+})
+
+// Exercise Name Mapping - Convert Vietnamese/Display names to Backend API keys
+const mapExerciseName = (name) => {
+  if (!name) return null
+
+  // Try to find in dynamic config
+  const found = exerciseConfig.value.exercises.find(e => 
+    e.id === name || 
+    e.name.toLowerCase() === name.toLowerCase()
+  )
+  if (found) return found.id
+
+  // Keyword-based fallback
+  const lowerName = name.toLowerCase()
+  if (lowerName.includes('squat') || lowerName.includes('ngồi xuống') || lowerName.includes('đứng lên')) return 'squat'
+  if (lowerName.includes('curl') || lowerName.includes('bắp tay') || lowerName.includes('gập')) return 'bicep-curl'
+  if (lowerName.includes('shoulder') || lowerName.includes('vai')) return 'shoulder-flexion'
+  if (lowerName.includes('knee') || lowerName.includes('đầu gối')) return 'knee-raise'
+
+  console.warn(`[EXERCISE MAPPING] Unknown exercise name: "${name}"`)
+  return null
+}
+
 // State
 const sessionState = ref('loading') // loading, overview, instruction, exercising, summary
 const planItems = ref([])
@@ -217,10 +261,37 @@ const sessionStartTime = ref(null)
 const stepStartTime = ref(null)
 
 // Exercise State
+// Exercise State
 const currentReps = ref(0)
 const feedbackText = ref('Sẵn sàng...')
 const feedbackClass = ref('fb-neutral')
 const feedbackIcon = ref(markRaw(Info))
+
+// 3-Tier Feedback System States
+const correctionText = ref('')
+const successText = ref('')
+const showCorrection = ref(false)
+const showSuccess = ref(false)
+let correctionTimeout = null
+let successTimeout = null
+
+const setCorrection = (text) => {
+  correctionText.value = text
+  showCorrection.value = true
+  if (correctionTimeout) clearTimeout(correctionTimeout)
+  correctionTimeout = setTimeout(() => {
+    showCorrection.value = false
+  }, 3000) // Tier 2: 3-second sticky
+}
+
+const setSuccess = (text) => {
+  successText.value = text
+  showSuccess.value = true
+  if (successTimeout) clearTimeout(successTimeout)
+  successTimeout = setTimeout(() => {
+    showSuccess.value = false
+  }, 2000) // Tier 3: 2-second sticky
+}
 
 // Camera State
 const videoEl = ref(null)
@@ -233,7 +304,47 @@ let lastProcessTime = 0
 let isProcessing = false
 const PROCESS_INTERVAL = 200 // ms
 
-// Computed
+// WebSocket State
+const ws = ref(null)
+const isLiveCoachingActive = ref(false)
+
+const connectWebSocket = (sessId) => {
+  if (!sessId) return
+  
+  // Construct WS URL (assumes same host as API but ws:// or wss://)
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  const host = API_URL.replace('http://', '').replace('https://', '')
+  const token = localStorage.getItem('token')
+  const wsUrl = `${protocol}//${host}/ws/session/${sessId}?token=${token}`
+  
+  console.log(`📡 Connecting to Live Coaching WebSocket: ${wsUrl}`)
+  ws.value = new WebSocket(wsUrl)
+  
+  ws.value.onopen = () => {
+    console.log('✅ Live Coaching connected')
+    isLiveCoachingActive.value = true
+  }
+  
+  ws.value.onclose = () => {
+    console.log('❌ Live Coaching disconnected')
+    isLiveCoachingActive.value = false
+  }
+  
+  ws.value.onerror = (err) => {
+    console.error('WebSocket Error:', err)
+  }
+}
+
+const sendLiveUpdate = (data) => {
+  if (ws.value && ws.value.readyState === WebSocket.OPEN) {
+    ws.value.send(JSON.stringify({
+      exercise: currentStep.value.name,
+      reps: currentReps.value,
+      feedback: feedbackText.value,
+      ...data
+    }))
+  }
+}
 const currentStep = computed(() => planItems.value[currentStepIndex.value] || {})
 const todayDate = computed(() =>
   new Date().toLocaleDateString('vi-VN', {
@@ -253,56 +364,6 @@ const totalDurationFormatted = computed(() => {
   const s = diff % 60
   return `${m}p ${s}s`
 })
-
-// Exercise Name Mapping - Convert Vietnamese/Display names to Backend API keys
-const EXERCISE_MAPPING = {
-  // Vietnamese names
-  'Đứng lên ngồi xuống': 'squat',
-  'Gập bắp tay': 'bicep-curl',
-  'Nâng 2 tay lên cao liên tục để tập vai': 'shoulder-flexion',
-  'Nâng 2 tay lên cao liên tục để tập tay cùng nâng đầu gối so le chân và tay': 'knee-raise',
-  // English names
-  Squat: 'squat',
-  'Bicep Curl': 'bicep-curl',
-  'Shoulder Flexion': 'shoulder-flexion',
-  'Knee Raise': 'knee-raise',
-  // Lowercase variants
-  squat: 'squat',
-  'bicep curl': 'bicep-curl',
-  'shoulder flexion': 'shoulder-flexion',
-  'knee raise': 'knee-raise',
-}
-
-const mapExerciseName = (name) => {
-  if (!name) return null
-
-  // Direct mapping
-  if (EXERCISE_MAPPING[name]) {
-    return EXERCISE_MAPPING[name]
-  }
-
-  // Keyword-based fallback
-  const lowerName = name.toLowerCase()
-  if (
-    lowerName.includes('squat') ||
-    lowerName.includes('ngồi xuống') ||
-    lowerName.includes('đứng lên')
-  ) {
-    return 'squat'
-  }
-  if (lowerName.includes('curl') || lowerName.includes('bắp tay') || lowerName.includes('gập')) {
-    return 'bicep-curl'
-  }
-  if (lowerName.includes('shoulder') || lowerName.includes('vai')) {
-    return 'shoulder-flexion'
-  }
-  if (lowerName.includes('knee') || lowerName.includes('đầu gối')) {
-    return 'knee-raise'
-  }
-
-  console.warn(`[EXERCISE MAPPING] Unknown exercise name: "${name}"`)
-  return null
-}
 
 // Icons
 const getIcon = (name) => {
@@ -341,14 +402,27 @@ const loadPlan = async () => {
   sessionState.value = 'loading'
   try {
     const token = localStorage.getItem('token')
-    const res = await fetch(`${API_URL}/patient/today/${props.userId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    if (res.ok) {
-      planItems.value = await res.json()
+    
+    // Fetch Plan and Config in parallel
+    const [planRes, configRes] = await Promise.all([
+      fetch(`${API_URL}/patient/today/${props.userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      fetch(`${API_URL}/exercises/config`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+    ])
+
+    if (planRes.ok) {
+      planItems.value = await planRes.json()
+    }
+
+    if (configRes.ok) {
+      exerciseConfig.value = await configRes.json()
+      console.log('✅ Synchronized exercise configuration:', exerciseConfig.value)
     }
   } catch (e) {
-    console.error(e)
+    console.error('Failed to load plan/config:', e)
   } finally {
     sessionState.value = 'overview'
   }
@@ -371,6 +445,9 @@ const startSession = async () => {
       sessionStartTime.value = Date.now()
       currentStepIndex.value = 0
       sessionState.value = 'instruction'
+      
+      // Start real-time coaching connection
+      connectWebSocket(sessionId.value)
     }
   } catch (e) {
     console.error(e)
@@ -410,7 +487,7 @@ const logStep = async (data) => {
       },
       body: JSON.stringify({
         session_id: sessionId.value,
-        exercise_type: currentStep.value.name,
+        exercise_type: mapExerciseName(currentStep.value.name),
         reps_completed: data.reps || currentReps.value,
         duration_seconds: stepStartTime.value
           ? Math.floor((Date.now() - stepStartTime.value) / 1000)
@@ -607,14 +684,27 @@ const processLandmarks = async (landmarks) => {
       if (currentReps.value >= currentStep.value.target) {
         // Complete Step
         stopCamera()
+        setSuccess('HOÀN THÀNH BÀI TẬP! 🏆')
         await logStep({ reps: currentReps.value })
         nextStep()
+      } else {
+        // Tier 3: Rep Success Feedback
+        setSuccess('XUẤT SẮC! 👍')
+        // Send live update to doctor via WebSocket
+        sendLiveUpdate({ reps: newReps })
       }
     }
 
     if (data.feedback) {
+      // Tier 1: Guidance (Always visible)
       feedbackText.value = data.feedback
-      // Simple feedback classification
+      
+      // Tier 2: Correction Detection
+      if (data.feedback.includes('!') || data.feedback.includes('⚠') || data.feedback.length > 20) {
+        setCorrection(data.feedback)
+      }
+
+      // Simple feedback classification for Tier 1 styling
       if (
         data.feedback.includes('Good') ||
         data.feedback.includes('Tốt') ||
@@ -659,7 +749,6 @@ onUnmounted(() => {
 
 .state-screen {
   width: 100%;
-  max-width: 800px;
   text-align: center;
 }
 
@@ -789,7 +878,7 @@ onUnmounted(() => {
 
 .layout-wrapper {
   display: grid;
-  grid-template-columns: 70% 30%;
+  grid-template-columns: 80% 20%; /* Massive Visibility: 80/20 ratio */
   gap: 24px;
   height: 90vh;
   padding: 20px;
@@ -936,7 +1025,7 @@ canvas {
 }
 
 .current-count {
-  font-size: 140px;
+  font-size: 120px; /* Massive Visibility: 120px font */
   font-weight: 900;
   color: #6366f1;
   line-height: 1;
@@ -1184,4 +1273,64 @@ canvas {
   font-size: 14px;
   color: #64748b;
 }
+/* Feedback Overlays */
+.correction-overlay {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(239, 68, 68, 0.95);
+  color: white;
+  padding: 16px 32px;
+  border-radius: 16px;
+  font-weight: 800;
+  font-size: 24px;
+  z-index: 100;
+  box-shadow: 0 10px 30px rgba(239, 68, 68, 0.4);
+  border: 4px solid rgba(255, 255, 255, 0.3);
+}
+
+.correction-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.success-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(16, 185, 129, 0.95);
+  color: white;
+  padding: 32px 64px;
+  border-radius: 32px;
+  font-weight: 900;
+  font-size: 48px;
+  z-index: 110;
+  box-shadow: 0 20px 60px rgba(16, 185, 129, 0.5);
+  border: 8px solid rgba(255, 255, 255, 0.5);
+  text-align: center;
+}
+
+.success-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+@keyframes slide-up {
+  from { transform: translate(-50%, 20px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+@keyframes pop-in {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+  70% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+.animate-slide-up { animation: slide-up 0.3s ease-out forwards; }
+.animate-pop-in { animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 </style>

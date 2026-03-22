@@ -2,45 +2,45 @@
   <div class="flex flex-col h-full bg-slate-50" data-isolated-ui>
     <!-- Header -->
     <header
-      class="bg-white border-b border-slate-200 px-8 py-6 flex items-center justify-between shadow-sm relative z-20"
+      class="bg-white border-b border-slate-200 px-10 py-10 flex items-center justify-between shadow-md relative z-20"
     >
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-6">
         <div
-          class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/20"
+          class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-500/30 transform hover:scale-110 transition-transform duration-300"
         >
-          <Activity :size="24" />
+          <Activity :size="32" />
         </div>
         <div>
-          <h1 class="text-2xl font-black text-slate-900">Giao diện Bệnh nhân</h1>
-          <p class="text-sm text-slate-500 font-medium">{{ userName }}</p>
+          <h1 class="text-4xl font-black text-slate-900 tracking-tight">Giao diện Bệnh nhân</h1>
+          <p class="text-lg text-slate-500 font-bold mt-1 tracking-wide">{{ userName }}</p>
         </div>
       </div>
 
       <!-- Logout Button -->
       <button
         @click="showLogoutModal = true"
-        class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-all font-bold text-sm shadow-lg shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30 group"
+        class="flex items-center gap-3 px-8 py-4 rounded-2xl bg-red-500 text-white hover:bg-red-600 transition-all font-black text-lg shadow-xl shadow-red-500/20 hover:shadow-2xl hover:shadow-red-500/40 transform hover:-translate-y-1 group"
       >
-        <LogOut :size="18" class="group-hover:scale-110 transition-transform" />
+        <LogOut :size="24" class="group-hover:scale-110 transition-transform" />
         <span>Đăng xuất</span>
       </button>
     </header>
 
     <!-- Tab Navigation -->
-    <div class="bg-white border-b border-slate-200 px-8 sticky top-0 z-10">
-      <div class="flex gap-8 overflow-x-auto custom-scrollbar">
+    <div class="bg-white border-b border-slate-200 px-10 sticky top-0 z-10 shadow-sm">
+      <div class="flex gap-12 overflow-x-auto custom-scrollbar no-scrollbar py-2">
         <button
           v-for="tab in tabs"
           :key="tab.id"
           @click="currentTab = tab.id"
           :class="[
-            'flex items-center gap-2 py-4 text-sm font-bold border-b-2 transition-all whitespace-nowrap',
+            'flex items-center gap-3 py-6 text-lg font-black border-b-4 transition-all whitespace-nowrap px-4 rounded-t-xl hover:bg-slate-50',
             currentTab === tab.id
-              ? 'border-indigo-600 text-indigo-600'
-              : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300',
+              ? 'border-indigo-600 text-indigo-600 bg-indigo-50/30'
+              : 'border-transparent text-slate-400 hover:text-slate-900',
           ]"
         >
-          <component :is="tab.iconComponent" :size="18" />
+          <component :is="tab.iconComponent" :size="24" />
           {{ tab.label }}
         </button>
       </div>
@@ -48,7 +48,7 @@
 
     <!-- Tab Content -->
     <main class="flex-1 overflow-y-auto p-8 custom-scrollbar">
-      <div class="max-w-7xl mx-auto">
+      <div class="h-full">
         <transition name="fade" mode="out-in">
           <component
             :is="currentComponent"
@@ -167,7 +167,7 @@ onMounted(() => {
       const user = JSON.parse(userStr)
       userId.value = user.user_id
       userName.value = user.full_name || 'Bệnh nhân'
-    } catch (e) {
+    } catch {
       console.error('Dữ liệu người dùng không hợp lệ')
       router.push('/login')
     }

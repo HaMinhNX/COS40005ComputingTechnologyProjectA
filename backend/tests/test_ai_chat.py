@@ -1,7 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
-import json
 import os
 import sys
 from uuid import uuid4
@@ -14,7 +13,7 @@ os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 from main import app
 from database import Base, get_db
 from models import User, MedicalRecord
-from dependencies import get_current_user, verify_patient_access
+from dependencies import get_current_user
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -34,14 +33,15 @@ def override_get_db():
     finally:
         db.close()
 
-app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
 
 @pytest.fixture(scope="module", autouse=True)
 def setup_db():
+    app.dependency_overrides[get_db] = override_get_db
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
+    app.dependency_overrides.clear()
 
 def test_ai_chat_streaming_success():
     # Create test data

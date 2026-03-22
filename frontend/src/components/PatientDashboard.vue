@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-7xl mx-auto px-2">
+  <div class="w-full px-6">
     <!-- Header -->
     <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
       <div>
@@ -130,6 +130,13 @@
           <div class="border-t-2 border-slate-200 pt-2">
             <div class="text-3xl font-black text-indigo-600">{{ stats.total_reps || 0 }}</div>
             <div class="text-base font-bold text-indigo-700 uppercase mt-1">Tổng reps</div>
+          </div>
+          <div class="border-t-2 border-slate-200 pt-2">
+            <div class="text-3xl font-black text-emerald-600">{{ brainStats.today_score || 0 }}</div>
+            <div class="text-base font-bold text-emerald-700 uppercase mt-1 flex items-center gap-2">
+              <Sparkles :size="16" />
+              Điểm trí tuệ
+            </div>
           </div>
         </div>
       </div>
@@ -385,9 +392,7 @@ import {
   Activity,
   Wind,
   Moon,
-  Calendar,
   Dumbbell,
-  Clock,
   CalendarCheck,
   Check,
   Brain,
@@ -396,6 +401,7 @@ import {
   TrendingUp,
   Mail,
   Send,
+  Sparkles,
 } from 'lucide-vue-next'
 import * as d3 from 'd3'
 import { API_BASE_URL } from '../config'
@@ -413,6 +419,7 @@ const healthData = ref({
 
 // Exercise stats
 const stats = ref({ total_days: 0, total_reps: 0, total_duration: 0 })
+const brainStats = ref({ today_score: 0, streak: 0 })
 const history = ref([])
 const todayPlan = ref([])
 // Removed notifications and related logic for simplicity
@@ -458,7 +465,7 @@ const sendReport = async () => {
     } else {
       showToast(data.message || 'Gửi email thất bại', 'error')
     }
-  } catch (e) {
+  } catch {
     showToast('Lỗi kết nối server', 'error')
   } finally {
     emailSending.value = false
@@ -476,8 +483,8 @@ const updateHealthData = async () => {
     if (res.ok) {
       healthData.value = await res.json()
     }
-  } catch (e) {
-    console.error('Failed to load real health metrics:', e)
+  } catch {
+    console.error('Failed to load real health metrics');
   }
 }
 
@@ -620,16 +627,18 @@ async function fetchData() {
     const token = localStorage.getItem('token')
     const headers = { Authorization: `Bearer ${token}` }
 
-    const [statsRes, historyRes, planRes, chartsRes] = await Promise.all([
+    const [statsRes, historyRes, planRes, chartsRes, brainRes] = await Promise.all([
       fetch(`${API_URL}/overall-stats${query}`, { headers }),
       fetch(`${API_URL}/weekly-progress${query}`, { headers }),
       fetch(`${API_URL}/patient/today/${props.userId}`, { headers }),
       fetch(`${API_URL}/patient/health-charts/${props.userId}`, { headers }),
+      fetch(`${API_URL}/brain-exercise/stats/${props.userId}`, { headers }),
     ])
 
     if (statsRes.ok) stats.value = await statsRes.json()
     if (historyRes.ok) history.value = await historyRes.json()
     if (planRes.ok) todayPlan.value = await planRes.json()
+    if (brainRes.ok) brainStats.value = await brainRes.json()
     
     let chartData = null
     if (chartsRes.ok) chartData = await chartsRes.json()
@@ -654,7 +663,7 @@ onMounted(() => {
     try {
       const user = JSON.parse(userStr)
       emailForm.value.patientName = user.full_name || ''
-    } catch (e) {
+    } catch {
       /* ignore */
     }
   }

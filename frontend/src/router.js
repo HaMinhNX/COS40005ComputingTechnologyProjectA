@@ -37,23 +37,28 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
+  console.log(`Navigating to: ${to.path}`)
   const token = localStorage.getItem('token')
   let user;
   try {
-    user = JSON.parse(localStorage.getItem('user'))
-  } catch {
+    const userStr = localStorage.getItem('user')
+    user = userStr ? JSON.parse(userStr) : null
+  } catch (err) {
+    console.error('Router: Failed to parse user from localStorage', err)
     user = null
   }
 
-  const isAuthenticated = !!token && !!user
+  const isAuthenticated = !!token && !!user && !!user.role
 
   // 1. If route requires auth and not logged in
   if (to.meta.requiresAuth && !isAuthenticated) {
+    console.warn('Router: Unauthorized access attempt, redirecting to login')
     return next({ name: 'login' })
   }
 
   // 2. If logged in and trying to go to login page, redirect to appropriate dashboard
   if (to.name === 'login' && isAuthenticated) {
+    console.log(`Router: Already authenticated as ${user.role}, redirecting to dashboard`)
     if (user.role === 'doctor') {
       return next({ name: 'doctor' })
     } else {
@@ -64,7 +69,7 @@ router.beforeEach((to, from, next) => {
   // 3. Role check
   if (to.meta.roles && isAuthenticated) {
     if (!to.meta.roles.includes(user.role)) {
-      // User does not have permission for this route
+      console.warn(`Router: Role mismatch. User role ${user.role} not in ${to.meta.roles}`)
       if (user.role === 'doctor') {
         return next({ name: 'doctor' })
       } else {

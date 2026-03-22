@@ -177,7 +177,7 @@ import PatientDashboard from './PatientDashboard.vue'
 import { API_BASE_URL } from '../config'
 
 const props = defineProps(['patientId'])
-const emit = defineEmits(['back'])
+defineEmits(['back'])
 
 
 const currentTab = ref('overview')
@@ -210,7 +210,7 @@ const loadPatientInfo = async () => {
       const patients = data.items || data;
       patient.value = patients.find(p => p.patient_id === props.patientId) || {};
     }
-  } catch (e) { console.error(e); }
+  } catch { console.error('Failed to load patient info'); }
 }
 
 const loadMedicalRecord = async () => {
@@ -220,7 +220,7 @@ const loadMedicalRecord = async () => {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (res.ok) medicalRecord.value = await res.json();
-  } catch (e) { console.error(e); }
+  } catch { console.error('Failed to load patient info'); }
 }
 
 const loadHistory = async () => {
@@ -230,7 +230,7 @@ const loadHistory = async () => {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (res.ok) historyLogs.value = await res.json();
-  } catch (e) { console.error(e); }
+  } catch { console.error('Failed to load patient info'); }
 }
 
 const loadNotes = async () => {
@@ -240,7 +240,7 @@ const loadNotes = async () => {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (res.ok) notes.value = await res.json();
-  } catch (e) { console.error(e); }
+  } catch { console.error('Failed to load patient info'); }
 }
 
 const getDoctorId = async () => {
@@ -253,7 +253,7 @@ const getDoctorId = async () => {
       const data = await res.json();
       doctorId.value = data.doctor_id;
     }
-  } catch (e) { console.error(e); }
+  } catch { console.error('Failed to load patient info'); }
 }
 
 // Actions
@@ -270,7 +270,7 @@ const saveMedicalRecord = async () => {
       body: JSON.stringify(payload)
     });
     if (res.ok) alert('Đã lưu hồ sơ bệnh án!');
-  } catch (e) { alert('Lỗi khi lưu'); }
+  } catch { alert('Lỗi khi lưu'); }
 }
 
 const saveNote = async () => {
@@ -296,7 +296,7 @@ const saveNote = async () => {
       showAddNote.value = false;
       newNote.value = { title: '', content: '' };
     }
-  } catch (e) { alert('Lỗi khi lưu ghi chú'); }
+  } catch { alert('Lỗi khi lưu ghi chú'); }
 }
 
 const navigateToMessages = () => {

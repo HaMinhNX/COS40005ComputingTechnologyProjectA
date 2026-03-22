@@ -31,27 +31,35 @@
         <span class="title-icon"><Gamepad2 :size="24" /></span>
         Chọn trò chơi
       </h3>
-
       <div class="game-grid">
-        <button
+        <div
           v-for="game in games"
           :key="game.id"
-          @click="startGame(game.id)"
-          class="game-card"
+          class="game-card-wrapper"
         >
-          <div class="game-icon">
-            <component :is="game.icon" :size="32" />
-          </div>
-          <div class="game-name">{{ game.name }}</div>
-          <div class="game-description">{{ game.description }}</div>
-          <div class="game-difficulty">
-            <span class="difficulty-label">Độ khó:</span>
-            <span class="difficulty-stars">
-              <Star v-for="i in game.difficulty" :key="i" :size="14" fill="currentColor" />
-            </span>
-          </div>
-        </button>
-
+          <button
+            @click="startGame(game.id)"
+            class="game-card"
+            :class="'game-theme-' + game.id"
+          >
+            <div class="game-card-content">
+              <div class="game-icon-container">
+                <component :is="game.icon" :size="36" />
+              </div>
+              <div class="game-info-text">
+                <h4 class="game-name">{{ game.name }}</h4>
+                <p class="game-description">{{ game.description }}</p>
+              </div>
+              <div class="game-footer">
+                <div class="play-indicator">
+                  <Gamepad2 :size="18" />
+                  <span>Chơi</span>
+                </div>
+              </div>
+            </div>
+            <div class="card-bg-decoration"></div>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -81,261 +89,109 @@
 
       <!-- Question Display -->
       <transition name="slide" mode="out-in">
-        <div :key="currentQuestion" class="question-container">
+        <div :key="currentQuestion" class="question-container glass-card">
           <!-- Math Game -->
-          <div v-if="currentSubGame === 'math'" class="math-game">
-            <div class="question-text">{{ mathQuestion.question }}</div>
-            <div class="answer-grid">
-              <button
-                v-for="option in mathQuestion.options"
-                :key="option"
-                @click="submitAnswer(option)"
-                class="answer-btn"
-                :disabled="answerSubmitted"
-              >
-                {{ option }}
-              </button>
-            </div>
-          </div>
+          <MathGame
+            v-if="currentSubGame === 'math'"
+            :level="currentQuestion"
+            :answerSubmitted="answerSubmitted"
+            @submit="submitAnswer"
+          />
 
           <!-- Memory Game -->
-          <div v-if="currentSubGame === 'memory'" class="memory-game">
-            <div v-if="memoryPhase === 'show'" class="memory-show">
-              <div class="instruction-text">Hãy nhớ các số sau:</div>
-              <div class="memory-numbers">
-                <div v-for="(num, idx) in memorySequence" :key="idx" class="memory-number">
-                  {{ num }}
-                </div>
-              </div>
-              <div class="timer-display">{{ memoryTimer }}s</div>
-            </div>
-            <div v-else-if="memoryPhase === 'recall'" class="memory-recall">
-              <div class="instruction-text">Kéo thả các số đúng theo thứ tự:</div>
-
-              <!-- Answer Slots -->
-              <div class="memory-answer-slots">
-                <div
-                  v-for="(slot, idx) in memoryAnswerSlots"
-                  :key="idx"
-                  class="memory-slot"
-                  @click="handleMemorySlotClick(idx)"
-                >
-                  <span v-if="slot !== null" class="slot-number">{{ slot }}</span>
-                  <span v-else class="slot-placeholder">{{ idx + 1 }}</span>
-                </div>
-              </div>
-
-              <!-- Number Bank (includes correct + decoy numbers) -->
-              <div class="memory-number-bank">
-                <div
-                  v-for="num in memoryNumberBank"
-                  :key="num.id"
-                  class="memory-bank-number"
-                  :class="{ 'used': num.used }"
-                  @click="!num.used && handleMemoryBankClick(num)"
-                >
-                  {{ num.value }}
-                </div>
-              </div>
-
-              <button @click="submitMemoryAnswer" class="btn-submit" :disabled="!isMemoryAnswerComplete">
-                <span class="submit-icon">✓</span>
-                <span class="submit-text">Xác nhận</span>
-              </button>
-            </div>
-          </div>
+          <MemoryGame
+            v-if="currentSubGame === 'memory'"
+            :level="currentQuestion"
+            @submit="submitAnswer"
+          />
 
           <!-- Pattern Game -->
-          <div v-if="currentSubGame === 'pattern'" class="pattern-game">
-            <div class="instruction-text">Chọn hình tiếp theo trong chuỗi:</div>
-            <div class="pattern-sequence">
-              <div v-for="(shape, idx) in patternSequence" :key="idx" class="pattern-item">
-                {{ shape }}
-              </div>
-              <div class="pattern-item pattern-question">?</div>
-            </div>
-            <div class="pattern-options">
-              <button
-                v-for="option in patternOptions"
-                :key="option"
-                @click="submitAnswer(option)"
-                class="pattern-option-btn"
-                :disabled="answerSubmitted"
-              >
-                {{ option }}
-              </button>
-            </div>
-          </div>
+          <PatternGame
+            v-if="currentSubGame === 'pattern'"
+            :level="currentQuestion"
+            :answerSubmitted="answerSubmitted"
+            @submit="submitAnswer"
+          />
 
           <!-- Word Game -->
-          <div v-if="currentSubGame === 'word'" class="word-game">
-            <div class="instruction-text">Sắp xếp các chữ cái thành từ có nghĩa:</div>
-
-            <!-- Word Hint (for proverbs) - Now includes meaning -->
-            <div v-if="wordHint" class="word-hint-box">
-              <div class="hint-row">
-                <span class="hint-icon">💡</span>
-                <span class="hint-text">{{ wordHint }}</span>
-              </div>
-              <div v-if="wordMeaning" class="hint-meaning">
-                <span class="meaning-icon">📖</span>
-                <span class="meaning-text">{{ wordMeaning }}</span>
-              </div>
-            </div>
-
-            <!-- Answer Area with Individual Boxes -->
-            <div class="word-answer-container">
-              <!-- Show word groups if it's a multi-word phrase -->
-              <div v-if="wordStructure.length > 0" class="word-groups">
-                <div v-for="(group, groupIdx) in wordStructure" :key="'group-' + groupIdx" class="word-group">
-                  <div
-                    v-for="(charSlot, charIdx) in group"
-                    :key="'slot-' + groupIdx + '-' + charIdx"
-                    class="char-slot"
-                    :class="{ 'filled': charSlot.filled, 'empty': !charSlot.filled }"
-                    @click="handleCharSlotClick(groupIdx, charIdx)"
-                  >
-                    <span v-if="charSlot.filled" class="char-value">{{ charSlot.char }}</span>
-                    <span v-else class="char-placeholder">_</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Fallback for simple words (backward compatibility) -->
-              <div v-else class="word-answer-area-simple">
-                <div
-                  v-for="(tile, idx) in answerTiles"
-                  :key="idx"
-                  class="word-tile answer-tile"
-                  @click="handleAnswerTileClick(idx)"
-                >
-                  {{ tile.letter }}
-                </div>
-                <div v-if="answerTiles.length === 0" class="word-placeholder">
-                  Chọn chữ cái bên dưới
-                </div>
-              </div>
-            </div>
-
-            <!-- Letter Bank -->
-            <div class="word-bank">
-              <div
-                v-for="tile in wordTiles"
-                :key="tile.id"
-                class="word-tile bank-tile"
-                :class="{ 'used': tile.used }"
-                @click="!tile.used && handleWordTileClick(tile)"
-              >
-                {{ tile.letter }}
-              </div>
-            </div>
-
-            <button @click="submitAnswer()" class="btn-submit" :disabled="answerSubmitted || !isWordAnswerComplete">
-              <span class="submit-icon">✓</span>
-              <span class="submit-text">Xác nhận</span>
-            </button>
-          </div>
+          <WordGame
+            v-if="currentSubGame === 'word'"
+            :level="currentQuestion"
+            :answerSubmitted="answerSubmitted"
+            @submit="submitAnswer"
+            @ready="data => correctAnswerDisplay = data.correctWord"
+          />
 
           <!-- Color Game -->
-          <div v-if="currentSubGame === 'color'" class="color-game">
-            <div class="color-game-header">
-              <div class="instruction-text" v-if="colorQuestion.type === 'normal'">Vật này màu gì?</div>
-              <div class="instruction-text" v-else>Chữ bên dưới có MÀU gì? (Không phải chữ viết gì!)</div>
-              <div class="color-timer" :class="colorTimerClass">
-                <span class="timer-icon">⏱️</span>
-                <span class="timer-value">{{ colorTimeLeft }}s</span>
-              </div>
-            </div>
-
-            <div class="color-question-item">
-              <div v-if="colorQuestion.type === 'normal'" class="color-icon">{{ colorQuestion.icon }}</div>
-              <div
-                class="color-name"
-                :style="{
-                  color: colorQuestion.displayColor,
-                  fontSize: colorQuestion.type === 'stroop' ? '60px' : '',
-                  backgroundColor: colorQuestion.type === 'stroop' ? colorQuestion.backgroundColor : 'transparent',
-                  padding: colorQuestion.type === 'stroop' ? '20px 40px' : '0',
-                  borderRadius: colorQuestion.type === 'stroop' ? '12px' : '0'
-                }"
-              >
-                {{ colorQuestion.content }}
-              </div>
-            </div>
-
-            <div class="color-options">
-              <button
-                v-for="(opt, idx) in colorQuestion.options"
-                :key="idx"
-                @click="submitAnswer(opt.color)"
-                class="color-option-btn"
-                :style="{ backgroundColor: opt.bgColor || opt.color }"
-                :disabled="answerSubmitted"
-              >
-                <span :style="{ color: opt.textColor || (opt.color === '#FFFFFF' ? '#000' : '#FFF'), textShadow: opt.textColor ? 'none' : '0 1px 2px rgba(0,0,0,0.5)', fontWeight: '900' }">{{ opt.colorName }}</span>
-              </button>
-            </div>
-          </div>
+          <ColorGame
+            v-if="currentSubGame === 'color'"
+            :level="currentQuestion"
+            :answerSubmitted="answerSubmitted"
+            @submit="submitAnswer"
+          />
 
           <!-- Card Game -->
-          <div v-if="currentSubGame === 'card'" class="card-game">
-            <div class="card-game-header">
-              <div class="instruction-text">Tìm các cặp hình giống nhau:</div>
-              <div class="card-timer" :class="cardTimerClass">
-                <span class="timer-icon">⏱️</span>
-                <span class="timer-value">{{ cardTimeLeft }}s</span>
-              </div>
-            </div>
-            <div class="card-grid" :style="{ gridTemplateColumns: `repeat(${totalPairs > 4 ? 4 : (totalPairs > 2 ? 3 : 2)}, 1fr)` }">
-              <div
-                v-for="card in cardGrid"
-                :key="card.id"
-                class="memory-card"
-                :class="{ 'is-flipped': card.isFlipped || card.isMatched, 'is-matched': card.isMatched }"
-                @click="handleCardClick(card)"
-              >
-                <div class="card-inner">
-                  <div class="card-front">❓</div>
-                  <div class="card-back">{{ card.icon }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <CardGame
+            v-if="currentSubGame === 'card'"
+            :level="currentQuestion"
+            @submit="submitAnswer"
+          />
 
           <!-- Reflex Game -->
-          <div v-if="currentSubGame === 'reflex'" class="reflex-game">
-            <div class="reflex-header">
-              <div class="instruction-text">Bấm nhanh vào hình khi nó xuất hiện!</div>
-              <div class="reflex-stats">
-                <div class="lives-container">
-                  <span v-for="i in 3" :key="i" class="heart-icon" :class="{ 'lost': i > lives }">❤️</span>
-                </div>
-                <div class="reflex-timer" :class="reflexTimerClass">
-                  <Timer :size="16" class="timer-icon" />
-                  <span class="timer-value">{{ reflexTimeLeft.toFixed(1) }}s</span>
-                </div>
+          <ReflexGame
+            v-if="currentSubGame === 'reflex'"
+            :level="currentQuestion"
+            @submit="submitAnswer"
+          />
 
-              </div>
-            </div>
-            <div class="reflex-area" @click="handleReflexAreaClick">
-              <transition name="pop">
-                <button
-                  v-if="reflexTarget.visible"
-                  class="reflex-target"
-                  :style="{ top: reflexTarget.top, left: reflexTarget.left }"
-                  @click.stop="handleReflexClick(true)"
-                >
-                  {{ reflexTarget.icon }}
-                </button>
-              </transition>
-            </div>
-          </div>
+          <!-- NEW GAMES -->
+          <!-- Comparison Game -->
+          <ComparisonGame
+            v-if="currentSubGame === 'comparison'"
+            :level="currentQuestion"
+            :answerSubmitted="answerSubmitted"
+            @submit="submitAnswer"
+          />
+
+          <!-- Category Game -->
+          <CategoryGame
+            v-if="currentSubGame === 'category'"
+            :level="currentQuestion"
+            :answerSubmitted="answerSubmitted"
+            @submit="submitAnswer"
+          />
+
+          <!-- Odd One Out Game -->
+          <OddOneOutGame
+            v-if="currentSubGame === 'odd_one_out'"
+            :level="currentQuestion"
+            :answerSubmitted="answerSubmitted"
+            @submit="submitAnswer"
+          />
+
+          <!-- True False Game -->
+          <TrueFalseGame
+            v-if="currentSubGame === 'true_false'"
+            :level="currentQuestion"
+            :answerSubmitted="answerSubmitted"
+            @submit="submitAnswer"
+          />
+
+          <!-- Shadow Match Game -->
+          <ShadowMatchGame
+            v-if="currentSubGame === 'shadow_match'"
+            :level="currentQuestion"
+            :answerSubmitted="answerSubmitted"
+            @submit="submitAnswer"
+          />
         </div>
       </transition>
 
-      <!-- Feedback Display -->
+      <!-- Feedback Overlay -->
+      <FeedbackOverlay :show="showFeedback" :tier="feedbackTier" />
+
       <transition name="bounce">
-        <div v-if="showFeedback" class="feedback-display" :class="feedbackClass">
+        <div v-if="showFeedback && !lastAnswerWasCorrect" class="feedback-display" :class="feedbackClass">
           <div class="feedback-icon">
             <component :is="feedbackIcon" :size="48" />
           </div>
@@ -431,8 +287,6 @@ import {
   Calendar,
   Gamepad2,
   BarChart3,
-  Timer,
-  CheckCircle2,
   AlertCircle,
   ArrowRight,
   RotateCcw,
@@ -440,7 +294,20 @@ import {
   Hash
 } from 'lucide-vue-next';
 
-
+// Game Components
+import MathGame from '../games/MathGame.vue';
+import MemoryGame from '../games/MemoryGame.vue';
+import PatternGame from '../games/PatternGame.vue';
+import WordGame from '../games/WordGame.vue';
+import ColorGame from '../games/ColorGame.vue';
+import CardGame from '../games/CardGame.vue';
+import ReflexGame from '../games/ReflexGame.vue';
+import ComparisonGame from '../games/ComparisonGame.vue';
+import CategoryGame from '../games/CategoryGame.vue';
+import OddOneOutGame from '../games/OddOneOutGame.vue';
+import TrueFalseGame from '../games/TrueFalseGame.vue';
+import ShadowMatchGame from '../games/ShadowMatchGame.vue';
+import FeedbackOverlay from './FeedbackOverlay.vue';
 
 // Props
 const props = defineProps({
@@ -448,7 +315,7 @@ const props = defineProps({
   mode: { type: String, default: 'standalone' } // 'standalone' or 'flow'
 });
 
-const emit = defineEmits(['completed']);
+const emit = defineEmits(['completed', 'exit']);
 
 // API Configuration
 const API_URL = API_BASE_URL;
@@ -510,87 +377,65 @@ const games = [
     description: 'Thử thách tất cả các kỹ năng',
     icon: markRaw(Shuffle),
     difficulty: 4
+  },
+  {
+    id: 'comparison',
+    name: 'So Sánh Nhanh',
+    description: 'So sánh giá trị biểu thức',
+    icon: markRaw(Hash),
+    difficulty: 2
+  },
+  {
+    id: 'category',
+    name: 'Phân Loại',
+    description: 'Sắp xếp theo chủ đề',
+    icon: markRaw(Grid),
+    difficulty: 2
+  },
+  {
+    id: 'odd_one_out',
+    name: 'Khác Biệt',
+    description: 'Tìm hình không cùng loại',
+    icon: markRaw(Layers),
+    difficulty: 2
+  },
+  {
+    id: 'true_false',
+    name: 'Đúng Hay Sai',
+    description: 'Xác minh nhanh thông tin',
+    icon: markRaw(Zap),
+    difficulty: 1
+  },
+  {
+    id: 'shadow_match',
+    name: 'Ghép Bóng',
+    description: 'Tìm bóng của hình ảnh',
+    icon: markRaw(Palette),
+    difficulty: 2
   }
 ];
 
-
 // State
 const activeGame = ref(null);
+const currentSubGame = ref(null);
 const currentQuestion = ref(0);
-const totalQuestions = ref(10);
+const totalQuestions = ref(20);
 const score = ref(0);
 const todayScore = ref(0);
 const streak = ref(0);
+
+const answerSubmitted = ref(false);
 const showFeedback = ref(false);
+const lastAnswerWasCorrect = ref(false);
+const feedbackTier = ref('normal');
 const feedbackText = ref('');
 const feedbackClass = ref('');
 const feedbackIcon = ref('');
-const answerSubmitted = ref(false);
-const showResults = ref(false);
-const showExitConfirm = ref(false); // Custom exit modal state
-
-// Game specific states
-const lives = ref(3); // For reflex game
-const currentSubGame = ref(null); // For mixed mode
-
-// Math Game State
-const mathQuestion = ref({ question: '', answer: 0, options: [] });
-
-// Memory Game State
-const memoryPhase = ref('show'); // 'show' or 'recall'
-const memorySequence = ref([]);
-const memoryTimer = ref(5);
-const memoryAnswerSlots = ref([]); // User's answer slots
-const memoryNumberBank = ref([]); // Available numbers (correct + decoys)
-const memorySelectedIndex = ref(null); // Currently selected slot for filling
-
-// Pattern Game State
-const patternSequence = ref([]);
-const patternOptions = ref([]);
-const patternAnswer = ref('');
-
-const scrambledWord = ref('');
-const correctWord = ref('');
-const wordTiles = ref([]); // Available tiles
-const answerTiles = ref([]); // User selected tiles
-const wordHint = ref(''); // Hint for word structure
-const wordMeaning = ref(''); // Meaning hint for proverbs/idioms
-const wordStructure = ref([]); // Structure: array of word groups, each containing char slots
 const showCorrectAnswer = ref(false);
 const correctAnswerDisplay = ref('');
 
-// Color Game State
-const colorQuestion = ref({
-  type: 'normal', // 'normal' or 'stroop'
-  content: '',
-  displayColor: '',
-  backgroundColor: '',
-  correctAnswer: '',
-  options: []
-});
-
-// Card Game State
-const cardGrid = ref([]);
-const flippedCards = ref([]);
-const isCheckingMatch = ref(false);
-const matchedPairs = ref(0);
-const totalPairs = ref(0);
-const cardTimeLeft = ref(60);
-const cardTimerId = ref(null);
-
-// Color Game Timer
-const colorTimeLeft = ref(10);
-const colorTimerId = ref(null);
-
-// Reflex Game State
-const reflexTarget = ref({ top: '0%', left: '0%', icon: '', visible: false });
-const reflexTimerId = ref(null);
-const reflexCountdownId = ref(null);
-const reflexStartTime = ref(0);
-const reflexRoundConfig = ref({ totalTargets: 5, speed: 2000, targetsLeft: 5 });
-const reflexScoreInRound = ref(0);
-const reflexTimeLeft = ref(0);
-const reflexMaxTime = ref(2.0);
+const showResults = ref(false);
+const showExitConfirm = ref(false);
 
 // Computed
 const currentGameIcon = computed(() => {
@@ -623,1003 +468,104 @@ const resultsMessage = computed(() => {
   return 'Đừng nản chí! Luyện tập nhiều hơn nhé! 🎯';
 });
 
-// Timer color classes
-const reflexTimerClass = computed(() => {
-  const percentage = (reflexTimeLeft.value / reflexMaxTime.value) * 100;
-  if (percentage > 60) return 'timer-green';
-  if (percentage > 30) return 'timer-orange';
-  return 'timer-red';
-});
-
-const cardTimerClass = computed(() => {
-  // Calculate percentage based on initial time
-  const initialTime = currentQuestion.value >= 8 ? 25 : (currentQuestion.value >= 5 ? 30 : (currentQuestion.value >= 2 ? 35 : 40));
-  const percentage = (cardTimeLeft.value / initialTime) * 100;
-  if (percentage > 50) return 'timer-green';
-  if (percentage > 25) return 'timer-orange';
-  return 'timer-red';
-});
-
-const colorTimerClass = computed(() => {
-  const percentage = (colorTimeLeft.value / 10) * 100;
-  if (percentage > 60) return 'timer-green';
-  if (percentage > 30) return 'timer-orange';
-  return 'timer-red';
-});
-
-const isMemoryAnswerComplete = computed(() => {
-  return memoryAnswerSlots.value.every(slot => slot !== null);
-});
-
-const isWordAnswerComplete = computed(() => {
-  if (wordStructure.value.length > 0) {
-    // Check if all slots are filled
-    return wordStructure.value.every(group =>
-      group.every(slot => slot.filled)
-    );
-  } else {
-    // Fallback for simple words
-    return answerTiles.value.length > 0;
-  }
-});
-
 // Game Functions
 function startGame(gameId) {
   activeGame.value = gameId;
   currentQuestion.value = 0;
   score.value = 0;
-  lives.value = 3;
   showResults.value = false;
+  showFeedback.value = false;
   generateQuestion();
 }
 
 function generateQuestion() {
   answerSubmitted.value = false;
+  showFeedback.value = false;
+  showCorrectAnswer.value = false;
 
-  // Handle Mixed Mode
-  let gameType = activeGame.value;
-  if (gameType === 'mixed') {
-    const subGames = ['math', 'memory', 'pattern', 'word', 'color', 'card', 'reflex'];
-    // Avoid repeating the same sub-game immediately if possible
+  if (activeGame.value === 'mixed') {
+    const subGames = ['math', 'memory', 'pattern', 'word', 'color', 'card', 'reflex', 'comparison', 'category', 'odd_one_out', 'true_false', 'shadow_match'];
     let nextGame;
     do {
       nextGame = subGames[Math.floor(Math.random() * subGames.length)];
     } while (nextGame === currentSubGame.value && subGames.length > 1);
     currentSubGame.value = nextGame;
-    gameType = nextGame;
   } else {
-    currentSubGame.value = gameType;
-  }
-
-  switch(gameType) {
-    case 'math':
-      generateMathQuestion();
-      break;
-    case 'memory':
-      generateMemoryQuestion();
-      break;
-    case 'pattern':
-      generatePatternQuestion();
-      break;
-    case 'word':
-      generateWordQuestion();
-      break;
-    case 'color':
-      generateColorQuestion();
-      break;
-    case 'card':
-      generateCardQuestion();
-      break;
-    case 'reflex':
-      generateReflexQuestion();
-      break;
+    currentSubGame.value = activeGame.value;
   }
 }
 
-function generateMathQuestion() {
-  const level = currentQuestion.value;
-  let num1, num2, num3, answer, question;
-
-  // Level 0-2: Simple single operations
-  if (level < 3) {
-    const operations = ['+', '-'];
-    const operation = operations[Math.floor(Math.random() * operations.length)];
-
-    if (operation === '+') {
-      num1 = Math.floor(Math.random() * 30) + 1;
-      num2 = Math.floor(Math.random() * 30) + 1;
-      answer = num1 + num2;
-    } else {
-      num1 = Math.floor(Math.random() * 50) + 20;
-      num2 = Math.floor(Math.random() * num1);
-      answer = num1 - num2;
-    }
-    question = `${num1} ${operation} ${num2} = ?`;
-  }
-  // Level 3-5: Add multiplication and division
-  else if (level < 6) {
-    const operations = ['+', '-', '×', '÷'];
-    const operation = operations[Math.floor(Math.random() * operations.length)];
-
-    if (operation === '+') {
-      num1 = Math.floor(Math.random() * 70) + 10;
-      num2 = Math.floor(Math.random() * 70) + 10;
-      answer = num1 + num2;
-    } else if (operation === '-') {
-      num1 = Math.floor(Math.random() * 100) + 30;
-      num2 = Math.floor(Math.random() * num1);
-      answer = num1 - num2;
-    } else if (operation === '×') {
-      num1 = Math.floor(Math.random() * 12) + 2;
-      num2 = Math.floor(Math.random() * 12) + 2;
-      answer = num1 * num2;
-    } else { // ÷
-      num2 = Math.floor(Math.random() * 10) + 2;
-      answer = Math.floor(Math.random() * 15) + 1;
-      num1 = num2 * answer;
-    }
-    question = `${num1} ${operation} ${num2} = ?`;
-  }
-  // Level 6-8: Two-step operations
-  else if (level < 9) {
-    const op1 = ['+', '-', '×'][Math.floor(Math.random() * 3)];
-    const op2 = ['+', '-'][Math.floor(Math.random() * 2)];
-
-    if (op1 === '×') {
-      num1 = Math.floor(Math.random() * 10) + 2;
-      num2 = Math.floor(Math.random() * 10) + 2;
-      num3 = Math.floor(Math.random() * 20) + 5;
-      const product = num1 * num2;
-      answer = op2 === '+' ? product + num3 : product - num3;
-      question = `${num1} × ${num2} ${op2} ${num3} = ?`;
-    } else {
-      num1 = Math.floor(Math.random() * 50) + 20;
-      num2 = Math.floor(Math.random() * 30) + 10;
-      num3 = Math.floor(Math.random() * 20) + 5;
-      const first = op1 === '+' ? num1 + num2 : num1 - num2;
-      answer = op2 === '+' ? first + num3 : first - num3;
-      question = `${num1} ${op1} ${num2} ${op2} ${num3} = ?`;
-    }
-  }
-  // Level 9+: Complex multi-step with larger numbers
-  else {
-    const choice = Math.floor(Math.random() * 3);
-
-    if (choice === 0) {
-      // (a × b) + (c × d)
-      const a = Math.floor(Math.random() * 12) + 3;
-      const b = Math.floor(Math.random() * 12) + 3;
-      const c = Math.floor(Math.random() * 10) + 2;
-      const d = Math.floor(Math.random() * 10) + 2;
-      answer = (a * b) + (c * d);
-      question = `(${a} × ${b}) + (${c} × ${d}) = ?`;
-    } else if (choice === 1) {
-      // (a + b) × c
-      const a = Math.floor(Math.random() * 20) + 5;
-      const b = Math.floor(Math.random() * 20) + 5;
-      const c = Math.floor(Math.random() * 8) + 2;
-      answer = (a + b) * c;
-      question = `(${a} + ${b}) × ${c} = ?`;
-    } else {
-      // a × b - c × d
-      const a = Math.floor(Math.random() * 15) + 5;
-      const b = Math.floor(Math.random() * 12) + 3;
-      const c = Math.floor(Math.random() * 10) + 2;
-      const d = Math.floor(Math.random() * 8) + 2;
-      answer = (a * b) - (c * d);
-      question = `${a} × ${b} - ${c} × ${d} = ?`;
-    }
-  }
-
-  mathQuestion.value.question = question;
-  mathQuestion.value.answer = answer;
-
-  // Generate options with appropriate range
-  const options = new Set([answer]);
-  const range = level < 3 ? 8 : (level < 6 ? 15 : 25);
-  while (options.size < 4) {
-    const offset = Math.floor(Math.random() * range * 2) - range;
-    const option = answer + offset;
-    if (option > 0 && option !== answer) options.add(option);
-  }
-
-  mathQuestion.value.options = Array.from(options).sort(() => Math.random() - 0.5);
-}
-
-function generateMemoryQuestion() {
-  memoryPhase.value = 'show';
-  const level = currentQuestion.value;
-  const length = 3 + Math.floor(level / 2); // Increase difficulty: 3-7 numbers
-
-  memorySequence.value = Array.from({ length }, () => Math.floor(Math.random() * 9) + 1);
-
-  // Show for decreasing time based on level
-  const showTime = Math.max(3, 6 - Math.floor(level / 3));
-  memoryTimer.value = showTime;
-
-  const interval = setInterval(() => {
-    memoryTimer.value--;
-    if (memoryTimer.value <= 0) {
-      clearInterval(interval);
-      memoryPhase.value = 'recall';
-
-      // Initialize answer slots (all empty)
-      memoryAnswerSlots.value = Array(length).fill(null);
-
-      // Create number bank with correct numbers + decoys
-      const decoyCount = Math.min(length + 2, 6); // Add 2-6 decoy numbers
-      const allNumbers = [...memorySequence.value];
-
-      // Add decoy numbers (different from correct ones)
-      while (allNumbers.length < length + decoyCount) {
-        const decoy = Math.floor(Math.random() * 9) + 1;
-        allNumbers.push(decoy);
-      }
-
-      // Shuffle and create bank
-      memoryNumberBank.value = allNumbers
-        .sort(() => Math.random() - 0.5)
-        .map((value, id) => ({ id, value, used: false }));
-
-      memorySelectedIndex.value = null;
-    }
-  }, 1000);
-}
-
-// Handle clicking on a number from the bank
-function handleMemoryBankClick(num) {
-  // Find first empty slot
-  const emptyIndex = memoryAnswerSlots.value.findIndex(slot => slot === null);
-  if (emptyIndex !== -1) {
-    memoryAnswerSlots.value[emptyIndex] = num.value;
-    num.used = true;
-  }
-}
-
-// Handle clicking on an answer slot (to remove number)
-function handleMemorySlotClick(index) {
-  const value = memoryAnswerSlots.value[index];
-  if (value !== null) {
-    // Return number to bank
-    const bankNum = memoryNumberBank.value.find(n => n.value === value && n.used);
-    if (bankNum) bankNum.used = false;
-    memoryAnswerSlots.value[index] = null;
-  }
-}
-
-function submitMemoryAnswer() {
-  const userAnswer = memoryAnswerSlots.value;
-  const correct = JSON.stringify(userAnswer) === JSON.stringify(memorySequence.value);
-
-  showFeedbackMessage(correct);
-
-  setTimeout(() => {
-    nextQuestion();
-  }, 800);
-}
-
-function generatePatternQuestion() {
-  const patterns = [
-    // Original patterns (15)
-    { seq: ['🔴', '🔵', '🔴', '🔵'], answer: '🔴', options: ['🔴', '🔵', '🟢', '🟡'] },
-    { seq: ['⭐', '⭐', '🌙', '⭐', '⭐'], answer: '🌙', options: ['⭐', '🌙', '☀️', '🌟'] },
-    { seq: ['🍎', '🍊', '🍎', '🍊'], answer: '🍎', options: ['🍎', '🍊', '🍋', '🍇'] },
-    { seq: ['🐶', '🐱', '🐶', '🐱'], answer: '🐶', options: ['🐶', '🐱', '🐭', '🐹'] },
-    { seq: ['🌸', '🌸', '🌸', '🌺', '🌸', '🌸', '🌸'], answer: '🌺', options: ['🌸', '🌺', '🌻', '🌹'] },
-    { seq: ['🔵', '🟢', '🔵', '🟢'], answer: '🔵', options: ['🔵', '🟢', '🔴', '🟡'] },
-    { seq: ['🌙', '☀️', '🌙', '☀️'], answer: '🌙', options: ['🌙', '☀️', '⭐', '🌟'] },
-    { seq: ['🍕', '🍔', '🍕', '🍔'], answer: '🍕', options: ['🍕', '🍔', '🍟', '🌭'] },
-    { seq: ['🚗', '🚗', '🚙', '🚗', '🚗'], answer: '🚙', options: ['🚗', '🚙', '🚕', '🚌'] },
-    { seq: ['❤️', '💙', '💚', '❤️', '💙'], answer: '💚', options: ['❤️', '💙', '💚', '💛'] },
-    { seq: ['🎵', '🎶', '🎵', '🎶'], answer: '🎵', options: ['🎵', '🎶', '🎼', '🎹'] },
-    { seq: ['🏀', '⚽', '🏀', '⚽'], answer: '🏀', options: ['🏀', '⚽', '🏈', '⚾'] },
-    { seq: ['🌞', '🌞', '🌝', '🌞', '🌞'], answer: '🌝', options: ['🌞', '🌝', '🌛', '🌜'] },
-    { seq: ['🎈', '🎁', '🎈', '🎁'], answer: '🎈', options: ['🎈', '🎁', '🎀', '🎊'] },
-    { seq: ['🍓', '🍓', '🍇', '🍓', '🍓'], answer: '🍇', options: ['🍓', '🍇', '🍉', '🍌'] },
-
-    // New patterns (20 more)
-    { seq: ['🌻', '🌻', '🌹', '🌻', '🌻', '🌹'], answer: '🌻', options: ['🌻', '🌹', '🌷', '🌺'] },
-    { seq: ['🦁', '🐯', '🦁', '🐯', '🦁'], answer: '🐯', options: ['🦁', '🐯', '🐻', '🐼'] },
-    { seq: ['🍌', '🍌', '🍌', '🍎', '🍌', '🍌', '🍌'], answer: '🍎', options: ['🍌', '🍎', '🍊', '🍇'] },
-    { seq: ['🎯', '🎲', '🎯', '🎲'], answer: '🎯', options: ['🎯', '🎲', '🎰', '🎮'] },
-    { seq: ['🌊', '🌊', '🏔️', '🌊', '🌊'], answer: '🏔️', options: ['🌊', '🏔️', '🏝️', '🏖️'] },
-    { seq: ['🦋', '🐝', '🦋', '🐝', '🦋'], answer: '🐝', options: ['🦋', '🐝', '🐞', '🦗'] },
-    { seq: ['🎨', '🎨', '🎨', '🖌️', '🎨', '🎨', '🎨'], answer: '🖌️', options: ['🎨', '🖌️', '🖍️', '✏️'] },
-    { seq: ['🌈', '☁️', '🌈', '☁️'], answer: '🌈', options: ['🌈', '☁️', '⛅', '🌤️'] },
-    { seq: ['🎸', '🎹', '🎸', '🎹', '🎸'], answer: '🎹', options: ['🎸', '🎹', '🎺', '🎻'] },
-    { seq: ['🍰', '🍰', '🧁', '🍰', '🍰', '🧁'], answer: '🍰', options: ['🍰', '🧁', '🎂', '🍪'] },
-    { seq: ['🚀', '🛸', '🚀', '🛸'], answer: '🚀', options: ['🚀', '🛸', '🛩️', '✈️'] },
-    { seq: ['📚', '📚', '📚', '📖', '📚', '📚', '📚'], answer: '📖', options: ['📚', '📖', '📝', '📄'] },
-    { seq: ['🌟', '💫', '🌟', '💫', '🌟'], answer: '💫', options: ['🌟', '💫', '✨', '⭐'] },
-    { seq: ['🏆', '🥇', '🏆', '🥇'], answer: '🏆', options: ['🏆', '🥇', '🥈', '🥉'] },
-    { seq: ['🎭', '🎭', '🎪', '🎭', '🎭', '🎪'], answer: '🎭', options: ['🎭', '🎪', '🎬', '🎤'] },
-    { seq: ['🌺', '🌼', '🌺', '🌼', '🌺'], answer: '🌼', options: ['🌺', '🌼', '🌻', '🌷'] },
-    { seq: ['🍦', '🍦', '🍦', '🍨', '🍦', '🍦', '🍦'], answer: '🍨', options: ['🍦', '🍨', '🧊', '🍧'] },
-    { seq: ['🎃', '👻', '🎃', '👻'], answer: '🎃', options: ['🎃', '👻', '🦇', '🕷️'] },
-    { seq: ['🌴', '🌴', '🌲', '🌴', '🌴', '🌲'], answer: '🌴', options: ['🌴', '🌲', '🌳', '🎄'] },
-    { seq: ['🔔', '🔔', '🔔', '🎺', '🔔', '🔔', '🔔'], answer: '🎺', options: ['🔔', '🎺', '📯', '🎷'] },
-  ];
-
-  const pattern = patterns[Math.floor(Math.random() * patterns.length)];
-  patternSequence.value = pattern.seq;
-  patternAnswer.value = pattern.answer;
-  patternOptions.value = pattern.options.sort(() => Math.random() - 0.5);
-}
-
-function generateWordQuestion() {
-  const level = currentQuestion.value;
-
-  let wordList;
-
-  // Level 0-2: Simple words
-  if (level < 3) {
-    wordList = [
-      'Nhật', 'Tuần', 'Tháng', 'Năm', 'Ngày',
-      'Máy', 'Bàn', 'Ghế', 'Cửa', 'Nhà',
-      'Nước', 'Cơm', 'Canh', 'Thịt', 'Cá',
-      'Mẹ', 'Bố', 'Con', 'Anh', 'Em',
-      'Hoa', 'Cây', 'Lá', 'Xe', 'Tàu',
-      // 20 more simple words
-      'Sách', 'Vở', 'Bút', 'Thước', 'Túi',
-      'Áo', 'Quần', 'Mũ', 'Giày', 'Tất',
-      'Trời', 'Đất', 'Mây', 'Mưa', 'Gió',
-      'Sông', 'Núi', 'Rừng', 'Biển', 'Đồi',
-      'Tim', 'Gan', 'Phổi', 'Thận', 'Dạ'
-    ];
-    wordHint.value = '';
-    wordMeaning.value = '';
-  }
-  // Level 3-5: Compound words
-  else if (level < 6) {
-    wordList = [
-      'Máy bay', 'Ôtô', 'Xe đạp', 'Máy tính',
-      'Sách vở', 'Bút chì', 'Thước kẻ',
-      'Áo quần', 'Giày dép', 'Mũ nón',
-      'Trời mưa', 'Nắng gió', 'Mây trời',
-      'Rừng núi', 'Biển cả', 'Sông suối',
-      'Tim phổi', 'Gan dạ', 'Thận gan',
-      'Hoa quả', 'Rau củ', 'Thịt cá',
-      // 20 more compound words
-      'Bàn ghế', 'Cửa sổ', 'Nhà cửa', 'Đường phố',
-      'Xe máy', 'Tàu hoả', 'Máy móc', 'Công cụ',
-      'Bút mực', 'Giấy bút', 'Bảng đen', 'Phấn trắng',
-      'Áo dài', 'Quần áo', 'Nón lá', 'Dép lào',
-      'Mưa gió', 'Nắng mưa', 'Sương mù', 'Gió bão',
-      'Sông nước', 'Núi rừng', 'Đồi núi', 'Biển trời'
-    ];
-    wordHint.value = '';
-    wordMeaning.value = '';
-  }
-  // Level 6-8: Longer compound words and simple idioms
-  else if (level < 9) {
-    wordList = [
-      'Bệnh viện', 'Trường học', 'Nhà hàng',
-      'Siêu thị', 'Công viên', 'Sân bay',
-      'Bến xe', 'Nhà ga', 'Bưu điện',
-      'Ngân hàng', 'Chợ bán', 'Phố phố',
-      'Mặt trời', 'Mặt trăng', 'Ngôi sao',
-      'Đại dương', 'Đồi núi', 'Thác nước',
-      'Cỏ cây', 'Hoa lá', 'Rừng rậm',
-      // 20 more longer phrases
-      'Bệnh nhân', 'Bác sĩ', 'Y tá', 'Thuốc men',
-      'Học sinh', 'Giáo viên', 'Lớp học', 'Bài tập',
-      'Khách hàng', 'Nhân viên', 'Quản lý', 'Giám đốc',
-      'Gia đình', 'Bạn bè', 'Hàng xóm', 'Người thân',
-      'Thời tiết', 'Khí hậu', 'Nhiệt độ', 'Độ ẩm',
-      'Phong cảnh', 'Cảnh đẹp', 'Thiên nhiên', 'Môi trường'
-    ];
-    wordHint.value = '';
-    wordMeaning.value = '';
-  }
-  // Level 9+: Proverbs and idioms (Thành ngữ, tục ngữ) with meanings
-  else {
-    const proverbsWithMeanings = [
-      { text: 'Có chí thì nên', meaning: 'Khi có quyết tâm và ý chí thì sẽ thành công' },
-      { text: 'Đoàn kết là sức mạnh', meaning: 'Khi mọi người đoàn kết với nhau sẽ tạo ra sức mạnh lớn' },
-      { text: 'Học thầy không tạy học bạn', meaning: 'Học hỏi từ bạn bè cũng quan trọng như học từ thầy cô' },
-      { text: 'Uống nước nhớ nguồn', meaning: 'Biết ơn công lao của người đi trước' },
-      { text: 'Một giọt máu đào hơn ao nước lã', meaning: 'Tình ruột thịt quý giá hơn tình bạn bè' },
-      { text: 'Lành gạo là lành canh', meaning: 'Nguyên liệu tốt thì món ăn mới ngon' },
-      { text: 'Có công mài sắt có ngày nên kim', meaning: 'Chăm chỉ cố gắng sẽ đạt được thành công' },
-      { text: 'Tránh vỏ dưa gặp vỏ dừa', meaning: 'Tránh cái này lại gặp cái khác cũng khó khăn như vậy' },
-      { text: 'Tiền nào của nấy', meaning: 'Trả tiền bao nhiêu thì được hàng hóa chất lượng tương ứng' },
-      { text: 'Thương cho roi cho vọt', meaning: 'Yêu thương con cái phải biết dạy dỗ nghiêm khắc' },
-      { text: 'Mặt nước mắt cá', meaning: 'Vẻ mặt không biểu lộ cảm xúc' },
-      { text: 'Nước đổ lá môn', meaning: 'Lời nói không có tác dụng, không được lắng nghe' },
-      { text: 'Cái khôn cái khờ', meaning: 'Người khôn ngoan biết cách ứng xử linh hoạt' },
-      { text: 'Trong cói ngoài nhung', meaning: 'Bên trong giản dị nhưng bên ngoài sang trọng' },
-      { text: 'Trăm hay không bằng một thấy', meaning: 'Nghe nhiều không bằng tự mình trải nghiệm' },
-      // 20 more proverbs
-      { text: 'Ăn quả nhớ kẻ trồng cây', meaning: 'Biết ơn người đã giúp đỡ mình' },
-      { text: 'Không thầy đố mày làm nên', meaning: 'Không có thầy dạy thì khó thành công' },
-      { text: 'Học ăn học nói học gói học mở', meaning: 'Phải học cách ứng xử trong mọi hoàn cảnh' },
-      { text: 'Một cây làm chẳng nên non', meaning: 'Một mình không thể làm được việc lớn' },
-      { text: 'Ba cây chụm lại nên hòn núi cao', meaning: 'Đoàn kết sẽ tạo ra sức mạnh lớn' },
-      { text: 'Gần mực thì đen gần đèn thì rạng', meaning: 'Gần ai thì học theo người đó' },
-      { text: 'Chớ thấy sóng cả mà ngã tay chèo', meaning: 'Đừng bỏ cuộc khi gặp khó khăn' },
-      { text: 'Ở hiền gặp lành', meaning: 'Sống tốt sẽ gặp điều tốt lành' },
-      { text: 'Gieo gió gặt bão', meaning: 'Làm xấu sẽ nhận hậu quả xấu' },
-      { text: 'Công cha như núi Thái Sơn', meaning: 'Công lao cha mẹ rất lớn lao' },
-      { text: 'Nghĩa mẹ như nước trong nguồn', meaning: 'Tình mẹ vô bờ bến' },
-      { text: 'Xa mặt cách lòng', meaning: 'Lâu không gặp thì tình cảm phai nhạt' },
-      { text: 'Tốt gỗ hơn tốt nước sơn', meaning: 'Bản chất tốt quan trọng hơn vẻ ngoài' },
-      { text: 'Đói cho sạch rách cho thơm', meaning: 'Nghèo nhưng phải giữ danh dự' },
-      { text: 'Thất bại là mẹ thành công', meaning: 'Từ thất bại rút kinh nghiệm để thành công' },
-      { text: 'Học hành là bổn phận', meaning: 'Học tập là nhiệm vụ quan trọng' },
-      { text: 'Lời nói chẳng mất tiền mua', meaning: 'Nói lời tốt không tốn kém gì' },
-      { text: 'Lá lành đùm lá rách', meaning: 'Người tốt giúp đỡ người khó khăn' },
-      { text: 'Ăn mày mà đòi xôi gấc', meaning: 'Yêu cầu quá cao so với hoàn cảnh' },
-      { text: 'Ăn miếng trả miếng', meaning: 'Đáp trả lại những gì người khác làm' }
-    ];
-
-    const selected = proverbsWithMeanings[Math.floor(Math.random() * proverbsWithMeanings.length)];
-    correctWord.value = selected.text;
-    wordMeaning.value = selected.meaning;
-
-    // Generate hint
-    const words = correctWord.value.split(' ');
-    const wordLengths = words.map(w => `${w.length} chữ`);
-    wordHint.value = `${words.length} từ (${wordLengths.join(', ')})`;
-
-    // Create word structure with individual character slots
-    wordStructure.value = words.map(word =>
-      word.split('').map(char => ({ char: '', filled: false, correctChar: char }))
-    );
-
-    // Scramble the word (remove spaces first, then scramble)
-    const lettersOnly = correctWord.value.replace(/ /g, '').split('');
-    for (let i = lettersOnly.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [lettersOnly[i], lettersOnly[j]] = [lettersOnly[j], lettersOnly[i]];
-    }
-
-    scrambledWord.value = lettersOnly.join(' ');
-
-    // Create tiles (without spaces)
-    wordTiles.value = lettersOnly.map((l, i) => ({ id: i, letter: l, used: false }));
-    answerTiles.value = [];
-    return;
-  }
-
-  // For simple words (level < 9)
-  correctWord.value = wordList[Math.floor(Math.random() * wordList.length)];
-  wordMeaning.value = '';
-
-  // Check if it's a multi-word phrase
-  if (correctWord.value.includes(' ')) {
-    const words = correctWord.value.split(' ');
-    wordHint.value = `${words.length} từ`;
-
-    // Create word structure with individual character slots
-    wordStructure.value = words.map(word =>
-      word.split('').map(char => ({ char: '', filled: false, correctChar: char }))
-    );
-  } else {
-    wordHint.value = '';
-    wordStructure.value = []; // Use simple mode
-  }
-
-  // Scramble the word (remove spaces first, then scramble)
-  const lettersOnly = correctWord.value.replace(/ /g, '').split('');
-  for (let i = lettersOnly.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [lettersOnly[i], lettersOnly[j]] = [lettersOnly[j], lettersOnly[i]];
-  }
-
-  scrambledWord.value = lettersOnly.join(' ');
-
-  // Create tiles (without spaces)
-  wordTiles.value = lettersOnly.map((l, i) => ({ id: i, letter: l, used: false }));
-  answerTiles.value = [];
-}
-
-function handleWordTileClick(tile) {
-  if (answerSubmitted.value) return;
-
-  // New structure mode
-  if (wordStructure.value.length > 0) {
-    // Find first empty slot
-    for (let groupIdx = 0; groupIdx < wordStructure.value.length; groupIdx++) {
-      for (let charIdx = 0; charIdx < wordStructure.value[groupIdx].length; charIdx++) {
-        const slot = wordStructure.value[groupIdx][charIdx];
-        if (!slot.filled) {
-          slot.char = tile.letter;
-          slot.filled = true;
-          slot.tileId = tile.id; // Track which tile is used
-          tile.used = true;
-          return;
-        }
-      }
-    }
-  } else {
-    // Old simple mode
-    tile.used = true;
-    answerTiles.value.push({ ...tile });
-  }
-}
-
-function handleCharSlotClick(groupIdx, charIdx) {
-  if (answerSubmitted.value) return;
-
-  const slot = wordStructure.value[groupIdx][charIdx];
-  if (slot.filled) {
-    // Return character to bank
-    const tile = wordTiles.value.find(t => t.id === slot.tileId);
-    if (tile) tile.used = false;
-
-    slot.char = '';
-    slot.filled = false;
-    slot.tileId = null;
-  }
-}
-
-function handleAnswerTileClick(index) {
-  if (answerSubmitted.value) return;
-
-  // Return to bank (old simple mode)
-  const tile = answerTiles.value[index];
-  const originalTile = wordTiles.value.find(t => t.id === tile.id);
-  if (originalTile) originalTile.used = false;
-
-  answerTiles.value.splice(index, 1);
-}
-
-function generateColorQuestion() {
-  // Updated color list with distinct yellow and orange
-  const items = [
-    { name: 'Quả Táo', color: '#EF4444', icon: '🍎', colorName: 'Đỏ' },
-    { name: 'Quả Chuối', color: '#FFEB3B', icon: '🍌', colorName: 'Vàng' },
-    { name: 'Cái Lá', color: '#10B981', icon: '🍃', colorName: 'Xanh Lá' },
-    { name: 'Quả Nho', color: '#8B5CF6', icon: '🍇', colorName: 'Tím' },
-    { name: 'Cà Rốt', color: '#FF9800', icon: '🥕', colorName: 'Cam' },
-    { name: 'Than Đá', color: '#1F2937', icon: '🌑', colorName: 'Đen' },
-    { name: 'Tuyết', color: '#FFFFFF', icon: '❄️', colorName: 'Trắng' },
-    { name: 'Hoa Hồng', color: '#EC4899', icon: '🌹', colorName: 'Hồng' },
-    { name: 'Sô cô la', color: '#78350F', icon: '🍫', colorName: 'Nâu' },
-    { name: 'Biển', color: '#3B82F6', icon: '🌊', colorName: 'Xanh Dương' },
-    { name: 'Lửa', color: '#EF4444', icon: '🔥', colorName: 'Đỏ' },
-    { name: 'Cỏ', color: '#10B981', icon: '🌱', colorName: 'Xanh Lá' },
-    { name: 'Mặt Trời', color: '#FFEB3B', icon: '☀️', colorName: 'Vàng' }
-  ];
-
-  // Start timer
-  colorTimeLeft.value = 10;
-  if (colorTimerId.value) clearInterval(colorTimerId.value);
-  colorTimerId.value = setInterval(() => {
-    colorTimeLeft.value--;
-    if (colorTimeLeft.value <= 0) {
-      clearInterval(colorTimerId.value);
-      // Time's up - auto submit wrong answer
-      if (!answerSubmitted.value) {
-        submitAnswer(null);
-      }
-    }
-  }, 1000);
-
-  // 50% chance of Stroop Effect question (Text color != Meaning)
-  const isStroop = Math.random() < 0.5;
-
-  if (isStroop) {
-    // Stroop Mode
-    const color1 = items[Math.floor(Math.random() * items.length)];
-    let color2 = items[Math.floor(Math.random() * items.length)];
-    while (color1.colorName === color2.colorName) {
-      color2 = items[Math.floor(Math.random() * items.length)];
-    }
-
-    // Pick a random background color different from both
-    let bgColor = items[Math.floor(Math.random() * items.length)];
-    while (bgColor.colorName === color1.colorName || bgColor.colorName === color2.colorName) {
-      bgColor = items[Math.floor(Math.random() * items.length)];
-    }
-
-    // Question: What color is the TEXT? (Text says "RED" but is colored BLUE)
-    colorQuestion.value = {
-      type: 'stroop',
-      content: color1.colorName, // Text says "RED"
-      displayColor: color2.color, // Color is BLUE
-      backgroundColor: bgColor.color + '40', // Semi-transparent background
-      correctAnswer: color2.color, // Answer is BLUE
-      options: []
-    };
-
-    // Generate options (colors) with brain-teasing backgrounds
-    const options = [color2]; // Correct answer
-    while (options.length < 4) {
-      const randomItem = items[Math.floor(Math.random() * items.length)];
-      if (!options.find(o => o.color === randomItem.color)) {
-        options.push(randomItem);
-      }
-    }
-
-    // Add contrasting background colors to each option
-    colorQuestion.value.options = options.map(opt => {
-      // Find a different color for background that contrasts well
-      let bgOpt;
-      let attempts = 0;
-      do {
-        bgOpt = items[Math.floor(Math.random() * items.length)];
-        attempts++;
-      } while (bgOpt.colorName === opt.colorName && attempts < 10);
-
-      // Determine text color for readability
-      const textColor = getContrastColor(bgOpt.color);
-
-      return {
-        ...opt,
-        bgColor: bgOpt.color,
-        textColor: textColor
-      };
-    }).sort(() => Math.random() - 0.5);
-
-  } else {
-    // Normal Mode
-    const item = items[Math.floor(Math.random() * items.length)];
-    colorQuestion.value = {
-      type: 'normal',
-      content: item.name,
-      icon: item.icon,
-      displayColor: 'black',
-      correctAnswer: item.color,
-      options: []
-    };
-
-    // Generate options with brain-teasing backgrounds
-    const options = [item];
-    while (options.length < 4) {
-      const randomItem = items[Math.floor(Math.random() * items.length)];
-      if (!options.find(o => o.color === randomItem.color)) {
-        options.push(randomItem);
-      }
-    }
-
-    // Add contrasting background colors to each option
-    colorQuestion.value.options = options.map(opt => {
-      // Find a different color for background that contrasts well
-      let bgOpt;
-      let attempts = 0;
-      do {
-        bgOpt = items[Math.floor(Math.random() * items.length)];
-        attempts++;
-      } while (bgOpt.colorName === opt.colorName && attempts < 10);
-
-      // Determine text color for readability
-      const textColor = getContrastColor(bgOpt.color);
-
-      return {
-        ...opt,
-        bgColor: bgOpt.color,
-        textColor: textColor
-      };
-    }).sort(() => Math.random() - 0.5);
-  }
-}
-
-// Helper function to get contrasting text color
-function getContrastColor(hexColor) {
-  // Convert hex to RGB
-  const r = parseInt(hexColor.slice(1, 3), 16);
-  const g = parseInt(hexColor.slice(3, 5), 16);
-  const b = parseInt(hexColor.slice(5, 7), 16);
-
-  // Calculate luminance
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-
-  // Return black or white based on luminance
-  return luminance > 0.5 ? '#000000' : '#FFFFFF';
-}
-
-function generateCardQuestion() {
-  flippedCards.value = [];
-  isCheckingMatch.value = false;
-  matchedPairs.value = 0;
-
-  // Dynamic difficulty: Increase pairs and reduce time based on question number
-  // Q1-2: 2 pairs (4 cards), 40s
-  // Q3-5: 3 pairs (6 cards), 35s
-  // Q6-8: 4 pairs (8 cards), 30s
-  // Q9+: 6 pairs (12 cards), 25s
-  let pairCount = 2;
-  let timeLimit = 40;
-
-  if (currentQuestion.value >= 2) { pairCount = 3; timeLimit = 35; }
-  if (currentQuestion.value >= 5) { pairCount = 4; timeLimit = 30; }
-  if (currentQuestion.value >= 8) { pairCount = 6; timeLimit = 25; }
-
-  totalPairs.value = pairCount;
-  cardTimeLeft.value = timeLimit;
-
-  const icons = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐸', '🐙', '🦄', '🦋', '🐝', '🐞'];
-  const selectedIcons = icons.sort(() => Math.random() - 0.5).slice(0, pairCount);
-
-  const cards = [...selectedIcons, ...selectedIcons]
-    .sort(() => Math.random() - 0.5)
-    .map((icon, index) => ({
-      id: index,
-      icon,
-      isFlipped: false,
-      isMatched: false
-    }));
-
-  cardGrid.value = cards;
-
-  // Start countdown timer
-  if (cardTimerId.value) clearInterval(cardTimerId.value);
-  cardTimerId.value = setInterval(() => {
-    cardTimeLeft.value--;
-    if (cardTimeLeft.value <= 0) {
-      clearInterval(cardTimerId.value);
-      // Time's up - fail the round
-      showFeedbackMessage(false);
-      setTimeout(nextQuestion, 800);
-    }
-  }, 1000);
-}
-
-function handleCardClick(card) {
-  if (isCheckingMatch.value || card.isFlipped || card.isMatched) return;
-
-  card.isFlipped = true;
-  flippedCards.value.push(card);
-
-  if (flippedCards.value.length === 2) {
-    isCheckingMatch.value = true;
-    const [card1, card2] = flippedCards.value;
-
-    if (card1.icon === card2.icon) {
-      // Match!
-      setTimeout(() => {
-        card1.isMatched = true;
-        card2.isMatched = true;
-        flippedCards.value = [];
-        isCheckingMatch.value = false;
-        matchedPairs.value++;
-
-        if (matchedPairs.value === totalPairs.value) {
-          // Clear timer on completion
-          if (cardTimerId.value) clearInterval(cardTimerId.value);
-          showFeedbackMessage(true);
-          setTimeout(nextQuestion, 800);
-        }
-      }, 500);
-    } else {
-      // No match
-      setTimeout(() => {
-        card1.isFlipped = false;
-        card2.isFlipped = false;
-        flippedCards.value = [];
-        isCheckingMatch.value = false;
-      }, 1000);
-    }
-  }
-}
-
-function generateReflexQuestion() {
-  // Configure round based on progress
-  // Q1-2: 5 targets, 2.5s per target
-  // Q3-5: 8 targets, 2.0s per target
-  // Q6-8: 12 targets, 1.5s per target
-  // Q9+: 15 targets, 1.2s per target
-
-  let total = 5;
-  let maxTime = 2.5;
-
-  if (currentQuestion.value >= 2) { total = 8; maxTime = 2.0; }
-  if (currentQuestion.value >= 5) { total = 12; maxTime = 1.5; }
-  if (currentQuestion.value >= 8) { total = 15; maxTime = 1.2; }
-
-  reflexRoundConfig.value = {
-    totalTargets: total,
-    speed: maxTime * 1000,
-    targetsLeft: total
-  };
-
-  reflexMaxTime.value = maxTime;
-  reflexScoreInRound.value = 0;
-  spawnReflexTarget();
-}
-
-function spawnReflexTarget() {
-  if (reflexRoundConfig.value.targetsLeft <= 0) {
-    // Round finished
-    if (reflexCountdownId.value) clearInterval(reflexCountdownId.value);
-    const passed = reflexScoreInRound.value >= (reflexRoundConfig.value.totalTargets * 0.6); // Need 60% to pass
-    showFeedbackMessage(passed);
-    setTimeout(nextQuestion, 1000);
-    return;
-  }
-
-  reflexTarget.value.visible = false;
-
-  const icons = ['🦋', '🐝', '🐞', '🦟', '🦗', '🕷️', '🦇', '🦅'];
-  const icon = icons[Math.floor(Math.random() * icons.length)];
-
-  // Small delay before next target
-  setTimeout(() => {
-    const top = Math.floor(Math.random() * 80) + 10; // 10% to 90%
-    const left = Math.floor(Math.random() * 80) + 10;
-
-    reflexTarget.value = {
-      top: `${top}%`,
-      left: `${left}%`,
-      icon: icon,
-      visible: true
-    };
-    reflexStartTime.value = Date.now();
-    reflexTimeLeft.value = reflexMaxTime.value;
-    reflexRoundConfig.value.targetsLeft--;
-
-    // Start countdown timer with color changes
-    if (reflexCountdownId.value) clearInterval(reflexCountdownId.value);
-    reflexCountdownId.value = setInterval(() => {
-      reflexTimeLeft.value -= 0.1;
-      if (reflexTimeLeft.value <= 0) {
-        clearInterval(reflexCountdownId.value);
-        if (reflexTarget.value.visible) {
-          handleReflexClick(false); // Missed - time ran out
-        }
-      }
-    }, 100);
-
-    // Set timeout for "missed"
-    if (reflexTimerId.value) clearTimeout(reflexTimerId.value);
-    reflexTimerId.value = setTimeout(() => {
-      if (reflexTarget.value.visible) {
-        handleReflexClick(false); // Missed
-      }
-    }, reflexRoundConfig.value.speed);
-  }, 500);
-}
-
-function handleReflexClick(success) {
-  if (!reflexTarget.value.visible && success) return;
-
-  reflexTarget.value.visible = false;
-  if (reflexTimerId.value) clearTimeout(reflexTimerId.value);
-  if (reflexCountdownId.value) clearInterval(reflexCountdownId.value);
-
-  if (success) {
-    reflexScoreInRound.value++;
-    spawnReflexTarget();
-  } else {
-    // Missed
-    lives.value--;
-    if (lives.value <= 0) {
-      // Fail the round immediately
-      showFeedbackMessage(false);
-      setTimeout(nextQuestion, 800);
-    } else {
-      spawnReflexTarget();
-    }
-  }
-}
-
-// Handle clicking outside the target (miss click)
-function handleReflexAreaClick() {
-  if (reflexTarget.value.visible) {
-    // Clicked on the area but missed the target
-    handleReflexClick(false);
-  }
-}
-
-function submitAnswer(answer) {
-  if (answerSubmitted.value) return;
-
+function submitAnswer(isCorrect) {
+  if (answerSubmitted.value && currentSubGame.value !== 'reflex' && currentSubGame.value !== 'card') return;
+  
   answerSubmitted.value = true;
-  let correct = false;
+  if (isCorrect) score.value++;
 
-  // Use currentSubGame for mixed mode, otherwise use activeGame
-  const gameType = currentSubGame.value || activeGame.value;
-
-  switch(gameType) {
-    case 'math':
-      correct = answer === mathQuestion.value.answer;
-      break;
-    case 'pattern':
-      correct = answer === patternAnswer.value;
-      break;
-    case 'word': {
-      let userAnswer;
-      if (wordStructure.value.length > 0) {
-        // New structure mode - collect characters from slots
-        userAnswer = wordStructure.value
-          .map(group => group.map(slot => slot.char).join(''))
-          .join(' ');
-      } else {
-        // Old simple mode
-        userAnswer = answerTiles.value.map(t => t.letter).join('');
-      }
-      const normalizedUserAnswer = userAnswer.toLowerCase().replace(/ /g, '');
-      const normalizedCorrectWord = correctWord.value.toLowerCase().replace(/ /g, '');
-      correct = normalizedUserAnswer === normalizedCorrectWord;
-      if (!correct) {
-        correctAnswerDisplay.value = correctWord.value;
-      }
-      break;
-    }
-    case 'color':
-      correct = answer === colorQuestion.value.correctAnswer;
-      break;
-    case 'reflex':
-      // Reflex logic is handled in handleReflexClick
-      correct = answer === true;
-      break;
-  }
-
-  showFeedbackMessage(correct);
-
-  // Clear color timer if it's a color game
-  if (gameType === 'color' && colorTimerId.value) {
-    clearInterval(colorTimerId.value);
-  }
+  showFeedbackMessage(isCorrect);
+  logExerciseAttempt(isCorrect);
 
   setTimeout(() => {
     nextQuestion();
-  }, 800); // Reduced from 1000ms to 800ms for faster feedback
+  }, 1500);
 }
 
-function showFeedbackMessage(correct) {
-  if (correct) {
-    score.value++;
-    feedbackIcon.value = markRaw(CheckCircle2);
-    feedbackText.value = 'Chính xác! Tuyệt vời!';
-    feedbackClass.value = 'feedback-correct';
-    showCorrectAnswer.value = false;
+function showFeedbackMessage(isCorrect, options = {}) {
+  const { timeTaken = 0 } = options;
+  lastAnswerWasCorrect.value = isCorrect;
+  
+  if (isCorrect) {
+    // Determine tier based on speed/difficulty
+    if (timeTaken > 0 && timeTaken < 2000) feedbackTier.value = 'excellent';
+    else if (timeTaken > 0 && timeTaken < 4000) feedbackTier.value = 'good';
+    else feedbackTier.value = 'normal';
+    
+    // Fallback for games without time tracking yet
+    if (timeTaken === 0) feedbackTier.value = 'good';
   } else {
-    feedbackIcon.value = markRaw(AlertCircle);
-    feedbackText.value = 'Chưa đúng, cố gắng lần sau nhé!';
+    feedbackTier.value = 'normal';
+    feedbackText.value = 'Chưa đúng rồi!';
     feedbackClass.value = 'feedback-incorrect';
-    showCorrectAnswer.value = true;
+    feedbackIcon.value = markRaw(AlertCircle);
+    
+    if (currentSubGame.value === 'math' || currentSubGame.value === 'word' || currentSubGame.value === 'pattern') {
+      showCorrectAnswer.value = true;
+    }
   }
-
-
+  
   showFeedback.value = true;
-
-  // Log to database
-  logExerciseAttempt(correct);
+  setTimeout(() => {
+    showFeedback.value = false;
+    showCorrectAnswer.value = false;
+  }, 1600);
 }
 
 function nextQuestion() {
-  showFeedback.value = false;
-  showCorrectAnswer.value = false;
-  correctAnswerDisplay.value = '';
   currentQuestion.value++;
-
-  if (currentQuestion.value >= totalQuestions.value) {
-    endGame();
-  } else {
+  if (currentQuestion.value < totalQuestions.value) {
     generateQuestion();
+  } else {
+    finishGame();
   }
 }
 
-function endGame() {
+function finishGame() {
   showResults.value = true;
-  activeGame.value = null;
-
-  // Update today's score
-  todayScore.value += score.value;
-
-  // Log completion to database
   logGameCompletion();
+  loadUserStats(); // Update stats after completion
+}
+
+function playAgain() {
+  startGame(activeGame.value);
 }
 
 function handleFinish() {
   if (props.mode === 'flow') {
     emit('completed', { score: score.value, total: totalQuestions.value });
   } else {
-    backToMenu();
+    activeGame.value = null;
+    currentSubGame.value = null;
+    showResults.value = false;
   }
-}
-
-function playAgain() {
-  const lastGame = activeGame.value;
-  showResults.value = false;
-  startGame(lastGame || 'math');
-}
-
-function backToMenu() {
-  showResults.value = false;
-  activeGame.value = null;
 }
 
 function exitGame() {
@@ -1628,24 +574,9 @@ function exitGame() {
 
 function confirmExit() {
   showExitConfirm.value = false;
-  // Reset all game state
   activeGame.value = null;
   currentSubGame.value = null;
-  showResults.value = false;
-  showFeedback.value = false;
-  currentQuestion.value = 0;
-  score.value = 0;
-  answerSubmitted.value = false;
-
-  // Reset game-specific state
-  memoryPhase.value = 'show';
-  memoryAnswerSlots.value = [];
-  memoryNumberBank.value = [];
-  answerTiles.value = [];
-  if (reflexTimerId.value) clearTimeout(reflexTimerId.value);
-  if (reflexCountdownId.value) clearInterval(reflexCountdownId.value);
-  if (cardTimerId.value) clearInterval(cardTimerId.value);
-  if (colorTimerId.value) clearInterval(colorTimerId.value);
+  emit('exit');
 }
 
 function cancelExit() {
@@ -1664,7 +595,7 @@ async function logExerciseAttempt(isCorrect) {
       },
       body: JSON.stringify({
         user_id: props.userId,
-        exercise_type: activeGame.value,
+        exercise_type: currentSubGame.value,
         is_correct: isCorrect,
         question_number: currentQuestion.value + 1
       })
@@ -1698,6 +629,8 @@ async function logGameCompletion() {
 async function loadUserStats() {
   try {
     const token = localStorage.getItem('token');
+    if (!token || !props.userId) return;
+    
     const response = await fetch(`${API_URL}/brain-exercise/stats/${props.userId}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -1722,8 +655,6 @@ onMounted(() => {
 <style scoped>
 .brain-container {
   width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xl);
@@ -1860,64 +791,134 @@ onMounted(() => {
 
 .game-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: var(--spacing-lg);
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--spacing-xl);
+  perspective: 1000px;
+}
+
+.game-card-wrapper {
+  height: 100%;
 }
 
 .game-card {
+  width: 100%;
+  height: 100%;
+  position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-2xl);
-  background: #f8fafc;
-  border: 3px solid #CBD5E0;
-  border-radius: var(--border-radius-lg);
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 24px;
+  overflow: hidden;
+  padding: 0;
   cursor: pointer;
-  transition: all var(--transition-normal);
-  min-height: 280px;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.05);
+  text-align: left;
 }
 
 .game-card:hover {
-  transform: translateY(-8px);
-  box-shadow: var(--shadow-xl);
-  border-color: #F093FB;
-  background: #ffffff;
+  transform: translateY(-12px) scale(1.02);
+  box-shadow: 0 25px 40px -15px rgba(0, 0, 0, 0.15);
+  border-color: rgba(99, 102, 241, 0.2);
 }
 
-.game-icon {
-  font-size: 80px;
+.game-card-content {
+  position: relative;
+  z-index: 2;
+  padding: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: var(--spacing-lg);
+}
+
+.game-icon-container {
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  background: #f1f5f9;
+  color: #6366f1;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.game-card:hover .game-icon-container {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 8px 15px -5px rgba(99, 102, 241, 0.4);
+}
+
+.game-info-text {
+  flex-grow: 1;
 }
 
 .game-name {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-2xl);
   font-weight: 900;
-  text-align: center;
-  color: var(--color-text-primary);
+  color: #1e293b;
+  margin-bottom: var(--spacing-xs);
+  letter-spacing: -0.5px;
 }
 
 .game-description {
-  font-size: var(--font-size-base);
-  text-align: center;
-  color: var(--color-text-secondary);
-  line-height: var(--line-height-relaxed);
+  font-size: var(--font-size-md);
+  color: #64748b;
+  line-height: 1.6;
 }
 
-.game-difficulty {
+.game-footer {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding-top: var(--spacing-md);
+  border-top: 1px dashed #e2e8f0;
+}
+
+.play-indicator {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  margin-top: auto;
-}
-
-.difficulty-label {
+  gap: var(--spacing-xs);
+  background: #6366f1;
+  color: white;
+  padding: 6px 16px;
+  border-radius: 12px;
+  font-weight: 800;
   font-size: var(--font-size-sm);
-  font-weight: 700;
-  color: var(--color-text-secondary);
+  opacity: 0;
+  transform: translateX(10px);
+  transition: all 0.3s ease;
 }
 
-.difficulty-stars {
-  font-size: var(--font-size-lg);
+.game-card:hover .play-indicator {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Card Themes */
+.game-theme-math .game-icon-container { background: #fee2e2; color: #ef4444; }
+.game-theme-memory .game-icon-container { background: #dcfce7; color: #22c55e; }
+.game-theme-pattern .game-icon-container { background: #dbeafe; color: #3b82f6; }
+.game-theme-word .game-icon-container { background: #fef9c3; color: #eab308; }
+.game-theme-color .game-icon-container { background: #fae8ff; color: #d946ef; }
+.game-theme-card .game-icon-container { background: #ffedd5; color: #f97316; }
+.game-theme-reflex .game-icon-container { background: #e0f2fe; color: #06b6d4; }
+.game-theme-mixed .game-icon-container { background: #ede9fe; color: #8b5cf6; }
+
+.card-bg-decoration {
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  width: 100px;
+  height: 100px;
+  background: currentColor;
+  opacity: 0.03;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* ============================================
@@ -2486,717 +1487,6 @@ onMounted(() => {
   color: #CBD5E0;
 }
 
-/* Old Simple Mode Fallback */
-.word-answer-area-simple {
-  min-height: 80px;
-  width: 100%;
-  max-width: 600px;
-  background: #F7FAFC;
-  border: 3px dashed #CBD5E0;
-  border-radius: var(--border-radius-lg);
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-md);
-  padding: var(--spacing-lg);
-  justify-content: center;
-  align-items: center;
-  margin-bottom: var(--spacing-xl);
-}
-
-.word-hint {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md) var(--spacing-lg);
-  background: linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 100%);
-  border: 3px solid #0369A1;
-  border-radius: var(--border-radius-lg);
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  color: #0C4A6E;
-  box-shadow: var(--shadow-sm);
-}
-
-.scrambled-word {
-  font-size: var(--font-size-4xl);
-  font-weight: 900;
-  letter-spacing: 8px;
-  padding: var(--spacing-xl) var(--spacing-2xl);
-  background: #fff9e6;
-  border: 4px solid #D97706;
-  border-radius: var(--border-radius-lg);
-}
-
-.word-input {
-  width: 100%;
-  max-width: 500px;
-  padding: var(--spacing-xl);
-  font-size: var(--font-size-2xl);
-  font-weight: 700;
-  text-align: center;
-  text-transform: uppercase;
-  border: 4px solid #CBD5E0;
-  border-radius: var(--border-radius-md);
-}
-
-.word-input:focus {
-  border-color: #3B82F6;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
-}
-
-/* Word Game Tiles */
-.word-placeholder {
-  color: var(--color-text-secondary);
-  font-style: italic;
-  font-size: var(--font-size-lg);
-}
-
-.word-bank {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-md);
-  justify-content: center;
-  max-width: 700px;
-  padding: var(--spacing-lg);
-  background: rgba(248, 250, 252, 0.8);
-  border-radius: var(--border-radius-lg);
-}
-
-.word-tile {
-  width: 60px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--font-size-2xl);
-  font-weight: 900;
-  background: white;
-  border: 3px solid #CBD5E0;
-  border-radius: var(--border-radius-md);
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  box-shadow: var(--shadow-sm);
-}
-
-.word-tile:hover:not(.used) {
-  transform: translateY(-4px);
-  border-color: #667EEA;
-  box-shadow: var(--shadow-md);
-}
-
-.bank-tile.used {
-  opacity: 0.3;
-  cursor: default;
-  transform: none;
-  box-shadow: none;
-}
-
-.answer-tile {
-  background: #EBF8FF;
-  border-color: #4299E1;
-  color: #2B6CB0;
-}
-
-/* Color Game */
-.color-game {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-xl);
-}
-
-.color-question-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-xl);
-  background: white;
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-md);
-}
-
-.color-icon {
-  font-size: 120px;
-  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
-}
-
-.color-name {
-  font-size: var(--font-size-2xl);
-  font-weight: 900;
-  color: var(--color-text-primary);
-}
-
-.color-options {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--spacing-lg);
-  width: 100%;
-  max-width: 600px;
-}
-
-.color-option-btn {
-  height: 100px;
-  border-radius: var(--border-radius-lg);
-  border: 4px solid rgba(0,0,0,0.1);
-  font-size: var(--font-size-xl);
-  font-weight: 900;
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-transform: uppercase;
-}
-
-.color-option-btn:hover:not(:disabled) {
-  transform: scale(1.05);
-  box-shadow: var(--shadow-lg);
-  border-color: rgba(0,0,0,0.2);
-}
-
-/* Card Game */
-.card-game {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.card-grid {
-  display: grid;
-  gap: var(--spacing-md);
-  width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.memory-card {
-  aspect-ratio: 3/4;
-  perspective: 1000px;
-  cursor: pointer;
-}
-
-.card-inner {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  text-align: center;
-  transition: transform 0.6s;
-  transform-style: preserve-3d;
-}
-
-.memory-card.is-flipped .card-inner {
-  transform: rotateY(180deg);
-}
-
-.card-front, .card-back {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--border-radius-md);
-  font-size: var(--font-size-4xl);
-  border: 3px solid #CBD5E0;
-  box-shadow: var(--shadow-sm);
-}
-
-.card-front {
-  background: #6366f1;
-  color: white;
-}
-
-.card-back {
-  background: white;
-  transform: rotateY(180deg);
-}
-
-.memory-card.is-matched .card-back {
-  background: #D1FAE5;
-  border-color: #10B981;
-}
-
-/* Reflex Game */
-.reflex-game {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.reflex-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-lg);
-}
-
-.lives-container {
-  display: flex;
-  gap: var(--spacing-sm);
-}
-
-.heart-icon {
-  font-size: var(--font-size-2xl);
-  transition: all 0.3s;
-}
-
-.heart-icon.lost {
-  filter: grayscale(100%);
-  opacity: 0.3;
-  transform: scale(0.8);
-}
-
-.reflex-area {
-  position: relative;
-  width: 100%;
-  height: 400px;
-  background: #F0F9FF;
-  border: 3px dashed #BAE6FD;
-  border-radius: var(--border-radius-lg);
-  overflow: hidden;
-  cursor: crosshair;
-}
-
-.reflex-target {
-  position: absolute;
-  width: 80px;
-  height: 80px;
-  font-size: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: white;
-  border: none;
-  border-radius: 50%;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-  cursor: pointer;
-  transform: translate(-50%, -50%);
-  transition: transform 0.1s;
-}
-
-.reflex-target:active {
-  transform: translate(-50%, -50%) scale(0.9);
-}
-
-.pop-enter-active {
-  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.pop-leave-active {
-  transition: opacity 0.2s;
-}
-
-.pop-leave-to {
-  opacity: 0;
-}
-
-@keyframes popIn {
-  0% { transform: translate(-50%, -50%) scale(0); }
-  100% { transform: translate(-50%, -50%) scale(1); }
-}
-
-/* Modal Styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 3000;
-}
-
-.modal-content {
-  background: white;
-  padding: var(--spacing-2xl);
-  border-radius: var(--border-radius-xl);
-  width: 90%;
-  max-width: 400px;
-  text-align: center;
-  box-shadow: var(--shadow-2xl);
-  animation: bounceIn 0.4s;
-}
-
-.modal-icon {
-  font-size: 60px;
-  margin-bottom: var(--spacing-md);
-}
-
-.modal-title {
-  font-size: var(--font-size-2xl);
-  font-weight: 900;
-  color: var(--color-text-primary);
-  margin-bottom: var(--spacing-sm);
-}
-
-.modal-text {
-  font-size: var(--font-size-lg);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-xl);
-}
-
-.modal-actions {
-  display: flex;
-  gap: var(--spacing-md);
-}
-
-.btn-confirm-exit, .btn-cancel-exit {
-  flex: 1;
-  padding: var(--spacing-md);
-  border-radius: var(--border-radius-md);
-  font-weight: 700;
-  font-size: var(--font-size-lg);
-  cursor: pointer;
-  transition: all var(--transition-normal);
-}
-
-.btn-confirm-exit {
-  background: #EF4444;
-  color: white;
-  border: none;
-}
-
-.btn-confirm-exit:hover {
-  background: #DC2626;
-}
-
-.btn-cancel-exit {
-  background: #E5E7EB;
-  color: var(--color-text-primary);
-  border: none;
-}
-
-.btn-cancel-exit:hover {
-  background: #D1D5DB;
-}
-
-/* Submit Button */
-.btn-submit {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-lg) var(--spacing-2xl);
-  background: #10b981;
-  color: white;
-  border: 4px solid #047857;
-  border-radius: var(--border-radius-lg);
-  font-size: var(--font-size-xl);
-  font-weight: 900;
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  min-height: var(--touch-comfortable);
-}
-
-.btn-submit:hover:not(:disabled) {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
-  filter: brightness(1.1);
-}
-
-.btn-submit:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.submit-icon {
-  font-size: var(--font-size-2xl);
-}
-
-/* ============================================
-   FEEDBACK DISPLAY
-   ============================================ */
-
-.feedback-display {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 1000;
-  padding: var(--spacing-3xl);
-  border-radius: var(--border-radius-xl);
-  border: 6px solid;
-  box-shadow: var(--shadow-xl);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-lg);
-  min-width: 400px;
-}
-
-.feedback-correct {
-  background: #d1fae5;
-  border-color: #047857;
-  color: #065F46;
-}
-
-.feedback-incorrect {
-  background: #fff9e6;
-  border-color: #D97706;
-  color: #92400E;
-}
-
-.feedback-icon {
-  font-size: 100px;
-}
-
-.feedback-text {
-  font-size: var(--font-size-3xl);
-  font-weight: 900;
-  text-align: center;
-}
-
-.correct-answer-display {
-  margin-top: var(--spacing-md);
-  padding: var(--spacing-lg);
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: var(--border-radius-md);
-  border: 3px solid #DC2626;
-  width: 100%;
-}
-
-.correct-answer-label {
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  color: #991B1B;
-  margin-bottom: var(--spacing-sm);
-  text-align: center;
-}
-
-.correct-answer-text {
-  font-size: var(--font-size-2xl);
-  font-weight: 900;
-  color: #DC2626;
-  text-align: center;
-  letter-spacing: 1px;
-}
-
-/* ============================================
-   RESULTS SCREEN
-   ============================================ */
-
-.results-screen {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.9);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-  padding: var(--spacing-xl);
-}
-
-.results-content {
-  background: white;
-  padding: var(--spacing-3xl);
-  border-radius: var(--border-radius-xl);
-  border: 6px solid var(--color-text-primary);
-  box-shadow: var(--shadow-xl);
-  max-width: 700px;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-xl);
-}
-
-.results-icon {
-  font-size: 120px;
-  animation: bounce 1s ease-in-out infinite;
-}
-
-.results-title {
-  font-size: var(--font-size-4xl);
-  font-weight: 900;
-  margin: 0;
-  color: var(--color-text-primary);
-}
-
-.results-score {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.score-circle {
-  width: 200px;
-  height: 200px;
-  border-radius: 50%;
-  background: #f43f5e;
-  border: 8px solid #E91E63;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  box-shadow: var(--shadow-xl);
-}
-
-.score-value {
-  font-size: 80px;
-  font-weight: 900;
-  line-height: 1;
-}
-
-.score-total {
-  font-size: var(--font-size-xl);
-  font-weight: 700;
-}
-
-.score-label {
-  font-size: var(--font-size-xl);
-  font-weight: 700;
-  color: var(--color-text-secondary);
-}
-
-.results-stats {
-  display: flex;
-  gap: var(--spacing-2xl);
-  width: 100%;
-  justify-content: center;
-}
-
-.result-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-lg);
-  background: linear-gradient(135deg, #F7FAFC 0%, #EDF2F7 100%);
-  border: 3px solid #CBD5E0;
-  border-radius: var(--border-radius-md);
-  flex: 1;
-  max-width: 200px;
-}
-
-.result-stat-icon {
-  font-size: var(--font-size-3xl);
-}
-
-.result-stat-value {
-  font-size: var(--font-size-3xl);
-  font-weight: 900;
-  color: var(--color-text-primary);
-}
-
-.result-stat-label {
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  color: var(--color-text-secondary);
-  text-align: center;
-}
-
-.results-message {
-  font-size: var(--font-size-xl);
-  font-weight: 700;
-  text-align: center;
-  color: var(--color-text-secondary);
-  padding: var(--spacing-lg);
-  background: linear-gradient(135deg, #FFF9E6 0%, #FEF3C7 100%);
-  border-radius: var(--border-radius-md);
-  border: 3px solid #D97706;
-}
-
-.results-actions {
-  display: flex;
-  gap: var(--spacing-lg);
-  width: 100%;
-}
-
-.btn-play-again,
-.btn-menu {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-lg) var(--spacing-xl);
-  font-size: var(--font-size-xl);
-  font-weight: 900;
-  border-radius: var(--border-radius-md);
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  min-height: var(--touch-comfortable);
-}
-
-.btn-play-again {
-  background: #10b981;
-  color: white;
-  border: 4px solid #047857;
-}
-
-.btn-play-again:hover {
-  filter: brightness(1.1);
-  transform: translateY(-2px);
-}
-
-.btn-menu {
-  background: white;
-  color: var(--color-text-primary);
-  border: 4px solid var(--color-text-primary);
-}
-
-.btn-menu:hover {
-  background: var(--color-bg-secondary);
-  transform: translateY(-2px);
-}
-
-/* ============================================
-   TRANSITIONS
-   ============================================ */
-
-.slide-enter-active,
-.slide-leave-active {
-  transition: all var(--transition-normal);
-}
-
-.slide-enter-from {
-  opacity: 0;
-  transform: translateX(30px);
-}
-
-.slide-leave-to {
-  opacity: 0;
-  transform: translateX(-30px);
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity var(--transition-normal);
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-.bounce-enter-active {
-  animation: bounceIn 0.6s;
-}
-
-.bounce-leave-active {
-  animation: bounceOut 0.4s;
-}
-
-/* ============================================
-   RESPONSIVE
-   ============================================ */
-
 @media (max-width: 768px) {
   .brain-header {
     flex-direction: column;
@@ -3226,6 +1516,126 @@ onMounted(() => {
   .results-actions {
     flex-direction: column;
   }
+}
+
+/* ============================================
+   EXIT CONFIRMATION MODAL
+   ============================================ */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--spacing-md);
+}
+
+.modal-content {
+  background: white;
+  border-radius: var(--border-radius-xl);
+  padding: var(--spacing-3xl);
+  max-width: 450px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 4px solid var(--color-text-primary);
+  animation: modal-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modal-in {
+  from {
+    transform: scale(0.9) translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-icon {
+  font-size: 64px;
+  margin-bottom: var(--spacing-lg);
+  animation: shake 2s ease-in-out infinite;
+}
+
+@keyframes shake {
+  0%, 100% { transform: rotate(0deg); }
+  10%, 30%, 50%, 70%, 90% { transform: rotate(-5deg); }
+  20%, 40%, 60%, 80% { transform: rotate(5deg); }
+}
+
+.modal-title {
+  font-size: var(--font-size-2xl);
+  font-weight: 900;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.modal-text {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
+  margin-bottom: var(--spacing-2xl);
+}
+
+.modal-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: center;
+}
+
+.btn-confirm-exit {
+  flex: 1;
+  padding: var(--spacing-md) var(--spacing-xl);
+  background: #EF4444;
+  color: white;
+  border: 3px solid #991B1B;
+  border-radius: var(--border-radius-lg);
+  font-weight: 800;
+  font-size: var(--font-size-lg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-confirm-exit:hover {
+  background: #DC2626;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+.btn-cancel-exit {
+  flex: 1;
+  padding: var(--spacing-md) var(--spacing-xl);
+  background: #F8FAFC;
+  color: var(--color-text-primary);
+  border: 3px solid var(--color-text-primary);
+  border-radius: var(--border-radius-lg);
+  font-weight: 800;
+  font-size: var(--font-size-lg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel-exit:hover {
+  background: #F1F5F9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Transitions */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
 }
 </style>
 

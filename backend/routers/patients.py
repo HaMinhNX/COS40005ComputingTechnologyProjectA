@@ -1,13 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
-from typing import List, Optional
 from uuid import UUID
 from database import get_db
-from models import User, MedicalRecord, PatientNote, WeekPlan, SessionDetail, WorkoutSession
-from dependencies import get_current_user, get_current_doctor, get_current_patient, verify_patient_access
-from schemas import UserResponse, PatientCreate, MedicalRecordUpdate, PatientNoteCreate
+from models import User, MedicalRecord, PatientNote, SessionDetail, WorkoutSession, BrainExerciseSession
+from dependencies import get_current_user, get_current_doctor
+from middleware.ownership import ResourceAccess
+from schemas import UserResponse, PatientCreate, PatientNoteCreate
 from utils import paginate
+from datetime import datetime
+
 
 
 router = APIRouter(
@@ -15,7 +17,7 @@ router = APIRouter(
     tags=["patients"]
 )
 
-from utils import paginate, Page
+from utils import Page
 
 @router.get("/patients", response_model=Page[UserResponse])
 async def get_patients(
@@ -69,9 +71,12 @@ async def get_demo_users(db: Session = Depends(get_db)):
     }
 
 @router.get("/patient-notes/{patient_id}")
-async def get_patient_notes(patient_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def get_patient_notes(
+    patient_id: UUID, 
+    db: Session = Depends(get_db), 
+    patient: User = Depends(ResourceAccess.patient)
+):
     """Get notes for a patient"""
-    verify_patient_access(patient_id, current_user, db)
     notes = db.query(PatientNote).filter(PatientNote.patient_id == patient_id).order_by(desc(PatientNote.created_at)).all()
     
     return [
@@ -86,8 +91,15 @@ async def get_patient_notes(patient_id: UUID, db: Session = Depends(get_db), cur
     ]
 
 @router.post("/patient-notes")
-async def add_patient_note(data: PatientNoteCreate, db: Session = Depends(get_db), current_doctor: User = Depends(get_current_doctor)):
+async def add_patient_note(
+    data: PatientNoteCreate, 
+    db: Session = Depends(get_db), 
+    current_doctor: User = Depends(get_current_doctor)
+):
     """Add a note for a patient"""
+    # Verify relationship
+    await ResourceAccess.patient(data.patient_id, current_doctor, db)
+    
     try:
         note = PatientNote(
             patient_id=data.patient_id,
@@ -103,9 +115,12 @@ async def add_patient_note(data: PatientNoteCreate, db: Session = Depends(get_db
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/patient-logs/{patient_id}")
-async def get_patient_logs(patient_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def get_patient_logs(
+    patient_id: UUID, 
+    db: Session = Depends(get_db), 
+    patient: User = Depends(ResourceAccess.patient)
+):
     """Get detailed exercise logs for a patient"""
-    verify_patient_access(patient_id, current_user, db)
     
     results = db.query(
         SessionDetail.exercise_type,
@@ -152,9 +167,12 @@ from sqlalchemy import func
 from models import Assignment
 
 @router.get("/patients/{patient_id}/stats")
-async def get_patient_stats(patient_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Get comprehensive stats for a patient - replaces mocked patient stats"""
-    verify_patient_access(patient_id, current_user, db)
+async def get_patient_stats(
+    patient_id: UUID, 
+    db: Session = Depends(get_db), 
+    patient: User = Depends(ResourceAccess.patient)
+):
+    """Get comprehensive stats for a patient"""
     
     # 1. Total workout sessions
     total_sessions = db.query(WorkoutSession).filter(WorkoutSession.user_id == patient_id).count()
@@ -163,13 +181,13 @@ async def get_patient_stats(patient_id: UUID, db: Session = Depends(get_db), cur
     total_seconds = db.query(func.sum(SessionDetail.duration_seconds)).join(WorkoutSession).filter(
         WorkoutSession.user_id == patient_id
     ).scalar() or 0
-    total_hours = round(total_seconds / 3600, 1)
+    total_hours = round(float(total_seconds / 3600), 1)
     
     # 3. Average accuracy score
     avg_score = db.query(func.avg(SessionDetail.accuracy_score)).join(WorkoutSession).filter(
         WorkoutSession.user_id == patient_id
     ).scalar() or 0
-    avg_score = round(float(avg_score), 1) if avg_score else 0
+    avg_score = round(float(avg_score), 1) if avg_score else 0.0
     
     # 4. Compliance rate (completed assignments / total assignments)
     total_assignments = db.query(Assignment).filter(Assignment.patient_id == patient_id).count()
@@ -177,13 +195,59 @@ async def get_patient_stats(patient_id: UUID, db: Session = Depends(get_db), cur
         Assignment.patient_id == patient_id,
         Assignment.is_completed == True
     ).count()
-    compliance = round((completed_assignments / total_assignments * 100) if total_assignments > 0 else 0)
+    compliance = round(float((completed_assignments / total_assignments * 100) if total_assignments > 0 else 0))
     
     return {
         "compliance": compliance,
         "sessions": total_sessions,
-        "totalTime": total_hours,
-        "avgScore": avg_score
+        "totalTime": float(total_hours),
+        "avgScore": float(avg_score)
     }
 
 
+@router.get("/patients/{patient_id}/report")
+async def get_patient_report(
+    patient_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Generate a comprehensive clinical report for a patient."""
+    # Verify access
+    patient = await ResourceAccess.patient(patient_id, current_user, db)
+    
+    # 1. Medical context
+    record = db.query(MedicalRecord).filter(MedicalRecord.patient_id == patient_id).first()
+    
+    # 2. Physical Workout Summary
+    total_physical_reps = db.query(func.sum(SessionDetail.reps_completed)).join(WorkoutSession).filter(
+        WorkoutSession.user_id == patient_id
+    ).scalar() or 0
+    physical_sessions_count = db.query(WorkoutSession).filter(WorkoutSession.user_id == patient_id).count()
+    
+    # 3. Brain Exercise Summary
+    brain_sessions_count = db.query(BrainExerciseSession).filter(BrainExerciseSession.user_id == patient_id).count()
+    avg_brain_score = db.query(func.avg(BrainExerciseSession.percentage)).filter(
+        BrainExerciseSession.user_id == patient_id
+    ).scalar() or 0
+    
+    # 4. Recent Notes
+    notes = db.query(PatientNote).filter(PatientNote.patient_id == patient_id).order_by(desc(PatientNote.created_at)).limit(5).all()
+    
+    return {
+        "patient_info": {
+            "name": patient.full_name,
+            "diagnosis": record.diagnosis if record else "N/A",
+            "treatment_plan": record.treatment_plan if record else "N/A"
+        },
+        "metrics": {
+            "total_physical_reps": int(total_physical_reps),
+            "physical_sessions_count": physical_sessions_count,
+            "avg_brain_score": round(float(avg_brain_score), 1),
+            "brain_sessions_count": brain_sessions_count
+        },
+        "recent_notes": [
+            {"title": n.title, "content": n.content, "date": n.created_at.strftime("%Y-%m-%d")}
+            for n in notes
+        ],
+        "report_generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }

@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
 from models import User
 from auth import verify_password, get_password_hash, create_access_token
 from dependencies import get_current_user
-from schemas import UserLogin, UserCreate, UserWithToken, UserResponse, GoogleLogin, ForgotPasswordRequest, VerifyForgotPasswordOTP, ResetPassword
+from schemas import UserLogin, UserWithToken, UserResponse, GoogleLogin, ForgotPasswordRequest, VerifyForgotPasswordOTP, ResetPassword
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 import os
@@ -17,7 +17,7 @@ import string
 import json
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, field_validator
-from models import User, OTPVerification
+from models import OTPVerification
 
 
 router = APIRouter(

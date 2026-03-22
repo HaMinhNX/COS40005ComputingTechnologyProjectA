@@ -19,7 +19,7 @@
     <div class="flex-1 grid grid-cols-12 gap-4 min-h-0">
       
       <!-- LEFT: Video Feed (Larger, Horizontal) -->
-      <div class="col-span-9 bg-black rounded-2xl overflow-hidden relative shadow-2xl flex items-center justify-center border-2 border-slate-800">
+      <div class="col-span-9 bg-black rounded-2xl overflow-hidden relative shadow-2xl flex items-center justify-center border-2 border-slate-800 aspect-video max-h-[75vh] mx-auto w-full">
         <div class="w-full h-full relative">
           <video ref="videoEl" autoplay playsinline class="absolute inset-0 w-full h-full object-contain bg-black"></video>
           <canvas ref="canvasEl" class="absolute inset-0 w-full h-full object-contain"></canvas>
@@ -264,8 +264,8 @@ async function startTraining() {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` }
     })
-  } catch (e) {
-    console.error("Failed to reset backend state", e)
+  } catch {
+    console.error("Failed to reset backend state")
   }
 
   await startCamera()
@@ -307,8 +307,8 @@ async function startCamera() {
       videoEl.value.addEventListener("loadeddata", predictWebcam)
       isCameraOn.value = true
     }
-  } catch (e) {
-    console.error(e)
+  } catch {
+    console.error("Camera error")
     alert("Không thể mở camera. Vui lòng kiểm tra quyền truy cập.")
   }
 }
@@ -329,7 +329,7 @@ async function predictWebcam() {
   let results
   try {
     results = await poseLandmarker.detectForVideo(videoEl.value, startTimeMs)
-  } catch (e) { return }
+  } catch { return }
 
   const canvas = canvasEl.value
   const ctx = canvas.getContext('2d')
@@ -413,8 +413,8 @@ async function processLandmarks(landmarks) {
       return
     }
 
-  } catch (e) { 
-    console.error('Process error:', e) 
+  } catch { 
+    console.error('Process error') 
   }
 }
 

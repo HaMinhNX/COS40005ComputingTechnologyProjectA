@@ -8,7 +8,7 @@ from datetime import timedelta
 # Add current directory to path to import models
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from models import Base, User, ExerciseLogSimple, WorkoutSession, SessionDetail
+from models import ExerciseLogSimple, WorkoutSession, SessionDetail
 from enums import SessionStatus
 
 DATABASE_URL = os.getenv("DATABASE_URL")

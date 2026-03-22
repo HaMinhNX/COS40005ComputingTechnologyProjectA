@@ -315,31 +315,7 @@ const scrollToEnd = (force = false) => {
   })
 }
 
-// Typing animation queue - now per-session to avoid collisions
-const typingQueue = []
-let isTyping = false
-
-const processTypingQueue = async (msg) => {
-  if (isTyping) return
-  isTyping = true
-  
-  while (typingQueue.length > 0) {
-    const char = typingQueue.shift()
-    if (char) {
-      msg.displayContent += char
-      // Dynamic speed: faster for longer queues to catch up
-      const delay = typingQueue.length > 20 ? 2 : (Math.random() * 8 + 4)
-      await new Promise(r => setTimeout(r, delay))
-      
-      // Throttled scroll: only if we added a significant chunk or at end of loop
-      if (typingQueue.length % 5 === 0 || typingQueue.length === 0) {
-        scrollToEnd()
-      }
-    }
-  }
-  
-  isTyping = false
-}
+// Removed artificial typing queue since the network stream handles chunking naturally.
 
 const sendMessage = async () => {
   if (!inputMessage.value.trim() || isStreaming.value) return
@@ -385,14 +361,16 @@ const sendMessage = async () => {
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
     
-    let assistantMsg = {
+    messages.value.push({
       role: 'assistant',
       content: '',
       displayContent: '', // For the typing effect
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isStreaming: true
-    }
-    messages.value.push(assistantMsg)
+    })
+    
+    // Get the reactive proxy from the array to ensure the UI updates
+    let assistantMsg = messages.value[messages.value.length - 1]
     currentStreamingMessage.value = assistantMsg
 
     let buffer = ''
@@ -416,13 +394,8 @@ const sendMessage = async () => {
             if (parsed.text) {
               const text = parsed.text
               assistantMsg.content += text
-              
-              // Add to typing queue
-              for (const char of text) {
-                typingQueue.push(char)
-              }
-              // Ensure processing starts
-              if (!isTyping) processTypingQueue(assistantMsg)
+              assistantMsg.displayContent += text
+              scrollToEnd()
             }
           } catch (err) {
             // Ignore parse errors for partial JSON if they happen (though rare with line split)

@@ -33,8 +33,6 @@ def override_get_db():
     finally:
         db.close()
 
-app.dependency_overrides[get_db] = override_get_db
-
 client = TestClient(app)
 
 VALID_PASSWORD = "SecurePass1!"   # meets all rules: 8+ chars, upper, lower, digit, special
@@ -42,9 +40,12 @@ VALID_PASSWORD = "SecurePass1!"   # meets all rules: 8+ chars, upper, lower, dig
 @pytest.fixture(scope="module", autouse=True)
 def setup_database():
     """Setup and teardown the database once per test module."""
+    app.dependency_overrides[get_db] = override_get_db
+    print(f"DEBUG: Tables in Base.metadata: {list(Base.metadata.tables.keys())}")
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
+    app.dependency_overrides.clear()
 
 def test_signup_success():
     # 1. Request OTP

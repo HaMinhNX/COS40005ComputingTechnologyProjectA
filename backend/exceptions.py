@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status
+from fastapi import HTTPException
 
 class Medic1Exception(HTTPException):
     def __init__(self, status_code: int, detail: str):

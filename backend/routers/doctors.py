@@ -1,11 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc
-from datetime import datetime, date, timedelta
-from typing import List, Dict, Any
-from uuid import UUID
+from sqlalchemy import func
+from datetime import datetime, timedelta
 from database import get_db
-from models import User, WorkoutSession, SessionDetail, Assignment
+from models import User, WorkoutSession, SessionDetail
 
 router = APIRouter(
     prefix="/api",

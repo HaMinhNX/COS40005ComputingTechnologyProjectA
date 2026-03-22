@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from typing import List
 from uuid import UUID
 from database import get_db
 from models import User, Combo, ComboItem, WeekPlan, Assignment
 from dependencies import get_current_user, get_current_doctor
+from middleware.ownership import ResourceAccess
 from schemas import ComboCreate, WeekPlanCreate, ComboResponse, WeekPlanResponse
 
 router = APIRouter(
@@ -55,8 +56,15 @@ async def create_combo(data: ComboCreate, db: Session = Depends(get_db), current
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/week-plans", response_model=WeekPlanResponse)
-async def create_week_plan(data: WeekPlanCreate, db: Session = Depends(get_db), current_doctor: User = Depends(get_current_doctor)):
+async def create_week_plan(
+    data: WeekPlanCreate, 
+    db: Session = Depends(get_db), 
+    current_doctor: User = Depends(get_current_doctor)
+):
     """Create a new week plan for a patient"""
+    # Verify relationship
+    await ResourceAccess.patient(data.patient_id, current_doctor, db)
+    
     try:
         new_plan = WeekPlan(
             doctor_id=current_doctor.user_id,
@@ -93,15 +101,24 @@ async def create_week_plan(data: WeekPlanCreate, db: Session = Depends(get_db), 
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/week-plans/{patient_id}", response_model=List[WeekPlanResponse])
-async def get_week_plans(patient_id: UUID, db: Session = Depends(get_db)):
+async def get_week_plans(
+    patient_id: UUID, 
+    db: Session = Depends(get_db), 
+    patient: User = Depends(ResourceAccess.patient)
+):
     """Get all week plans for a patient"""
+    # Ownership verified via ResourceAccess.patient dependency
     return db.query(WeekPlan).filter(WeekPlan.patient_id == patient_id).order_by(WeekPlan.start_date.desc()).all()
 
 @router.get("/patient/today/{user_id}")
-async def get_today_plan(user_id: UUID, db: Session = Depends(get_db)):
+async def get_today_plan(
+    user_id: UUID, 
+    db: Session = Depends(get_db), 
+    patient: User = Depends(ResourceAccess.patient)
+):
     """Get today's exercises for a patient - includes both week plan and direct assignments"""
+    # Ownership verified via ResourceAccess.patient dependency
     from datetime import date
-    from sqlalchemy import or_
     
     today = date.today()
     day_of_week = today.weekday() + 1  # 1=Monday, 7=Sunday

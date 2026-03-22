@@ -6,7 +6,7 @@ from typing import Optional, List
 from datetime import datetime, date
 from uuid import UUID
 from decimal import Decimal
-from enums import ExerciseType, SessionStatus
+from enums import ExerciseType
 
 
 # ============ Exercise Assignment Schemas ============

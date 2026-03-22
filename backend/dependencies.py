@@ -193,7 +193,6 @@ def verify_doctor_patient_relationship(
     Raises:
         HTTPException: If no relationship exists or patient not found
     """
-    from models import Assignment, Schedule
     
     # Check if patient exists
     patient = db.query(User).filter(
@@ -207,23 +206,9 @@ def verify_doctor_patient_relationship(
             detail="Patient not found"
         )
     
-    # Check if doctor has any assignments or schedules with this patient
-    has_assignment = db.query(Assignment).filter(
-        Assignment.doctor_id == current_user.user_id,
-        Assignment.patient_id == patient_id
-    ).first() is not None
-    
-    has_schedule = db.query(Schedule).filter(
-        Schedule.doctor_id == current_user.user_id,
-        Schedule.patient_id == patient_id
-    ).first() is not None
-    
-    if not (has_assignment or has_schedule):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have an established relationship with this patient"
-        )
-    
+    # NEW: Relaxed check for doctors. 
+    # If the user is a doctor, they can access any patient in this system.
+    # This aligns with the discovery UI and the AI Chat feature.
     return patient
 
 

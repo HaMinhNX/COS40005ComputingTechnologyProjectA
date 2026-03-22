@@ -5,12 +5,11 @@ import google.generativeai as genai
 import os
 import json
 from dotenv import load_dotenv
-from datetime import datetime
 from typing import AsyncGenerator
 from uuid import UUID
 
 from database import get_db
-from models import User, MedicalRecord, WorkoutSession, SessionDetail, PatientNote
+from models import User, MedicalRecord, WorkoutSession, PatientNote
 from dependencies import get_current_user, verify_patient_access
 from schemas.communication import AIChatRequest
 
@@ -63,7 +62,7 @@ def get_patient_context(db: Session, patient_id: UUID) -> str:
 
     context = f"DỮ LIỆU BỆNH NHÂN (ID: {patient_id}):\n"
     if record:
-        context += f"--- THÔNG TIN Y TẾ ---\n"
+        context += "--- THÔNG TIN Y TẾ ---\n"
         context += f"- Chẩn đoán: {record.diagnosis}\n"
         context += f"- Triệu chứng: {record.symptoms}\n"
         context += f"- Kế hoạch điều trị: {record.treatment_plan}\n"
@@ -76,7 +75,7 @@ def get_patient_context(db: Session, patient_id: UUID) -> str:
         context += f"- Chỉ số cơ bản: Cao {record.height_cm}cm, Nặng {record.weight_kg}kg, BMI {bmi}, Nhóm máu {record.blood_type}\n"
         context += f"- Tiền sử bệnh: {getattr(record, 'medical_history', 'Không có dữ liệu')}\n"
     
-    context += f"\n--- THỐNG KÊ TẬP LUYỆN (10 buổi gần nhất) ---\n"
+    context += "\n--- THỐNG KÊ TẬP LUYỆN (10 buổi gần nhất) ---\n"
     context += f"- Tổng số Reps hoàn thành: {total_reps}\n"
     context += f"- Độ chính xác trung bình: {'%.1f' % float(avg_accuracy)}%\n"
     
@@ -85,7 +84,7 @@ def get_patient_context(db: Session, patient_id: UUID) -> str:
         context += "\n".join(session_details_list) + "\n"
             
     if notes:
-        context += f"\n--- GHI CHÚ CHUYÊN MÔN ---\n"
+        context += "\n--- GHI CHÚ CHUYÊN MÔN ---\n"
         for n in notes:
             context += f"  + [{n.created_at.strftime('%Y-%m-%d')}] {n.title}: {n.content}\n"
             
@@ -129,6 +128,12 @@ async def ai_chat(
     3. Thống kê: Trình bày các con số cụ thể về hiệu suất tập luyện một cách trực quan (sử dụng bảng markdown nếu cần).
     4. Trả lời câu hỏi: Giải đáp mọi thắc mắc về bệnh nhân này dựa trên dữ liệu thật.
     
+    5. ACTION PROTOCOL (MỚI): Nếu bạn nhận thấy bệnh nhân gặp khó khăn (độ chính xác thấp < 50% hoặc bỏ lỡ nhiều buổi tập), bạn CÓ QUYỀN đề xuất các hành động cụ thể như:
+       - "Đề xuất bài tập phục hồi nhẹ hơn"
+       - "Nhắc nhở lịch hẹn với bác sĩ"
+       - "Gợi ý tăng thời gian nghỉ ngơi"
+       Khi đề xuất, hãy giải thích lý do dựa trên dữ liệu.
+    
     DỮ LIỆU NGỮ CẢNH:
     {context}
     
@@ -138,6 +143,7 @@ async def ai_chat(
     - Định dạng: Sử dụng Markdown (bold, tables, lists) để thông tin dễ đọc.
     - Bảo mật: Tuyệt đối không tiết lộ thông tin của bệnh nhân khác. Nếu không có dữ liệu cho câu hỏi cụ thể, hãy thành thật trả lời là không có dữ liệu.
     - Giới hạn: Chỉ trả lời các vấn đề liên quan đến y tế và phục hồi chức năng của bệnh nhân này.
+    - Action Integration: Luôn kết thúc bằng một câu hỏi gợi mở hoặc một "Hành động đề xuất" nếu thấy cần thiết để thúc đẩy sự phục hồi.
     """
     
     try:

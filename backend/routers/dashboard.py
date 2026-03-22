@@ -1,12 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from datetime import datetime, date, timedelta
-from typing import List, Dict, Any
 from uuid import UUID
 import uuid
 from database import get_db
-from models import User, WorkoutSession, SessionDetail, BrainExerciseSession
+from models import User, WorkoutSession, SessionDetail
 
 
 router = APIRouter(
@@ -118,7 +117,6 @@ async def get_today_progress_all(db: Session = Depends(get_db)):
 @router.get("/dashboard/summary")
 async def get_dashboard_summary(db: Session = Depends(get_db)):
     """Get dashboard summary stats with trend calculations"""
-    from enums import PatientStatus
     
     # Total patients
     total_patients = db.query(User).filter(User.role == 'patient').count()

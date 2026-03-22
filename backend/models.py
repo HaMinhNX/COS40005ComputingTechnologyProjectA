@@ -1,10 +1,10 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Date, Text, Numeric, Float
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Date, Text, Numeric
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
 from database import Base
-from enums import UserRole, ExerciseType, ScheduleStatus, AssignmentStatus, SessionStatus, WeekPlanStatus, NotificationType, PatientStatus
+from enums import ScheduleStatus, AssignmentStatus, SessionStatus, WeekPlanStatus, NotificationType, PatientStatus
 
 
 class User(Base):

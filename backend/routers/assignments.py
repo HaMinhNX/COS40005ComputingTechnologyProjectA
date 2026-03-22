@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
 from database import get_db
 from models import User, Assignment, Combo
-from dependencies import get_current_user, get_current_doctor, verify_patient_access
+from dependencies import get_current_doctor
+from middleware.ownership import ResourceAccess
 from schemas import AssignmentCreate, AssignmentResponse
 
 router = APIRouter(
@@ -13,9 +14,13 @@ router = APIRouter(
 )
 
 @router.get("/assignments/{patient_id}", response_model=List[AssignmentResponse])
-async def get_assignments(patient_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def get_assignments(
+    patient_id: UUID, 
+    db: Session = Depends(get_db), 
+    patient: User = Depends(ResourceAccess.patient)
+):
     """Get all assignments for a patient"""
-    verify_patient_access(patient_id, current_user, db)
+    # Ownership verified via ResourceAccess.patient dependency
     
     assignments = db.query(Assignment).filter(
         Assignment.patient_id == patient_id,
@@ -26,8 +31,15 @@ async def get_assignments(patient_id: UUID, db: Session = Depends(get_db), curre
 
 @router.post("/assignments")
 @router.post("/assign_plan")
-async def create_assignment(data: AssignmentCreate, db: Session = Depends(get_db), current_doctor: User = Depends(get_current_doctor)):
+async def create_assignment(
+    data: AssignmentCreate, 
+    db: Session = Depends(get_db), 
+    current_doctor: User = Depends(get_current_doctor)
+):
     """Create new assignment for a patient (handles single exercise or combo)"""
+    # Verify doctor has access to this patient
+    await ResourceAccess.patient(data.patient_id, current_doctor, db)
+    
     try:
         if data.combo_id:
             # Handle combo assignment
@@ -75,16 +87,13 @@ async def create_assignment(data: AssignmentCreate, db: Session = Depends(get_db
 
 
 @router.delete("/assignments/{assignment_id}")
-async def delete_assignment(assignment_id: int, db: Session = Depends(get_db), current_doctor: User = Depends(get_current_doctor)):
+async def delete_assignment(
+    assignment_id: int, 
+    db: Session = Depends(get_db), 
+    assignment: Assignment = Depends(ResourceAccess.assignment)
+):
     """Delete an assignment"""
-    assignment = db.query(Assignment).filter(
-        Assignment.assignment_id == assignment_id,
-        Assignment.doctor_id == current_doctor.user_id
-    ).first()
-    
-    if not assignment:
-        raise HTTPException(status_code=404, detail="Assignment not found or unauthorized")
-    
+    # Ownership verified via ResourceAccess.assignment dependency
     try:
         db.delete(assignment)
         db.commit()

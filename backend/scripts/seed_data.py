@@ -7,13 +7,12 @@ import os
 import sys
 from datetime import datetime, timedelta, date
 import random
-import uuid
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from sqlalchemy.orm import Session
-from database import SessionLocal, engine
+from database import SessionLocal
 from models import User, WorkoutSession, SessionDetail, Assignment, PatientNote
 from auth import get_password_hash
 from enums import PatientStatus, SessionStatus

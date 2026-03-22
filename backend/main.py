@@ -14,20 +14,20 @@ from routers import auth, patients, medical_records, assignments, schedules, mes
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🚀 Medic1 API is starting up...")
+    print(" Medic1 API is starting up...")
     try:
         validate_environment()
-        print("✅ Environment variables validated")
+        print(" Environment variables validated")
     except RuntimeError as e:
-        print(f"❌ Startup Error: {e}")
+        print(f" Startup Error: {e}")
     yield
 
 # Initialize database tables on module load (Supported by Vercel cold starts)
 try:
     Base.metadata.create_all(bind=engine)
-    print("✅ Database tables synchronized")
+    print("Database tables synchronized")
 except Exception as e:
-    print(f"⚠️ Database sync skipped or failed: {e}")
+    print(f" Database sync skipped or failed: {e}")
 
 app = FastAPI(title="Medic1 Rehabilitation API", version="2.0", lifespan=lifespan)
 
@@ -73,7 +73,6 @@ async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
     )
 
 from fastapi import HTTPException
-from fastapi.responses import JSONResponse
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
