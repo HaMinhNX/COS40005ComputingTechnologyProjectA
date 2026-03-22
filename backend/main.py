@@ -29,7 +29,7 @@ try:
 except Exception as e:
     print(f" Database sync skipped or failed: {e}")
 
-app = FastAPI(title="Medic1 Rehabilitation API", version="2.0", lifespan=lifespan)
+app = FastAPI(title="Medic1 Rehabilitation API", version="2.1", lifespan=lifespan)
 
 # CORS
 origins = [
@@ -94,7 +94,7 @@ async def root():
     return {
         "status": "ok",
         "message": "Medic1 API is running",
-        "version": "2.0"
+        "version": "2.1"
     }
 
 # Include Routers
