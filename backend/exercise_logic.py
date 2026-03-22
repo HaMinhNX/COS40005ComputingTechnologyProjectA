@@ -4,9 +4,9 @@ This file now delegates to the modular implementation in logic/ directory.
 """
 from typing import List, Dict, Any
 from logic.common import (
-    Landmark
+    Landmark, SquatState, BicepCurlState, ShoulderFlexionState, KneeRaiseState
 )
-from logic.utils import AngleCalculator
+from logic.utils import AngleCalculator, get_state_name
 from logic.counter import ExerciseCounter
 
 # Create global instance for backward compatibility
