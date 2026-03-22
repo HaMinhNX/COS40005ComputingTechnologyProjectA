@@ -90,6 +90,8 @@ async def general_exception_handler(request: Request, exc: Exception):
     )
 
 @app.get("/")
+@app.get("/api")
+@app.get("/api/")
 async def root():
     return {
         "status": "ok",
