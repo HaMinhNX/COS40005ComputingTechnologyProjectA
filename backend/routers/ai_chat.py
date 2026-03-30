@@ -32,21 +32,17 @@ def get_patient_context(db: Session, patient_id: UUID) -> str:
     # Fetch patient notes
     notes = db.query(PatientNote).filter(PatientNote.patient_id == patient_id).all()
     
-    # NEW: Fetch health metrics (simulated or from a metrics table if exists)
-    # For now, we'll use historical data from WorkoutSession to build a performance summary
     total_reps = 0
     accuracies = []
     session_details_list = []
     
     for s in sessions:
-        # Sum reps and collect exercises from details
         session_reps = sum(d.reps_completed for d in s.details if d.reps_completed)
         total_reps += session_reps
         
         exercises = list(set(d.exercise_type for d in s.details if d.exercise_type))
         exercise_str = ", ".join(exercises) if exercises else "Unknown"
         
-        # Calculate session accuracy if details exist
         session_acc = 0
         if s.details:
             valid_details = [d for d in s.details if d.accuracy_score is not None]
@@ -59,8 +55,16 @@ def get_patient_context(db: Session, patient_id: UUID) -> str:
         )
 
     avg_accuracy = sum(accuracies) / len(accuracies) if accuracies else 0
+    is_new_account = len(sessions) == 0 and record is None
 
     context = f"DỮ LIỆU BỆNH NHÂN (ID: {patient_id}):\n"
+
+    if is_new_account:
+        context += "--- TRẠNG THÁI TÀI KHOẢN ---\n"
+        context += "- Đây là tài khoản mới, chưa có dữ liệu tập luyện hay hồ sơ y tế.\n"
+        context += "- Chưa có buổi tập nào được ghi nhận.\n"
+        return context
+
     if record:
         context += "--- THÔNG TIN Y TẾ ---\n"
         context += f"- Chẩn đoán: {record.diagnosis}\n"
@@ -76,12 +80,14 @@ def get_patient_context(db: Session, patient_id: UUID) -> str:
         context += f"- Tiền sử bệnh: {getattr(record, 'medical_history', 'Không có dữ liệu')}\n"
     
     context += "\n--- THỐNG KÊ TẬP LUYỆN (10 buổi gần nhất) ---\n"
-    context += f"- Tổng số Reps hoàn thành: {total_reps}\n"
-    context += f"- Độ chính xác trung bình: {'%.1f' % float(avg_accuracy)}%\n"
-    
-    if session_details_list:
-        context += "- Chi tiết các buổi tập:\n"
-        context += "\n".join(session_details_list) + "\n"
+    if sessions:
+        context += f"- Tổng số Reps hoàn thành: {total_reps}\n"
+        context += f"- Độ chính xác trung bình: {'%.1f' % float(avg_accuracy)}%\n"
+        if session_details_list:
+            context += "- Chi tiết các buổi tập:\n"
+            context += "\n".join(session_details_list) + "\n"
+    else:
+        context += "- Chưa có buổi tập nào được ghi nhận.\n"
             
     if notes:
         context += "\n--- GHI CHÚ CHUYÊN MÔN ---\n"
@@ -115,20 +121,34 @@ async def ai_chat(
     
     # Build context
     context = get_patient_context(db, target_patient_id)
+    is_new_account = "Đây là tài khoản mới" in context
     
-    # System Prompt (translated to Vietnamese for consistency)
+    # System Prompt
+    if is_new_account:
+        new_account_guidance = """
+    TRẠNG THÁI: Bệnh nhân này chưa có dữ liệu tập luyện hay hồ sơ y tế.
+    
+    HƯỚNG DẪN CHO TÀI KHOẢN MỚI:
+    - KHÔNG tóm tắt hay phân tích tiến độ vì chưa có dữ liệu.
+    - Hãy chào đón bệnh nhân và giải thích cách bắt đầu sử dụng hệ thống.
+    - Gợi ý họ: bắt đầu buổi tập đầu tiên, nhập dữ liệu từ file, hoặc liên hệ bác sĩ để được giao bài tập.
+    - Giữ thái độ thân thiện, khuyến khích và không phán xét.
+    """
+    else:
+        new_account_guidance = ""
+
     system_prompt = f"""
     Bạn là một trợ lý y tế AI cao cấp tích hợp trong nền tảng MEDIC1, có khả năng phân tích dữ liệu chuyên sâu tương tự như các mô hình ngôn ngữ tiên tiến nhất năm 2026.
     
     Bạn đang hỗ trợ một {current_user.role} trong việc quản lý và theo dõi bệnh nhân: {patient.full_name}.
-    
+    {new_account_guidance}
     NHIỆM VỤ CỦA BẠN:
     1. Phân tích dữ liệu: Dựa trên ngữ cảnh được cung cấp, hãy đưa ra các nhận xét về tiến độ phục hồi, xu hướng nhịp tim/độ chính xác, và các cảnh báo nếu có.
-    2. Tóm tắt: Cung cấp bản tóm tắt nhanh về tình trạng sức khỏe nếu được yêu cầu.
+    2. Tóm tắt: Cung cấp bản tóm tắt nhanh về tình trạng sức khỏe nếu được yêu cầu VÀ nếu có dữ liệu. Nếu chưa có dữ liệu, hãy thông báo rõ ràng.
     3. Thống kê: Trình bày các con số cụ thể về hiệu suất tập luyện một cách trực quan (sử dụng bảng markdown nếu cần).
     4. Trả lời câu hỏi: Giải đáp mọi thắc mắc về bệnh nhân này dựa trên dữ liệu thật.
     
-    5. ACTION PROTOCOL (MỚI): Nếu bạn nhận thấy bệnh nhân gặp khó khăn (độ chính xác thấp < 50% hoặc bỏ lỡ nhiều buổi tập), bạn CÓ QUYỀN đề xuất các hành động cụ thể như:
+    5. ACTION PROTOCOL: Nếu bạn nhận thấy bệnh nhân gặp khó khăn (độ chính xác thấp < 50% hoặc bỏ lỡ nhiều buổi tập), bạn CÓ QUYỀN đề xuất các hành động cụ thể như:
        - "Đề xuất bài tập phục hồi nhẹ hơn"
        - "Nhắc nhở lịch hẹn với bác sĩ"
        - "Gợi ý tăng thời gian nghỉ ngơi"

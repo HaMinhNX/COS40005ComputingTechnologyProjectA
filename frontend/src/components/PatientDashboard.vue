@@ -9,14 +9,81 @@
           Dữ liệu từ smartwatch
         </p>
       </div>
-    <button
-      @click="showEmailModal = true"
-      class="flex items-center gap-2 px-5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-xl transition-all hover:scale-105 text-sm"
-    >
-        <Mail :size="20" />
-        Gửi báo cáo phục hồi
-      </button>
+      <div class="flex items-center gap-3">
+        <button
+          @click="showImportModal = true"
+          class="flex items-center gap-2 px-5 py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-black rounded-xl shadow-lg shadow-indigo-500/25 hover:shadow-xl transition-all hover:scale-105 text-sm"
+        >
+          <Upload :size="20" />
+          Nhập dữ liệu
+        </button>
+        <button
+          @click="showEmailModal = true"
+          class="flex items-center gap-2 px-5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-xl transition-all hover:scale-105 text-sm"
+        >
+          <Mail :size="20" />
+          Gửi báo cáo phục hồi
+        </button>
+      </div>
     </div>
+
+    <!-- Import Modal -->
+    <Transition name="fade">
+      <div
+        v-if="showImportModal"
+        class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+        @click.self="showImportModal = false"
+      >
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
+          <div class="p-6 bg-indigo-600 text-white">
+            <h3 class="text-xl font-black flex items-center gap-2">
+              <Upload :size="24" />
+              Nhập dữ liệu buổi tập
+            </h3>
+            <p class="text-indigo-100 text-sm font-bold mt-1">Hỗ trợ file .csv hoặc .json</p>
+          </div>
+          <div class="p-6 space-y-4">
+            <div class="bg-slate-50 rounded-xl p-4 text-sm text-slate-600 font-medium space-y-1">
+              <p class="font-black text-slate-800 mb-2">Định dạng CSV (có header):</p>
+              <code class="block text-xs bg-white border border-slate-200 rounded-lg p-2 font-mono">
+                date, exercise_type, reps_completed, duration_seconds, accuracy_score, feedback
+              </code>
+              <p class="text-xs mt-2">exercise_type: squat | bicep-curl | shoulder-flexion | knee-raise</p>
+            </div>
+            <div>
+              <label class="block text-sm font-black text-slate-700 mb-2">Chọn file</label>
+              <input
+                type="file"
+                accept=".csv,.json"
+                @change="onImportFileChange"
+                class="w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:font-black file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200 cursor-pointer"
+              />
+            </div>
+            <div v-if="importResult" :class="['rounded-xl p-4 text-sm font-bold', importResult.errors?.length ? 'bg-amber-50 text-amber-800' : 'bg-emerald-50 text-emerald-800']">
+              <p>Đã nhập: {{ importResult.imported }} / {{ importResult.total }} buổi tập</p>
+              <ul v-if="importResult.errors?.length" class="mt-2 space-y-1 text-xs">
+                <li v-for="e in importResult.errors" :key="e">⚠ {{ e }}</li>
+              </ul>
+            </div>
+          </div>
+          <div class="p-6 bg-slate-50 flex gap-3">
+            <button
+              @click="showImportModal = false; importResult = null"
+              class="flex-1 py-3 border-2 border-slate-200 text-slate-700 font-black rounded-xl hover:bg-slate-100 transition-colors"
+            >
+              Đóng
+            </button>
+            <button
+              @click="submitImport"
+              :disabled="!importFile || importLoading"
+              class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black rounded-xl transition-colors"
+            >
+              {{ importLoading ? 'Đang nhập...' : 'Nhập dữ liệu' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
 
     <!-- Health Metrics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
@@ -402,6 +469,7 @@ import {
   Mail,
   Send,
   Sparkles,
+  Upload,
 } from 'lucide-vue-next'
 import * as d3 from 'd3'
 import { API_BASE_URL } from '../config'
@@ -410,11 +478,11 @@ const props = defineProps(['userId'])
 
 // Health data from smartwatch
 const healthData = ref({
-  heartRate: 72,
-  calories: 420,
-  restingHR: 58,
-  spo2: 98,
-  sleepQuality: 85,
+  heartRate: 0,
+  calories: 0,
+  restingHR: 0,
+  spo2: 0,
+  sleepQuality: 0,
 })
 
 // Exercise stats
@@ -435,6 +503,41 @@ const emailForm = ref({
   receiverEmail: '',
 })
 const emailToast = ref({ show: false, message: '', type: 'success' })
+
+// Import state
+const showImportModal = ref(false)
+const importFile = ref(null)
+const importLoading = ref(false)
+const importResult = ref(null)
+
+const onImportFileChange = (e) => {
+  importFile.value = e.target.files[0] || null
+  importResult.value = null
+}
+
+const submitImport = async () => {
+  if (!importFile.value) return
+  importLoading.value = true
+  importResult.value = null
+  try {
+    const token = localStorage.getItem('token')
+    const formData = new FormData()
+    formData.append('file', importFile.value)
+    const res = await fetch(`${API_URL}/session/import`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    })
+    importResult.value = await res.json()
+    if (res.ok && importResult.value.imported > 0) {
+      await fetchData()
+    }
+  } catch {
+    importResult.value = { imported: 0, total: 0, errors: ['Lỗi kết nối server'] }
+  } finally {
+    importLoading.value = false
+  }
+}
 
 const showToast = (message, type = 'success') => {
   emailToast.value = { show: true, message, type }

@@ -241,24 +241,32 @@ async def get_patients_with_status(db: Session = Depends(get_db)):
     for patient in patients:
         pid = str(patient.user_id)
         
-        # Get last active from map
-        last_active = last_session_map.get(pid) or patient.created_at
-        
-        # Calculate status based on activity
-        if last_active:
+        # Get last active session time from map (None if no sessions)
+        last_active = last_session_map.get(pid)
+
+        # New patient with no sessions should not be treated as active
+        if not last_active:
+            status = PatientStatus.INACTIVE.value
+            last_active_time_display = None
+        else:
             if last_active.tzinfo:
                 days_since = (now.replace(tzinfo=last_active.tzinfo) - last_active).days
             else:
                 days_since = (now - last_active).days
-            
+
             if days_since <= 3:
                 status = PatientStatus.ACTIVE.value
             elif days_since <= 7:
                 status = PatientStatus.NEEDS_ATTENTION.value
             else:
                 status = PatientStatus.INACTIVE.value
-        else:
-            status = PatientStatus.INACTIVE.value
+
+            last_active_time_display = last_active
+
+        # If last_active is missing, we keep null to avoid false activity display
+        if not last_active:
+            last_active = None
+
         
         # Get progress from maps
         avg_accuracy = accuracy_map.get(pid, 0)
@@ -285,6 +293,18 @@ async def get_patients_with_status(db: Session = Depends(get_db)):
 @router.get("/patient/health-metrics/{user_id}")
 async def get_patient_health_metrics(user_id: UUID, db: Session = Depends(get_db)):
     """Calculate logical health metrics specific to the user based on their exercise history."""
+    total_sessions = db.query(WorkoutSession).filter(WorkoutSession.user_id == user_id).count()
+
+    # New account with no sessions: return zeroed-out metrics
+    if total_sessions == 0:
+        return {
+            "heartRate": 0,
+            "calories": 0,
+            "restingHR": 0,
+            "spo2": 0,
+            "sleepQuality": 0
+        }
+
     # Base determinism from user_id (first characters of UUID to an integer)
     base_val = int(str(user_id).replace("-", "")[:8], 16)
     
@@ -306,7 +326,6 @@ async def get_patient_health_metrics(user_id: UUID, db: Session = Depends(get_db
     today_reps = sum(s.reps_completed for s in today_sessions)
 
     # 1. Calories: Base BMR + calories burned today
-    # Assuming ~5 calories per rep and ~0.1 per second of duration for light exercise
     calories = 1400 + (base_val % 400) + int(today_reps * 5) + int(today_duration_seconds * 0.1)
     
     # 2. Resting HR: Improves (lowers) as they work out more days
@@ -314,23 +333,20 @@ async def get_patient_health_metrics(user_id: UUID, db: Session = Depends(get_db
     resting_improvement = min(15, total_days_active * 0.5) 
     resting_hr = max(50, int(base_resting - resting_improvement))
     
-    # 3. Current Heart Rate: Spikes if they exercised recently, otherwise close to resting
+    # 3. Current Heart Rate
     heart_rate = resting_hr + (5 if today_sessions else 0) + (base_val % 10)
     if today_sessions:
-        # If they worked out today, elevate it slightly based on reps
         heart_rate += min(30, int(today_reps * 0.2))
         
-    # 4. SpO2: Blood oxygen is generally 96-99, slightly improved by overall fitness
+    # 4. SpO2
     spo2 = 96 + (base_val % 3)
     if total_reps_all_time > 100:
         spo2 = min(99, spo2 + 1)
         
-    # 5. Sleep Quality: Random baseline + penalty if inactive, bonus if active
+    # 5. Sleep Quality
     sleep_base = 75 + (base_val % 10)
     if today_sessions:
-        sleep_base += 5  # better sleep after workout
-    elif total_days_active == 0:
-        sleep_base -= 5  # worse sleep if completely inactive
+        sleep_base += 5
     sleep_quality = min(100, max(0, sleep_base))
 
     return {
@@ -344,9 +360,22 @@ async def get_patient_health_metrics(user_id: UUID, db: Session = Depends(get_db
 @router.get("/patient/health-charts/{user_id}")
 async def get_patient_health_charts(user_id: UUID, db: Session = Depends(get_db)):
     """Generate historical health chart data for the patient based on their workout history."""
-    base_val = int(str(user_id).replace("-", "")[:8], 16)
+    total_sessions = db.query(WorkoutSession).filter(WorkoutSession.user_id == user_id).count()
     end_date = date.today()
     start_date = end_date - timedelta(days=6)
+
+    # New account: return empty chart data (all zeros)
+    if total_sessions == 0:
+        empty_days = []
+        for i in range(7):
+            d = start_date + timedelta(days=i)
+            empty_days.append({"date": str(d), "rate": 0, "reps": 0})
+        return {
+            "heartRateData": [{"date": d["date"], "rate": d["rate"]} for d in empty_days],
+            "weeklyData": [{"date": d["date"], "reps": d["reps"]} for d in empty_days]
+        }
+
+    base_val = int(str(user_id).replace("-", "")[:8], 16)
     
     # Get daily reps for the past 7 days to influence the chart
     daily_reps = db.query(

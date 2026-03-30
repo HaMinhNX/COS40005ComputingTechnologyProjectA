@@ -8,6 +8,9 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 if not DATABASE_URL:
     # Fallback for safety, though .env should exist
     DATABASE_URL = "postgresql://neondb_owner:npg_QPHdxF8TqpX6@ep-late-fog-a1zpudt5-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"

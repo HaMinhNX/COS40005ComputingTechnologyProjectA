@@ -93,7 +93,8 @@
                 <Bot :size="48" />
               </div>
               <h3>Tôi có thể giúp gì cho {{ userRole === 'doctor' ? 'ca bệnh này' : 'bạn' }}?</h3>
-              <p>Hỏi về bệnh nhân, phân tích chỉ số sức khỏe, hoặc yêu cầu tóm tắt quá trình phục hồi.</p>
+              <p v-if="userRole === 'doctor'">Hỏi về bệnh nhân, phân tích chỉ số sức khỏe, hoặc yêu cầu tóm tắt quá trình phục hồi.</p>
+              <p v-else>Chào mừng bạn đến với MEDIC1. Hãy hỏi tôi bất cứ điều gì về hành trình phục hồi của bạn.</p>
             </div>
             
             <div class="suggestions-container">
@@ -234,11 +235,13 @@ const suggestedPrompts = computed(() => {
       'Cảnh báo các chỉ số bất thường'
     ]
   } else {
+    // For patients: check if they have any messages yet (proxy for new account)
+    // The AI will handle the actual new-account detection on the backend
     return [
-      'Tóm tắt tuần tập luyện của tôi',
-      'Độ chính xác của tôi thế nào?',
-      'Tôi cần cải thiện bài tập nào?',
-      'Phân tích xu hướng sức khỏe'
+      'Tôi nên bắt đầu từ đâu?',
+      'Hướng dẫn sử dụng hệ thống',
+      'Tôi cần chuẩn bị gì trước khi tập?',
+      'Làm thế nào để nhập dữ liệu tập luyện?'
     ]
   }
 })

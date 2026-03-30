@@ -322,3 +322,108 @@ async def get_brain_stats(
         "today_score": int(today_score),
         "streak": streak
     }
+
+
+# ─── SESSION IMPORT ────────────────────────────────────────────────────────────
+
+from fastapi import UploadFile, File
+import csv
+import io
+import json as _json
+from datetime import datetime as _dt
+
+VALID_EXERCISE_TYPES = {"squat", "bicep-curl", "shoulder-flexion", "knee-raise"}
+
+@router.post("/session/import")
+async def import_session_file(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Import session data from a CSV or JSON file.
+
+    CSV format (header row required):
+        date, exercise_type, reps_completed, duration_seconds, accuracy_score, feedback
+
+    JSON format (array of objects with the same fields).
+
+    Each row creates one WorkoutSession + one SessionDetail.
+    """
+    content = await file.read()
+    filename = file.filename or ""
+
+    rows = []
+    try:
+        if filename.endswith(".json"):
+            rows = _json.loads(content.decode("utf-8"))
+            if not isinstance(rows, list):
+                raise ValueError("JSON file must be an array of objects")
+        elif filename.endswith(".csv"):
+            reader = csv.DictReader(io.StringIO(content.decode("utf-8")))
+            rows = list(reader)
+        else:
+            raise HTTPException(status_code=400, detail="Chỉ hỗ trợ file .csv hoặc .json")
+    except (UnicodeDecodeError, ValueError) as e:
+        raise HTTPException(status_code=400, detail=f"Không thể đọc file: {e}")
+
+    if not rows:
+        raise HTTPException(status_code=400, detail="File không có dữ liệu")
+
+    imported = 0
+    errors = []
+
+    for i, row in enumerate(rows):
+        try:
+            exercise_type = str(row.get("exercise_type", "")).strip().lower()
+            # Accept Vietnamese names too
+            exercise_type = EXERCISE_NAME_MAPPING.get(exercise_type, exercise_type)
+            if exercise_type not in VALID_EXERCISE_TYPES:
+                errors.append(f"Dòng {i+1}: exercise_type '{exercise_type}' không hợp lệ")
+                continue
+
+            reps = int(row.get("reps_completed", 0) or 0)
+            duration = int(row.get("duration_seconds", 0) or 0)
+            accuracy = float(row.get("accuracy_score", 0) or 0)
+            feedback = str(row.get("feedback", "") or "")
+
+            # Parse date — accept ISO strings or date-only strings
+            raw_date = str(row.get("date", "")).strip()
+            try:
+                session_time = _dt.fromisoformat(raw_date) if raw_date else _dt.utcnow()
+            except ValueError:
+                session_time = _dt.utcnow()
+
+            # Create session
+            session = WorkoutSession(
+                user_id=current_user.user_id,
+                start_time=session_time,
+                end_time=session_time,
+                status="completed"
+            )
+            db.add(session)
+            db.flush()
+
+            # Create detail
+            detail = SessionDetail(
+                session_id=session.session_id,
+                exercise_type=exercise_type,
+                reps_completed=reps,
+                duration_seconds=duration,
+                accuracy_score=accuracy,
+                feedback=feedback,
+                completed_at=session_time
+            )
+            db.add(detail)
+            imported += 1
+
+        except Exception as e:
+            errors.append(f"Dòng {i+1}: {e}")
+
+    db.commit()
+
+    return {
+        "imported": imported,
+        "total": len(rows),
+        "errors": errors[:10]  # cap error list
+    }
