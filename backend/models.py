@@ -1,8 +1,9 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Date, Text, Numeric
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.sql import func
 import uuid
+from datetime import datetime
 from database import Base
 from enums import ScheduleStatus, AssignmentStatus, SessionStatus, WeekPlanStatus, NotificationType, PatientStatus
 
@@ -156,15 +157,15 @@ class WorkoutSession(Base):
 class SessionDetail(Base):
     __tablename__ = "session_details"
 
-    detail_id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(UUID(as_uuid=True), ForeignKey("workout_sessions.session_id"))
-    exercise_type = Column(String(50), nullable=False)
-    reps_completed = Column(Integer, default=0)
-    duration_seconds = Column(Integer, default=0)
-    mistakes_count = Column(Integer, default=0)
-    accuracy_score = Column(Numeric(5, 2))
-    feedback = Column(Text)
-    completed_at = Column(DateTime(timezone=True), server_default=func.now())
+    detail_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    session_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("workout_sessions.session_id"))
+    exercise_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    reps_completed: Mapped[int] = mapped_column(Integer, default=0)
+    duration_seconds: Mapped[int] = mapped_column(Integer, default=0)
+    mistakes_count: Mapped[int] = mapped_column(Integer, default=0)
+    accuracy_score: Mapped[float] = mapped_column(Numeric(5, 2))
+    feedback: Mapped[str] = mapped_column(Text)
+    completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
     session = relationship("WorkoutSession", back_populates="details")
@@ -260,3 +261,27 @@ class OTPVerification(Base):
     otp_code = Column(String(6), nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=False)
     user_data = Column(Text, nullable=False) # JSON encoded string
+
+class HealthMetrics(Base):
+    __tablename__ = "health_metrics"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.user_id"), index=True)
+    date: Mapped[datetime.date] = mapped_column(Date, nullable=False, index=True)
+    
+    # Health metrics from smartwatch
+    heart_rate: Mapped[int] = mapped_column(Integer, nullable=True)  # BPM
+    calories: Mapped[int] = mapped_column(Integer, nullable=True)    # KCal
+    resting_hr: Mapped[int] = mapped_column(Integer, nullable=True)  # BPM
+    spo2: Mapped[int] = mapped_column(Integer, nullable=True)        # %
+    sleep_quality: Mapped[int] = mapped_column(Integer, nullable=True)  # %
+    
+    # Optional additional metrics
+    steps: Mapped[int] = mapped_column(Integer, nullable=True)
+    distance: Mapped[float] = mapped_column(Numeric(10, 2), nullable=True)  # km
+    active_minutes: Mapped[int] = mapped_column(Integer, nullable=True)    # minutes
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    user = relationship("User", backref="health_metrics")

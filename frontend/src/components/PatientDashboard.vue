@@ -49,12 +49,26 @@
                 date, exercise_type, reps_completed, duration_seconds, accuracy_score, feedback
               </code>
               <p class="text-xs mt-2">exercise_type: squat | bicep-curl | shoulder-flexion | knee-raise</p>
+              <div class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p class="text-sm font-black text-amber-800 mb-1">📄 File XML từ đồng hồ (health data):</p>
+                <code class="block text-xs bg-white border border-amber-200 rounded p-2 font-mono">
+                  &lt;health-data&gt;
+                    &lt;metrics date="2024-01-01"&gt;
+                      &lt;heart-rate&gt;75&lt;/heart-rate&gt;
+                      &lt;calories&gt;1400&lt;/calories&gt;
+                      &lt;resting-hr&gt;65&lt;/resting-hr&gt;
+                      &lt;spo2&gt;98&lt;/spo2&gt;
+                      &lt;sleep-quality&gt;85&lt;/sleep-quality&gt;
+                    &lt;/metrics&gt;
+                  &lt;/health-data&gt;
+                </code>
+              </div>
             </div>
             <div>
               <label class="block text-sm font-black text-slate-700 mb-2">Chọn file</label>
               <input
                 type="file"
-                accept=".csv,.json"
+                accept=".csv,.json,.xml"
                 @change="onImportFileChange"
                 class="w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:font-black file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200 cursor-pointer"
               />
@@ -498,6 +512,9 @@ const API_URL = API_BASE_URL
 // Email report state
 const showEmailModal = ref(false)
 const emailSending = ref(false)
+const importFile = ref(null)
+const importResult = ref(null)
+const importLoading = ref(false)
 const emailForm = ref({
   patientName: '',
   receiverEmail: '',
@@ -756,6 +773,41 @@ async function fetchData() {
     })
   } catch (e) {
     console.error('Error loading dashboard data:', e)
+  }
+}
+
+const onImportFileChange = (event) => {
+  importFile.value = event.target.files[0]
+  importResult.value = null
+}
+
+const submitImport = async () => {
+  if (!importFile.value) return
+
+  importLoading.value = true
+  try {
+    const token = localStorage.getItem('token')
+    const formData = new FormData()
+    formData.append('file', importFile.value)
+
+    const res = await fetch(`${API_URL}/session/import`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData
+    })
+
+    const data = await res.json()
+    if (res.ok) {
+      importResult.value = data
+      // Refresh dashboard data after successful import
+      await fetchData()
+    } else {
+      importResult.value = { errors: [data.detail || 'Import failed'] }
+    }
+  } catch (e) {
+    importResult.value = { errors: ['Network error'] }
+  } finally {
+    importLoading.value = false
   }
 }
 

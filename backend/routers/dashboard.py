@@ -4,8 +4,9 @@ from sqlalchemy import func, desc
 from datetime import datetime, date, timedelta
 from uuid import UUID
 import uuid
+import json
 from database import get_db
-from models import User, WorkoutSession, SessionDetail
+from models import User, WorkoutSession, SessionDetail, HealthMetrics
 
 
 router = APIRouter(
@@ -109,7 +110,7 @@ async def get_today_progress_all(db: Session = Depends(get_db)):
         "user_id": str(l.session.user_id),
         "full_name": l.session.user.full_name if l.session.user else "Unknown",
         "exercise_type": l.exercise_type,
-        "created_at": l.completed_at.isoformat() if l.completed_at else None,
+        "created_at": l.completed_at.isoformat() if l.completed_at is not None else None,
         "rep_count": l.reps_completed
     } for l in logs]
 
@@ -232,7 +233,7 @@ async def get_patients_with_status(db: Session = Depends(get_db)):
         WorkoutSession.user_id.in_(patient_ids)
     ).group_by(WorkoutSession.user_id).all()
     
-    session_count_map = {str(row.user_id): row.count for row in session_counts_subq}
+    session_count_map = {str(row[0]): int(row[1]) for row in session_counts_subq}
     
     # Build result using pre-fetched data (no more DB calls in loop!)
     result = []
@@ -292,8 +293,22 @@ async def get_patients_with_status(db: Session = Depends(get_db)):
 
 @router.get("/patient/health-metrics/{user_id}")
 async def get_patient_health_metrics(user_id: UUID, db: Session = Depends(get_db)):
-    """Calculate logical health metrics specific to the user based on their exercise history."""
+    """Get health metrics for a patient, prioritizing imported data over calculated values."""
     total_sessions = db.query(WorkoutSession).filter(WorkoutSession.user_id == user_id).count()
+
+    # Check for imported health data first
+    latest_health_data = db.query(HealthMetrics).filter(
+        HealthMetrics.user_id == user_id
+    ).order_by(HealthMetrics.date.desc()).first()
+
+    if latest_health_data:
+        return {
+            "heartRate": latest_health_data.heart_rate or 0,
+            "calories": latest_health_data.calories or 0,
+            "restingHR": latest_health_data.resting_hr or 0,
+            "spo2": latest_health_data.spo2 or 0,
+            "sleepQuality": latest_health_data.sleep_quality or 0
+        }
 
     # New account with no sessions: return zeroed-out metrics
     if total_sessions == 0:

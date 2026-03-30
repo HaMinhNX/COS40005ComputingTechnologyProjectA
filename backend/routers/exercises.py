@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Dict, Any
 from uuid import UUID
 from database import get_db
-from models import User, WorkoutSession, SessionDetail, BrainExerciseLog, BrainExerciseSession
+from models import User, WorkoutSession, SessionDetail, BrainExerciseLog, BrainExerciseSession, HealthMetrics
 
 from dependencies import get_current_user
 from middleware.ownership import ResourceAccess
@@ -331,6 +331,7 @@ import csv
 import io
 import json as _json
 from datetime import datetime as _dt
+import xml.etree.ElementTree as ET
 
 VALID_EXERCISE_TYPES = {"squat", "bicep-curl", "shoulder-flexion", "knee-raise"}
 
@@ -341,19 +342,30 @@ async def import_session_file(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Import session data from a CSV or JSON file.
+    Import session data from a CSV, JSON, or XML file.
 
     CSV format (header row required):
         date, exercise_type, reps_completed, duration_seconds, accuracy_score, feedback
 
     JSON format (array of objects with the same fields).
 
-    Each row creates one WorkoutSession + one SessionDetail.
+    XML format (for smartwatch health data):
+        <health-data>
+            <metrics date="2024-01-01">
+                <heart-rate>75</heart-rate>
+                <calories>1400</calories>
+                <resting-hr>65</resting-hr>
+                <spo2>98</spo2>
+                <sleep-quality>85</sleep-quality>
+            </metrics>
+        </health-data>
     """
     content = await file.read()
     filename = file.filename or ""
 
     rows = []
+    is_health_data = False
+
     try:
         if filename.endswith(".json"):
             rows = _json.loads(content.decode("utf-8"))
@@ -362,68 +374,141 @@ async def import_session_file(
         elif filename.endswith(".csv"):
             reader = csv.DictReader(io.StringIO(content.decode("utf-8")))
             rows = list(reader)
+        elif filename.endswith(".xml"):
+            # Parse XML health data
+            root = ET.fromstring(content.decode("utf-8"))
+            if root.tag == "health-data":
+                is_health_data = True
+                # For health data, we'll store it differently
+                # This will be handled separately below
+            else:
+                raise ValueError("XML file must have root element 'health-data'")
         else:
-            raise HTTPException(status_code=400, detail="Chỉ hỗ trợ file .csv hoặc .json")
-    except (UnicodeDecodeError, ValueError) as e:
+            raise HTTPException(status_code=400, detail="Chỉ hỗ trợ file .csv, .json hoặc .xml")
+    except (UnicodeDecodeError, ValueError, ET.ParseError) as e:
         raise HTTPException(status_code=400, detail=f"Không thể đọc file: {e}")
 
-    if not rows:
+    if not rows and not is_health_data:
         raise HTTPException(status_code=400, detail="File không có dữ liệu")
 
     imported = 0
     errors = []
 
-    for i, row in enumerate(rows):
+    if is_health_data:
+        # Handle health data import
         try:
-            exercise_type = str(row.get("exercise_type", "")).strip().lower()
-            # Accept Vietnamese names too
-            exercise_type = EXERCISE_NAME_MAPPING.get(exercise_type, exercise_type)
-            if exercise_type not in VALID_EXERCISE_TYPES:
-                errors.append(f"Dòng {i+1}: exercise_type '{exercise_type}' không hợp lệ")
-                continue
+            for metrics in root.findall("metrics"):
+                date_str = metrics.get("date")
+                if not date_str:
+                    errors.append("Metrics element missing date attribute")
+                    continue
 
-            reps = int(row.get("reps_completed", 0) or 0)
-            duration = int(row.get("duration_seconds", 0) or 0)
-            accuracy = float(row.get("accuracy_score", 0) or 0)
-            feedback = str(row.get("feedback", "") or "")
+                try:
+                    record_date = _dt.fromisoformat(date_str).date()
+                except ValueError:
+                    errors.append(f"Invalid date format: {date_str}")
+                    continue
 
-            # Parse date — accept ISO strings or date-only strings
-            raw_date = str(row.get("date", "")).strip()
-            try:
-                session_time = _dt.fromisoformat(raw_date) if raw_date else _dt.utcnow()
-            except ValueError:
-                session_time = _dt.utcnow()
+                # Extract health metrics
+                heart_rate = int(metrics.findtext("heart-rate", "0") or "0")
+                calories = int(metrics.findtext("calories", "0") or "0")
+                resting_hr = int(metrics.findtext("resting-hr", "0") or "0")
+                spo2 = int(metrics.findtext("spo2", "0") or "0")
+                sleep_quality = int(metrics.findtext("sleep-quality", "0") or "0")
+                
+                # Optional metrics
+                steps = metrics.findtext("steps")
+                distance = metrics.findtext("distance")
+                active_minutes = metrics.findtext("active-minutes")
 
-            # Create session
-            session = WorkoutSession(
-                user_id=current_user.user_id,
-                start_time=session_time,
-                end_time=session_time,
-                status="completed"
-            )
-            db.add(session)
-            db.flush()
+                # Check if health metrics already exist for this date
+                existing = db.query(HealthMetrics).filter(
+                    HealthMetrics.user_id == current_user.user_id,
+                    HealthMetrics.date == record_date
+                ).first()
 
-            # Create detail
-            detail = SessionDetail(
-                session_id=session.session_id,
-                exercise_type=exercise_type,
-                reps_completed=reps,
-                duration_seconds=duration,
-                accuracy_score=accuracy,
-                feedback=feedback,
-                completed_at=session_time
-            )
-            db.add(detail)
-            imported += 1
+                if existing:
+                    # Update existing record
+                    existing.heart_rate = heart_rate or existing.heart_rate
+                    existing.calories = calories or existing.calories
+                    existing.resting_hr = resting_hr or existing.resting_hr
+                    existing.spo2 = spo2 or existing.spo2
+                    existing.sleep_quality = sleep_quality or existing.sleep_quality
+                    if steps: existing.steps = int(steps)
+                    if distance: existing.distance = float(distance)
+                    if active_minutes: existing.active_minutes = int(active_minutes)
+                else:
+                    # Create new health metrics record
+                    health_record = HealthMetrics(
+                        user_id=current_user.user_id,
+                        date=record_date,
+                        heart_rate=heart_rate if heart_rate > 0 else None,
+                        calories=calories if calories > 0 else None,
+                        resting_hr=resting_hr if resting_hr > 0 else None,
+                        spo2=spo2 if spo2 > 0 else None,
+                        sleep_quality=sleep_quality if sleep_quality > 0 else None,
+                        steps=int(steps) if steps else None,
+                        distance=float(distance) if distance else None,
+                        active_minutes=int(active_minutes) if active_minutes else None
+                    )
+                    db.add(health_record)
+                imported += 1
 
         except Exception as e:
-            errors.append(f"Dòng {i+1}: {e}")
+            errors.append(f"Error processing health data: {e}")
+    else:
+        # Handle exercise session data (existing logic)
+        for i, row in enumerate(rows):
+            try:
+                exercise_type = str(row.get("exercise_type", "")).strip().lower()
+                # Accept Vietnamese names too
+                exercise_type = EXERCISE_NAME_MAPPING.get(exercise_type, exercise_type)
+                if exercise_type not in VALID_EXERCISE_TYPES:
+                    errors.append(f"Dòng {i+1}: exercise_type '{exercise_type}' không hợp lệ")
+                    continue
+
+                reps = int(row.get("reps_completed", 0) or 0)
+                duration = int(row.get("duration_seconds", 0) or 0)
+                accuracy = float(row.get("accuracy_score", 0) or 0)
+                feedback = str(row.get("feedback", "") or "")
+
+                # Parse date — accept ISO strings or date-only strings
+                raw_date = str(row.get("date", "")).strip()
+                try:
+                    session_time = _dt.fromisoformat(raw_date) if raw_date else _dt.utcnow()
+                except ValueError:
+                    session_time = _dt.utcnow()
+
+                # Create session
+                session = WorkoutSession(
+                    user_id=current_user.user_id,
+                    start_time=session_time,
+                    end_time=session_time,
+                    status="completed"
+                )
+                db.add(session)
+                db.flush()
+
+                # Create detail
+                detail = SessionDetail(
+                    session_id=session.session_id,
+                    exercise_type=exercise_type,
+                    reps_completed=reps,
+                    duration_seconds=duration,
+                    accuracy_score=accuracy,
+                    feedback=feedback,
+                    completed_at=session_time
+                )
+                db.add(detail)
+                imported += 1
+
+            except Exception as e:
+                errors.append(f"Dòng {i+1}: {e}")
 
     db.commit()
 
     return {
         "imported": imported,
-        "total": len(rows),
+        "total": len(rows) if not is_health_data else len(root.findall("metrics")),
         "errors": errors[:10]  # cap error list
     }
