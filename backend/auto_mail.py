@@ -6,16 +6,18 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
+# Load .env from the same directory as this file so it works regardless of cwd
+_HERE = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(_HERE, ".env"))
 
 # ─────────────────────────────────────────
 #  CONFIGURATION
 # ─────────────────────────────────────────
 SMTP_SERVER   = "smtp.gmail.com"
-SMTP_PORT     = 587
-SENDER_EMAIL   = os.getenv("SENDER_EMAIL")
-SENDER_PASS    = os.getenv("SENDER_PASSWORD")
-RECEIVER_EMAIL = os.getenv("RECEIVER_EMAIL")  # Configure to your mail   
+SMTP_PORT_SSL = 465   # SSL direct – matches SMTP_SSL() below
+SENDER_EMAIL   = os.getenv("SMTP_EMAIL")       # matches .env key
+SENDER_PASS    = os.getenv("SMTP_PASSWORD")    # matches .env key
+RECEIVER_EMAIL = os.getenv("RECEIVER_EMAIL", "")  # optional fallback
 
 
 # # ─────────────────────────────────────────
@@ -231,9 +233,12 @@ def send_health_email(receiver: str = RECEIVER_EMAIL, name: str = "Bệnh nhân"
     html_content = build_email_html(health, sessions)
 
     # 4. Gửi qua SMTP tới tất cả receivers
+    if not SENDER_EMAIL or not SENDER_PASS:
+        print("❌ Lỗi cấu hình: SMTP_EMAIL hoặc SMTP_PASSWORD chưa được thiết lập trong .env")
+        return False
+
     try:
-        with smtplib.SMTP_SSL(SMTP_SERVER, 465) as server:
-            # server.starttls()  # StartTLS is not used when connecting via SSL directly
+        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT_SSL) as server:
             server.login(SENDER_EMAIL, SENDER_PASS)
             for email in receivers:
                 # Tạo message mới cho mỗi recipient
@@ -242,7 +247,7 @@ def send_health_email(receiver: str = RECEIVER_EMAIL, name: str = "Bệnh nhân"
                 msg["From"]    = SENDER_EMAIL
                 msg["To"]      = email
                 msg.attach(MIMEText(html_content, "html", "utf-8"))
-                
+
                 server.sendmail(SENDER_EMAIL, email, msg.as_string())
                 print(f"✅ Email đã gửi thành công tới {email}")
         return True

@@ -32,67 +32,158 @@
       <div
         v-if="showImportModal"
         class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
-        @click.self="showImportModal = false"
+        @click.self="closeImportModal"
       >
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
-          <div class="p-6 bg-indigo-600 text-white">
-            <h3 class="text-xl font-black flex items-center gap-2">
-              <Upload :size="24" />
-              Nhập dữ liệu buổi tập
-            </h3>
-            <p class="text-indigo-100 text-sm font-bold mt-1">Hỗ trợ file .csv hoặc .json</p>
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden import-modal">
+          <!-- Header -->
+          <div class="p-6 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-xl font-black flex items-center gap-2">
+                  <Upload :size="24" />
+                  Nhập dữ liệu sức khỏe
+                </h3>
+                <p class="text-indigo-100 text-sm font-semibold mt-1">Chỉ hỗ trợ file XML từ đồng hồ thông minh</p>
+              </div>
+              <button
+                @click="closeImportModal"
+                class="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors text-lg font-bold"
+                aria-label="Đóng"
+              >✕</button>
+            </div>
           </div>
-          <div class="p-6 space-y-4">
-            <div class="bg-slate-50 rounded-xl p-4 text-sm text-slate-600 font-medium space-y-1">
-              <p class="font-black text-slate-800 mb-2">Định dạng CSV (có header):</p>
-              <code class="block text-xs bg-white border border-slate-200 rounded-lg p-2 font-mono">
-                date, exercise_type, reps_completed, duration_seconds, accuracy_score, feedback
-              </code>
-              <p class="text-xs mt-2">exercise_type: squat | bicep-curl | shoulder-flexion | knee-raise</p>
-              <div class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <p class="text-sm font-black text-amber-800 mb-1">📄 File XML từ đồng hồ (health data):</p>
-                <code class="block text-xs bg-white border border-amber-200 rounded p-2 font-mono">
-                  &lt;health-data&gt;
-                    &lt;metrics date="2024-01-01"&gt;
-                      &lt;heart-rate&gt;75&lt;/heart-rate&gt;
-                      &lt;calories&gt;1400&lt;/calories&gt;
-                      &lt;resting-hr&gt;65&lt;/resting-hr&gt;
-                      &lt;spo2&gt;98&lt;/spo2&gt;
-                      &lt;sleep-quality&gt;85&lt;/sleep-quality&gt;
-                    &lt;/metrics&gt;
-                  &lt;/health-data&gt;
-                </code>
+
+          <div class="p-6 space-y-5">
+            <!-- Step guide -->
+            <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-4">
+              <p class="text-sm font-black text-indigo-800 mb-3 flex items-center gap-2">
+                <span class="text-base">📋</span> Hướng dẫn nhập dữ liệu
+              </p>
+              <div class="space-y-2.5">
+                <div class="flex items-start gap-3">
+                  <span class="w-7 h-7 rounded-full bg-indigo-500 text-white text-xs font-black flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+                  <div>
+                    <p class="text-sm font-bold text-slate-800">Xuất dữ liệu từ đồng hồ</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Mở ứng dụng đồng hồ và chọn <span class="font-bold">"Xuất dữ liệu"</span> → định dạng <span class="font-bold">XML</span></p>
+                  </div>
+                </div>
+                <div class="flex items-start gap-3">
+                  <span class="w-7 h-7 rounded-full bg-indigo-500 text-white text-xs font-black flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+                  <div>
+                    <p class="text-sm font-bold text-slate-800">Chọn file vừa xuất</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Nhấn vào ô chọn file bên dưới và tìm file <span class="font-bold">.xml</span> đã lưu trên máy</p>
+                  </div>
+                </div>
+                <div class="flex items-start gap-3">
+                  <span class="w-7 h-7 rounded-full bg-indigo-500 text-white text-xs font-black flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+                  <div>
+                    <p class="text-sm font-bold text-slate-800">Nhấn "Nhập dữ liệu"</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Hệ thống sẽ tự động đọc và lưu thông tin sức khỏe của bạn</p>
+                  </div>
+                </div>
               </div>
             </div>
+
+            <!-- File info box -->
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-3">
+              <span class="text-xl flex-shrink-0 mt-0.5">⚠️</span>
+              <div>
+                <p class="text-sm font-black text-amber-800">Yêu cầu định dạng file</p>
+                <p class="text-xs text-amber-700 mt-1">File XML phải được xuất từ đồng hồ thông minh và chứa dữ liệu sức khỏe (nhịp tim, calo, oxy máu, chất lượng giấc ngủ).</p>
+              </div>
+            </div>
+
+            <!-- File picker -->
             <div>
-              <label class="block text-sm font-black text-slate-700 mb-2">Chọn file</label>
-              <input
-                type="file"
-                accept=".csv,.json,.xml"
-                @change="onImportFileChange"
-                class="w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:font-black file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200 cursor-pointer"
-              />
+              <label class="block text-sm font-black text-slate-700 mb-2">📂 Chọn file XML của bạn</label>
+              <label
+                class="file-drop-zone flex flex-col items-center justify-center gap-2 w-full rounded-2xl border-2 border-dashed cursor-pointer transition-all"
+                :class="importFile ? 'border-indigo-400 bg-indigo-50' : 'border-slate-300 bg-slate-50 hover:border-indigo-400 hover:bg-indigo-50'"
+              >
+                <input
+                  type="file"
+                  accept=".xml"
+                  class="hidden"
+                  @change="onImportFileChange"
+                  ref="fileInputRef"
+                />
+                <div v-if="!importFile" class="text-center py-6 px-4">
+                  <div class="text-4xl mb-2">📄</div>
+                  <p class="text-sm font-black text-slate-700">Nhấn để chọn file XML</p>
+                  <p class="text-xs text-slate-400 mt-1">Chỉ chấp nhận file .xml</p>
+                </div>
+                <div v-else class="flex items-center gap-3 py-4 px-5 w-full">
+                  <span class="text-3xl">✅</span>
+                  <div class="overflow-hidden">
+                    <p class="text-sm font-black text-indigo-700 truncate">{{ importFile.name }}</p>
+                    <p class="text-xs text-slate-500 mt-0.5">{{ formatFileSize(importFile.size) }}</p>
+                  </div>
+                  <button
+                    type="button"
+                    class="ml-auto text-slate-400 hover:text-red-500 transition-colors flex-shrink-0"
+                    @click.stop="clearImportFile"
+                    aria-label="Xóa file"
+                  >✕</button>
+                </div>
+              </label>
             </div>
-            <div v-if="importResult" :class="['rounded-xl p-4 text-sm font-bold', importResult.errors?.length ? 'bg-amber-50 text-amber-800' : 'bg-emerald-50 text-emerald-800']">
-              <p>Đã nhập: {{ importResult.imported }} / {{ importResult.total }} buổi tập</p>
-              <ul v-if="importResult.errors?.length" class="mt-2 space-y-1 text-xs">
-                <li v-for="e in importResult.errors" :key="e">⚠ {{ e }}</li>
-              </ul>
-            </div>
+
+            <!-- Import result -->
+            <Transition name="slide-in">
+              <div v-if="importResult">
+                <!-- Success -->
+                <div
+                  v-if="!importResult.errors?.length"
+                  class="rounded-2xl bg-emerald-50 border border-emerald-200 p-4 flex items-start gap-3"
+                >
+                  <span class="text-2xl flex-shrink-0">🎉</span>
+                  <div>
+                    <p class="font-black text-emerald-800 text-sm">Nhập dữ liệu thành công!</p>
+                    <p class="text-xs text-emerald-700 mt-1">Đã nhập <span class="font-black">{{ importResult.imported }}</span> / {{ importResult.total }} ngày dữ liệu sức khỏe.</p>
+                  </div>
+                </div>
+                <!-- Errors -->
+                <div
+                  v-else
+                  class="rounded-2xl bg-red-50 border border-red-200 p-4"
+                >
+                  <div class="flex items-start gap-3 mb-3">
+                    <span class="text-2xl flex-shrink-0">❌</span>
+                    <div>
+                      <p class="font-black text-red-800 text-sm">Không thể nhập dữ liệu</p>
+                      <p class="text-xs text-red-600 mt-0.5">Vui lòng kiểm tra lại file và thử lại.</p>
+                    </div>
+                  </div>
+                  <ul class="space-y-1.5 pl-2">
+                    <li v-for="e in importResult.errors" :key="e" class="text-xs text-red-700 font-semibold flex items-start gap-1.5">
+                      <span class="mt-0.5 flex-shrink-0">⚠</span>
+                      <span>{{ translateError(e) }}</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </Transition>
           </div>
-          <div class="p-6 bg-slate-50 flex gap-3">
+
+          <!-- Footer actions -->
+          <div class="px-6 pb-6 flex gap-3">
             <button
-              @click="showImportModal = false; importResult = null"
-              class="flex-1 py-3 border-2 border-slate-200 text-slate-700 font-black rounded-xl hover:bg-slate-100 transition-colors"
+              @click="closeImportModal"
+              class="flex-1 py-3 border-2 border-slate-200 text-slate-600 font-black rounded-xl hover:bg-slate-100 transition-colors"
             >
               Đóng
             </button>
             <button
               @click="submitImport"
               :disabled="!importFile || importLoading"
-              class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black rounded-xl transition-colors"
+              class="flex-1 py-3 font-black rounded-xl transition-all flex items-center justify-center gap-2"
+              :class="!importFile || importLoading
+                ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-400/30 hover:scale-[1.02]'"
             >
-              {{ importLoading ? 'Đang nhập...' : 'Nhập dữ liệu' }}
+              <span v-if="importLoading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+              <Upload v-else :size="18" />
+              {{ importLoading ? 'Đang nhập dữ liệu...' : 'Nhập dữ liệu' }}
             </button>
           </div>
         </div>
@@ -512,9 +603,6 @@ const API_URL = API_BASE_URL
 // Email report state
 const showEmailModal = ref(false)
 const emailSending = ref(false)
-const importFile = ref(null)
-const importResult = ref(null)
-const importLoading = ref(false)
 const emailForm = ref({
   patientName: '',
   receiverEmail: '',
@@ -526,34 +614,39 @@ const showImportModal = ref(false)
 const importFile = ref(null)
 const importLoading = ref(false)
 const importResult = ref(null)
+const fileInputRef = ref(null)
 
-const onImportFileChange = (e) => {
-  importFile.value = e.target.files[0] || null
+const closeImportModal = () => {
+  showImportModal.value = false
   importResult.value = null
+  importFile.value = null
+  if (fileInputRef.value) fileInputRef.value.value = ''
 }
 
-const submitImport = async () => {
-  if (!importFile.value) return
-  importLoading.value = true
+const clearImportFile = () => {
+  importFile.value = null
   importResult.value = null
-  try {
-    const token = localStorage.getItem('token')
-    const formData = new FormData()
-    formData.append('file', importFile.value)
-    const res = await fetch(`${API_URL}/session/import`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    })
-    importResult.value = await res.json()
-    if (res.ok && importResult.value.imported > 0) {
-      await fetchData()
-    }
-  } catch {
-    importResult.value = { imported: 0, total: 0, errors: ['Lỗi kết nối server'] }
-  } finally {
-    importLoading.value = false
-  }
+  if (fileInputRef.value) fileInputRef.value.value = ''
+}
+
+const formatFileSize = (bytes) => {
+  if (!bytes) return ''
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+const translateError = (msg) => {
+  if (!msg) return 'Lỗi không xác định'
+  const m = msg.toLowerCase()
+  if (m.includes('root element') || m.includes('health-data')) return 'File XML không đúng định dạng. Phần tử gốc phải là <health-data>.'
+  if (m.includes('invalid xml') || m.includes('parse')) return 'File XML bị lỗi hoặc không hợp lệ. Vui lòng thử xuất lại từ đồng hồ.'
+  if (m.includes('not found') || m.includes('missing')) return 'File thiếu dữ liệu cần thiết. Vui lòng kiểm tra lại file XML.'
+  if (m.includes('network') || m.includes('fetch')) return 'Lỗi kết nối mạng. Vui lòng kiểm tra internet và thử lại.'
+  if (m.includes('unauthorized') || m.includes('401')) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
+  if (m.includes('permission') || m.includes('403')) return 'Bạn không có quyền thực hiện thao tác này.'
+  if (m.includes('server') || m.includes('500')) return 'Lỗi hệ thống. Vui lòng thử lại sau.'
+  return msg
 }
 
 const showToast = (message, type = 'success') => {
@@ -777,7 +870,15 @@ async function fetchData() {
 }
 
 const onImportFileChange = (event) => {
-  importFile.value = event.target.files[0]
+  const file = event.target.files[0]
+  if (!file) return
+  if (!file.name.toLowerCase().endsWith('.xml')) {
+    importResult.value = { errors: ['Chỉ chấp nhận file XML. Vui lòng chọn file có đuôi .xml từ đồng hồ thông minh của bạn.'] }
+    importFile.value = null
+    if (fileInputRef.value) fileInputRef.value.value = ''
+    return
+  }
+  importFile.value = file
   importResult.value = null
 }
 
@@ -799,13 +900,13 @@ const submitImport = async () => {
     const data = await res.json()
     if (res.ok) {
       importResult.value = data
-      // Refresh dashboard data after successful import
       await fetchData()
     } else {
-      importResult.value = { errors: [data.detail || 'Import failed'] }
+      const errMsg = data.detail || data.message || 'Không thể nhập dữ liệu'
+      importResult.value = { errors: [errMsg] }
     }
-  } catch (e) {
-    importResult.value = { errors: ['Network error'] }
+  } catch {
+    importResult.value = { errors: ['Lỗi kết nối mạng. Vui lòng kiểm tra internet và thử lại.'] }
   } finally {
     importLoading.value = false
   }
@@ -872,5 +973,24 @@ onUnmounted(() => {
 .toast-leave-to {
   opacity: 0;
   transform: translateY(20px);
+}
+
+.slide-in-enter-active {
+  transition: all 0.35s ease;
+}
+.slide-in-leave-active {
+  transition: all 0.25s ease;
+}
+.slide-in-enter-from {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+.slide-in-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.file-drop-zone {
+  min-height: 80px;
 }
 </style>
