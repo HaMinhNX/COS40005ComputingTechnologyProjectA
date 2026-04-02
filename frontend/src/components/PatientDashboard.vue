@@ -19,11 +19,9 @@
     </div>
 
     <!-- Health Metrics Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
+    <div v-if="healthData.hasData" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
       <!-- Heart Rate -->
-      <div
-        class="bg-white rounded-2xl p-7 border-3 border-red-200 shadow-xl hover:scale-105 transition-transform duration-200"
-      >
+      <div class="bg-white rounded-2xl p-7 border-3 border-red-200 shadow-xl hover:scale-105 transition-transform duration-200">
         <div class="flex items-center justify-between mb-3">
           <div class="w-16 h-16 rounded-xl bg-red-500 shadow-lg flex items-center justify-center">
             <Heart :size="32" class="text-white" />
@@ -37,36 +35,24 @@
       </div>
 
       <!-- SpO2 -->
-      <div
-        class="bg-white rounded-2xl p-7 border-3 border-emerald-200 shadow-xl hover:scale-105 transition-transform duration-200"
-      >
+      <div class="bg-white rounded-2xl p-7 border-3 border-emerald-200 shadow-xl hover:scale-105 transition-transform duration-200">
         <div class="flex items-center justify-between mb-3">
-          <div
-            class="w-16 h-16 rounded-xl bg-emerald-500 shadow-lg flex items-center justify-center"
-          >
+          <div class="w-16 h-16 rounded-xl bg-emerald-500 shadow-lg flex items-center justify-center">
             <Wind :size="32" class="text-white" />
           </div>
-          <span class="text-sm font-black text-emerald-700 bg-emerald-100 px-3 py-1.5 rounded-xl"
-            >Tốt</span
-          >
+          <span class="text-sm font-black text-emerald-700 bg-emerald-100 px-3 py-1.5 rounded-xl">Tốt</span>
         </div>
         <div class="mb-3">
-          <div class="text-5xl font-black text-emerald-600 mb-1">
-            {{ healthData.spo2 }}<span class="text-3xl">%</span>
-          </div>
+          <div class="text-5xl font-black text-emerald-600 mb-1">{{ healthData.spo2 }}<span class="text-3xl">%</span></div>
           <div class="text-xl font-black text-emerald-700 uppercase tracking-wide">Oxy máu</div>
         </div>
         <p class="text-base text-slate-700 font-bold leading-relaxed">Nồng độ oxy trong máu</p>
       </div>
 
       <!-- Sleep Quality -->
-      <div
-        class="bg-white rounded-2xl p-7 border-3 border-purple-200 shadow-xl hover:scale-105 transition-transform duration-200"
-      >
+      <div class="bg-white rounded-2xl p-7 border-3 border-purple-200 shadow-xl hover:scale-105 transition-transform duration-200">
         <div class="flex items-center justify-between mb-3">
-          <div
-            class="w-16 h-16 rounded-xl bg-purple-500 shadow-lg flex items-center justify-center"
-          >
+          <div class="w-16 h-16 rounded-xl bg-purple-500 shadow-lg flex items-center justify-center">
             <Moon :size="32" class="text-white" />
           </div>
         </div>
@@ -78,13 +64,9 @@
       </div>
 
       <!-- Calories -->
-      <div
-        class="bg-white rounded-2xl p-7 border-3 border-orange-200 shadow-xl hover:scale-105 transition-transform duration-200"
-      >
+      <div class="bg-white rounded-2xl p-7 border-3 border-orange-200 shadow-xl hover:scale-105 transition-transform duration-200">
         <div class="flex items-center justify-between mb-3">
-          <div
-            class="w-16 h-16 rounded-xl bg-orange-500 shadow-lg flex items-center justify-center"
-          >
+          <div class="w-16 h-16 rounded-xl bg-orange-500 shadow-lg flex items-center justify-center">
             <Flame :size="32" class="text-white" />
           </div>
         </div>
@@ -96,9 +78,7 @@
       </div>
 
       <!-- Resting Heart Rate -->
-      <div
-        class="bg-white rounded-2xl p-7 border-3 border-blue-200 shadow-xl hover:scale-105 transition-transform duration-200"
-      >
+      <div class="bg-white rounded-2xl p-7 border-3 border-blue-200 shadow-xl hover:scale-105 transition-transform duration-200">
         <div class="flex items-center justify-between mb-3">
           <div class="w-16 h-16 rounded-xl bg-blue-500 shadow-lg flex items-center justify-center">
             <Activity :size="32" class="text-white" />
@@ -112,13 +92,9 @@
       </div>
 
       <!-- Exercise Summary -->
-      <div
-        class="bg-white rounded-2xl p-7 border-3 border-indigo-200 shadow-xl hover:scale-105 transition-transform duration-200"
-      >
+      <div class="bg-white rounded-2xl p-7 border-3 border-indigo-200 shadow-xl hover:scale-105 transition-transform duration-200">
         <div class="flex items-center justify-between mb-3">
-          <div
-            class="w-16 h-16 rounded-xl bg-indigo-500 shadow-lg flex items-center justify-center"
-          >
+          <div class="w-16 h-16 rounded-xl bg-indigo-500 shadow-lg flex items-center justify-center">
             <Dumbbell :size="32" class="text-white" />
           </div>
         </div>
@@ -139,6 +115,44 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- No wearable data — XML upload prompt -->
+    <div v-else class="mb-10">
+      <!-- Exercise stats still shown (from workout sessions) -->
+      <div class="grid grid-cols-3 gap-6 mb-6">
+        <div class="bg-white rounded-2xl p-6 border-2 border-indigo-200 shadow-lg text-center">
+          <div class="text-4xl font-black text-indigo-600">{{ stats.total_days || 0 }}</div>
+          <div class="text-sm font-bold text-indigo-700 uppercase mt-1">Ngày đã tập</div>
+        </div>
+        <div class="bg-white rounded-2xl p-6 border-2 border-indigo-200 shadow-lg text-center">
+          <div class="text-4xl font-black text-indigo-600">{{ stats.total_reps || 0 }}</div>
+          <div class="text-sm font-bold text-indigo-700 uppercase mt-1">Tổng reps</div>
+        </div>
+        <div class="bg-white rounded-2xl p-6 border-2 border-emerald-200 shadow-lg text-center">
+          <div class="text-4xl font-black text-emerald-600">{{ brainStats.today_score || 0 }}</div>
+          <div class="text-sm font-bold text-emerald-700 uppercase mt-1 flex items-center justify-center gap-1">
+            <Sparkles :size="14" /> Điểm trí tuệ
+          </div>
+        </div>
+      </div>
+
+      <!-- XML upload card -->
+      <div class="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl border-2 border-dashed border-blue-300 p-10 text-center">
+        <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Activity :size="40" class="text-blue-400" />
+        </div>
+        <h3 class="text-xl font-black text-slate-800 mb-2">Chưa có dữ liệu sức khỏe</h3>
+        <p class="text-slate-500 font-bold mb-6 max-w-md mx-auto">
+          Tải lên file XML từ đồng hồ thông minh của bạn (Apple Health, Garmin, Fitbit) để xem nhịp tim, SpO2 và chất lượng giấc ngủ.
+        </p>
+        <label class="cursor-pointer inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-black rounded-xl shadow-lg transition-all hover:scale-105">
+          <Upload :size="20" />
+          Tải lên file JSON
+          <input type="file" accept=".json" class="hidden" @change="handleXmlUpload" />
+        </label>
+        <p class="text-xs text-slate-400 font-medium mt-3">Hỗ trợ: SmartWatch Pro, Apple Health JSON, Garmin JSON</p>
       </div>
     </div>
 
@@ -402,6 +416,7 @@ import {
   Mail,
   Send,
   Sparkles,
+  Upload,
 } from 'lucide-vue-next'
 import * as d3 from 'd3'
 import { API_BASE_URL } from '../config'
@@ -410,11 +425,12 @@ const props = defineProps(['userId'])
 
 // Health data from smartwatch
 const healthData = ref({
-  heartRate: 72,
-  calories: 420,
-  restingHR: 58,
-  spo2: 98,
-  sleepQuality: 85,
+  heartRate: null,
+  calories: null,
+  restingHR: null,
+  spo2: null,
+  sleepQuality: null,
+  hasData: false,
 })
 
 // Exercise stats
@@ -475,16 +491,17 @@ const sendReport = async () => {
 // Generate dynamic health data
 const updateHealthData = async () => {
   if (!props.userId) return
-  
   try {
     const token = localStorage.getItem('token')
-    const headers = { Authorization: `Bearer ${token}` }
-    const res = await fetch(`${API_URL}/patient/health-metrics/${props.userId}`, { headers })
+    const res = await fetch(`${API_URL}/wearable/latest/${props.userId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
     if (res.ok) {
-      healthData.value = await res.json()
+      const data = await res.json()
+      healthData.value = data
     }
   } catch {
-    console.error('Failed to load real health metrics');
+    console.error('Failed to load wearable health data')
   }
 }
 
@@ -618,6 +635,33 @@ const drawWeeklyChart = (weeklyData) => {
     .attr('fill', '#fff')
     .attr('stroke', '#6366f1')
     .attr('stroke-width', 2)
+}
+
+const handleXmlUpload = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = async (e) => {
+    try {
+      const json = JSON.parse(e.target.result)
+      const token = localStorage.getItem('token')
+      const res = await fetch(`${API_URL}/wearable/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(json),
+      })
+      if (res.ok) {
+        showToast('Dữ liệu sức khỏe đã được lưu thành công!', 'success')
+        await updateHealthData()
+      } else {
+        const err = await res.json()
+        showToast(err.detail || 'Lỗi khi lưu dữ liệu', 'error')
+      }
+    } catch {
+      showToast('File không hợp lệ. Vui lòng kiểm tra định dạng JSON.', 'error')
+    }
+  }
+  reader.readAsText(file)
 }
 
 async function fetchData() {

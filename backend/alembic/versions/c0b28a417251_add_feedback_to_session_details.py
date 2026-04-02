@@ -20,10 +20,11 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    op.add_column('session_details', sa.Column('feedback', sa.Text(), nullable=True))
+    # feedback already included in initial migration
+    pass
 
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.drop_column('session_details', 'feedback')
+    pass
 

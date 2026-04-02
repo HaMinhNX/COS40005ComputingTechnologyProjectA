@@ -17,8 +17,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.drop_constraint('users_full_name_unique', 'users', type_='unique')
+    # constraint never existed on fresh DB, already not present in initial migration
+    pass
 
 
 def downgrade() -> None:
-    op.create_unique_constraint('users_full_name_unique', 'users', ['full_name'])
+    pass
