@@ -8,6 +8,9 @@
           <span class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></span>
           Dữ liệu từ smartwatch
         </p>
+        <p v-if="healthData.hasData" class="text-sm text-slate-500 font-semibold mt-1">
+          Đồng bộ: {{ healthData.device || 'Thiết bị không xác định' }} • {{ formatWeekRange() }}
+        </p>
       </div>
     <button
       @click="showEmailModal = true"
@@ -31,7 +34,7 @@
           <div class="text-5xl font-black text-red-600 mb-1">{{ healthData.heartRate }}</div>
           <div class="text-xl font-black text-red-700 uppercase tracking-wide">BPM</div>
         </div>
-        <p class="text-base text-slate-700 font-bold leading-relaxed">Nhịp tim trung bình</p>
+        <p class="text-base text-slate-700 font-bold leading-relaxed">Nhịp tim trung bình tuần</p>
       </div>
 
       <!-- SpO2 -->
@@ -40,7 +43,14 @@
           <div class="w-16 h-16 rounded-xl bg-emerald-500 shadow-lg flex items-center justify-center">
             <Wind :size="32" class="text-white" />
           </div>
-          <span class="text-sm font-black text-emerald-700 bg-emerald-100 px-3 py-1.5 rounded-xl">Tốt</span>
+          <span
+            :class="[
+              'text-sm font-black px-3 py-1.5 rounded-xl',
+              getSpo2BadgeClass(healthData.spo2),
+            ]"
+          >
+            {{ getSpo2Label(healthData.spo2) }}
+          </span>
         </div>
         <div class="mb-3">
           <div class="text-5xl font-black text-emerald-600 mb-1">{{ healthData.spo2 }}<span class="text-3xl">%</span></div>
@@ -60,7 +70,7 @@
           <div class="text-5xl font-black text-purple-600 mb-1">{{ healthData.sleepQuality }}</div>
           <div class="text-xl font-black text-purple-700 uppercase tracking-wide">/ 100</div>
         </div>
-        <p class="text-base text-slate-700 font-bold leading-relaxed">Chất lượng giấc ngủ</p>
+        <p class="text-base text-slate-700 font-bold leading-relaxed">Chất lượng giấc ngủ trung bình tuần</p>
       </div>
 
       <!-- Calories -->
@@ -74,7 +84,7 @@
           <div class="text-5xl font-black text-orange-600 mb-1">{{ healthData.calories }}</div>
           <div class="text-xl font-black text-orange-700 uppercase tracking-wide">KCAL</div>
         </div>
-        <p class="text-base text-slate-700 font-bold leading-relaxed">Calo đã đốt hôm nay</p>
+        <p class="text-base text-slate-700 font-bold leading-relaxed">Tổng calo trong tuần</p>
       </div>
 
       <!-- Resting Heart Rate -->
@@ -88,7 +98,7 @@
           <div class="text-5xl font-black text-blue-600 mb-1">{{ healthData.restingHR }}</div>
           <div class="text-xl font-black text-blue-700 uppercase tracking-wide">BPM</div>
         </div>
-        <p class="text-base text-slate-700 font-bold leading-relaxed">Nhịp tim lúc nghỉ</p>
+        <p class="text-base text-slate-700 font-bold leading-relaxed">Nhịp tim nghỉ trung bình tuần</p>
       </div>
 
       <!-- Exercise Summary -->
@@ -118,7 +128,7 @@
       </div>
     </div>
 
-    <!-- No wearable data — XML upload prompt -->
+    <!-- No wearable data — JSON upload prompt -->
     <div v-else class="mb-10">
       <!-- Exercise stats still shown (from workout sessions) -->
       <div class="grid grid-cols-3 gap-6 mb-6">
@@ -138,14 +148,14 @@
         </div>
       </div>
 
-      <!-- XML upload card -->
+      <!-- JSON upload card -->
       <div class="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl border-2 border-dashed border-blue-300 p-10 text-center">
         <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <Activity :size="40" class="text-blue-400" />
         </div>
         <h3 class="text-xl font-black text-slate-800 mb-2">Chưa có dữ liệu sức khỏe</h3>
         <p class="text-slate-500 font-bold mb-6 max-w-md mx-auto">
-          Tải lên file XML từ đồng hồ thông minh của bạn (Apple Health, Garmin, Fitbit) để xem nhịp tim, SpO2 và chất lượng giấc ngủ.
+          Tải lên file JSON từ đồng hồ thông minh của bạn (Apple Health, Garmin, Fitbit) để xem nhịp tim, SpO2 và chất lượng giấc ngủ.
         </p>
         <label class="cursor-pointer inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-black rounded-xl shadow-lg transition-all hover:scale-105">
           <Upload :size="20" />
@@ -248,10 +258,10 @@
         <div class="flex items-center justify-between mb-4">
           <h3 class="font-black text-slate-900 text-xl flex items-center gap-2">
             <Heart :size="22" class="text-red-500" />
-            Nhịp tim tuần này
+            Nhịp tim ước tính theo vận động
           </h3>
           <span class="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full"
-            >7 ngày</span
+            >Ước tính</span
           >
         </div>
         <div id="heart-rate-chart" class="h-80 w-full"></div>
@@ -399,7 +409,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick, markRaw } from 'vue'
+import { ref, onMounted, onUnmounted, onActivated, nextTick, markRaw, watch } from 'vue'
 import {
   Heart,
   Flame,
@@ -451,12 +461,35 @@ const emailForm = ref({
   receiverEmail: '',
 })
 const emailToast = ref({ show: false, message: '', type: 'success' })
+let isFetchingDashboard = false
+const handleResize = () => {}
 
 const showToast = (message, type = 'success') => {
   emailToast.value = { show: true, message, type }
   setTimeout(() => {
     emailToast.value.show = false
   }, 4000)
+}
+
+const formatWeekRange = () => {
+  if (!healthData.value.weekStart || !healthData.value.weekEnd) return 'Tuần gần nhất'
+  const start = new Date(healthData.value.weekStart).toLocaleDateString('vi-VN')
+  const end = new Date(healthData.value.weekEnd).toLocaleDateString('vi-VN')
+  return `${start} - ${end}`
+}
+
+const getSpo2Label = (spo2) => {
+  if (!spo2 && spo2 !== 0) return 'N/A'
+  if (spo2 >= 97) return 'Tốt'
+  if (spo2 >= 95) return 'Theo dõi'
+  return 'Thấp'
+}
+
+const getSpo2BadgeClass = (spo2) => {
+  if (!spo2 && spo2 !== 0) return 'bg-slate-100 text-slate-600'
+  if (spo2 >= 97) return 'bg-emerald-100 text-emerald-700'
+  if (spo2 >= 95) return 'bg-amber-100 text-amber-700'
+  return 'bg-red-100 text-red-700'
 }
 
 const sendReport = async () => {
@@ -490,10 +523,10 @@ const sendReport = async () => {
 
 // Generate dynamic health data
 const updateHealthData = async () => {
-  if (!props.userId) return
   try {
     const token = localStorage.getItem('token')
-    const res = await fetch(`${API_URL}/wearable/latest/${props.userId}`, {
+    if (!token) return
+    const res = await fetch(`${API_URL}/wearable/latest/me`, {
       headers: { Authorization: `Bearer ${token}` }
     })
     if (res.ok) {
@@ -666,6 +699,9 @@ const handleXmlUpload = async (event) => {
 
 async function fetchData() {
   if (!props.userId) return
+  if (isFetchingDashboard) return
+
+  isFetchingDashboard = true
   try {
     const query = `?user_id=${props.userId}`
     const token = localStorage.getItem('token')
@@ -697,8 +733,26 @@ async function fetchData() {
     })
   } catch (e) {
     console.error('Error loading dashboard data:', e)
+  } finally {
+    isFetchingDashboard = false
   }
 }
+
+watch(
+  () => props.userId,
+  (newUserId) => {
+    if (newUserId) {
+      fetchData()
+    }
+  },
+  { immediate: true },
+)
+
+onActivated(() => {
+  if (props.userId) {
+    fetchData()
+  }
+})
 
 onMounted(() => {
   // Pre-fill patient name from localStorage
@@ -712,17 +766,11 @@ onMounted(() => {
     }
   }
 
-  fetchData()
-
-  window.addEventListener('resize', () => {
-    // Cannot redraw easily without storing chartData globally, but that's fine for now 
-    // Data is static until refresh. 
-    // We can just rely on refresh, or optionally define a reactive ref for chartData
-  })
+  window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('resize', () => {})
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 

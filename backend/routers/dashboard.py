@@ -5,7 +5,7 @@ from datetime import datetime, date, timedelta
 from uuid import UUID
 import uuid
 from database import get_db
-from models import User, WorkoutSession, SessionDetail
+from models import User, WorkoutSession, SessionDetail, PatientNote
 
 
 router = APIRouter(
@@ -94,6 +94,134 @@ async def get_patient_charts(patient_id: UUID, db: Session = Depends(get_db)):
         "weekly_activity": [{"date": str(d.date), "reps": int(d.reps)} for d in weekly_data],
         "accuracy_trend": [{"date": str(d.date), "score": float(d.score)} for d in accuracy_data],
         "muscle_focus": [{"exercise_type": d.exercise_type, "count": d.count} for d in muscle_data]
+    }
+
+
+@router.get("/patient/overview/{patient_id}")
+async def get_patient_overview(patient_id: UUID, db: Session = Depends(get_db)):
+    """Return patient sessions, logs, notes, charts and overall stats in one response."""
+    today = date.today()
+    last_week = today - timedelta(days=7)
+
+    sessions_data = db.query(
+        WorkoutSession.session_id,
+        WorkoutSession.start_time,
+        WorkoutSession.end_time,
+        WorkoutSession.status,
+        func.coalesce(func.sum(SessionDetail.mistakes_count), 0).label("total_errors_detected"),
+        func.coalesce(func.sum(SessionDetail.reps_completed), 0).label("total_reps_completed"),
+        func.max(SessionDetail.exercise_type).label("exercise_type")
+    ).outerjoin(
+        SessionDetail,
+        SessionDetail.session_id == WorkoutSession.session_id
+    ).filter(
+        WorkoutSession.user_id == patient_id
+    ).group_by(
+        WorkoutSession.session_id,
+        WorkoutSession.start_time,
+        WorkoutSession.end_time,
+        WorkoutSession.status
+    ).order_by(
+        desc(WorkoutSession.start_time)
+    ).limit(50).all()
+
+    logs_data = db.query(
+        SessionDetail.exercise_type,
+        SessionDetail.reps_completed.label("rep_number"),
+        SessionDetail.duration_seconds.label("rep_duration_seconds"),
+        WorkoutSession.start_time,
+        WorkoutSession.end_time,
+        SessionDetail.completed_at,
+        SessionDetail.accuracy_score
+    ).join(WorkoutSession).filter(
+        WorkoutSession.user_id == patient_id
+    ).order_by(desc(SessionDetail.completed_at)).limit(50).all()
+
+    notes_data = db.query(PatientNote).filter(
+        PatientNote.patient_id == patient_id
+    ).order_by(desc(PatientNote.created_at)).all()
+
+    weekly_data = db.query(
+        func.date(SessionDetail.completed_at).label('date'),
+        func.sum(SessionDetail.reps_completed).label('reps')
+    ).join(WorkoutSession).filter(
+        WorkoutSession.user_id == patient_id,
+        func.date(SessionDetail.completed_at) >= last_week
+    ).group_by(func.date(SessionDetail.completed_at)).all()
+
+    accuracy_data = db.query(
+        func.date(SessionDetail.completed_at).label('date'),
+        func.avg(SessionDetail.accuracy_score).label('score')
+    ).join(WorkoutSession).filter(
+        WorkoutSession.user_id == patient_id
+    ).group_by(func.date(SessionDetail.completed_at)).order_by('date').limit(10).all()
+
+    muscle_data = db.query(
+        SessionDetail.exercise_type,
+        func.count(SessionDetail.detail_id).label('count')
+    ).join(WorkoutSession).filter(
+        WorkoutSession.user_id == patient_id
+    ).group_by(SessionDetail.exercise_type).all()
+
+    total_sessions = db.query(WorkoutSession).filter(
+        WorkoutSession.user_id == patient_id
+    ).count()
+    total_reps = db.query(func.sum(SessionDetail.reps_completed)).join(WorkoutSession).filter(
+        WorkoutSession.user_id == patient_id
+    ).scalar() or 0
+    total_duration = db.query(func.sum(SessionDetail.duration_seconds)).join(WorkoutSession).filter(
+        WorkoutSession.user_id == patient_id
+    ).scalar() or 0
+    total_days = db.query(func.count(func.distinct(func.date(WorkoutSession.start_time)))).filter(
+        WorkoutSession.user_id == patient_id
+    ).scalar() or 0
+
+    return {
+        "sessions": [
+            {
+                "session_id": str(s.session_id),
+                "start_time": s.start_time,
+                "end_time": s.end_time,
+                "status": s.status,
+                "total_errors_detected": int(s.total_errors_detected or 0),
+                "total_reps_completed": int(s.total_reps_completed or 0),
+                "exercise_type": s.exercise_type or "mixed",
+            }
+            for s in sessions_data
+        ],
+        "logs": [
+            {
+                "exercise_type": l.exercise_type,
+                "rep_number": l.rep_number,
+                "rep_duration_seconds": l.rep_duration_seconds,
+                "start_time": l.start_time,
+                "end_time": l.end_time,
+                "completed_at": l.completed_at,
+                "accuracy_score": float(l.accuracy_score) if l.accuracy_score else 0,
+            }
+            for l in logs_data
+        ],
+        "notes": [
+            {
+                "note_id": n.note_id,
+                "title": n.title,
+                "content": n.content,
+                "created_at": n.created_at,
+                "doctor_name": n.doctor.full_name if n.doctor else "Unknown",
+            }
+            for n in notes_data
+        ],
+        "charts": {
+            "weekly_activity": [{"date": str(d.date), "reps": int(d.reps)} for d in weekly_data],
+            "accuracy_trend": [{"date": str(d.date), "score": float(d.score)} for d in accuracy_data],
+            "muscle_focus": [{"exercise_type": d.exercise_type, "count": d.count} for d in muscle_data],
+        },
+        "overall_stats": {
+            "total_sessions": total_sessions,
+            "total_reps": int(total_reps),
+            "total_duration": int(total_duration),
+            "total_days": total_days,
+        },
     }
 
 @router.get("/today-progress")

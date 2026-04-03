@@ -67,7 +67,7 @@
           <CheckCircle :size="24" />
         </div>
         <div class="stat-info">
-          <span class="stat-label">Điểm trung bình</span>
+          <span class="stat-label">Điểm TB hệ thống</span>
           <h3 class="stat-value">{{ stats.avgFormScore }}%</h3>
           <div class="progress-mini">
             <div class="progress-fill" :style="{ width: `${stats.avgFormScore}%` }"></div>
@@ -268,10 +268,10 @@
                   <Activity :size="16" />
                 </div>
                 <div class="activity-details">
-                  <span class="act-name">{{ session.exercise_type }}</span>
+                  <span class="act-name">{{ session.exercise_type || 'Buổi tập tổng hợp' }}</span>
                   <span class="act-time">{{ formatDate(session.start_time) }}</span>
                 </div>
-                <div class="activity-score">{{ session.total_reps_completed }} reps</div>
+                <div class="activity-score">{{ session.total_reps_completed || 0 }} reps</div>
               </div>
             </div>
           </div>
@@ -362,6 +362,7 @@ import { API_BASE_URL } from '../config'
 
 // State
 const API_BASE = API_BASE_URL
+const PATIENT_DATA_CACHE_TTL_MS = 60 * 1000
 const patients = ref([])
 const selectedPatientId = ref(null)
 const selectedPatient = ref(null)
@@ -382,6 +383,7 @@ const trends = ref({
 })
 const patientNotes = ref([])
 const currentUser = ref({ full_name: 'Bác sĩ' })
+const patientDataCache = new Map()
 
 // Patient charts data
 const patientCharts = ref({
@@ -550,50 +552,61 @@ const loadPatients = async () => {
 }
 
 const loadPatientData = async (id) => {
+  const cached = patientDataCache.get(id)
+  const isFreshCache = cached && Date.now() - cached.timestamp < PATIENT_DATA_CACHE_TTL_MS
+
+  if (isFreshCache) {
+    sessions.value = cached.sessions
+    logs.value = cached.logs
+    patientNotes.value = cached.notes
+    patientCharts.value = cached.charts
+    nextTick(() => drawAccuracyChart())
+    return
+  }
+
   try {
     const token = localStorage.getItem('token')
-    const [sessRes, logsRes, notesRes, chartsRes, statsRes] = await Promise.all([
-      fetch(`${API_BASE}/patient-sessions/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-      fetch(`${API_BASE}/patient-logs/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-      fetch(`${API_BASE}/patient-notes/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-      fetch(`${API_BASE}/patient/charts/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-      fetch(`${API_BASE}/overall-stats?user_id=${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-    ])
+    const res = await fetch(`${API_BASE}/patient/overview/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
 
-    if (sessRes.ok) sessions.value = await sessRes.json()
-    if (logsRes.ok) logs.value = await logsRes.json()
-    if (notesRes.ok) patientNotes.value = await notesRes.json()
+    if (!res.ok) return
 
-    if (chartsRes.ok) {
-      const chartsData = await chartsRes.json()
-      patientCharts.value.weeklyActivity = chartsData.weekly_activity || []
-      patientCharts.value.accuracyTrend = chartsData.accuracy_trend || []
-      patientCharts.value.muscleFocus = chartsData.muscle_focus || []
-    }
+    const payload = await res.json()
+    sessions.value = payload.sessions || []
+    logs.value = payload.logs || []
+    patientNotes.value = payload.notes || []
 
-    if (statsRes.ok) {
-      const st = await statsRes.json()
-      patientCharts.value.totalReps = st.total_reps || 0
-      patientCharts.value.totalSessions = st.total_sessions || 0
-      patientCharts.value.activeDays = st.total_days || 0
-    }
+    const chartsData = payload.charts || {}
+    patientCharts.value.weeklyActivity = chartsData.weekly_activity || []
+    patientCharts.value.accuracyTrend = chartsData.accuracy_trend || []
+    patientCharts.value.muscleFocus = chartsData.muscle_focus || []
+
+    const st = payload.overall_stats || {}
+    patientCharts.value.totalReps = st.total_reps || 0
+    patientCharts.value.totalSessions = st.total_sessions || 0
+    patientCharts.value.activeDays = st.total_days || 0
 
     // Calculate avg accuracy
     if (logs.value.length) {
       const avg = logs.value.reduce((a, b) => a + (b.accuracy_score || 0), 0) / logs.value.length
       patientCharts.value.avgAccuracy = Math.round(avg)
-      stats.value.avgFormScore = Math.round(avg)
+    } else {
+      patientCharts.value.avgAccuracy = 0
     }
+
+    patientDataCache.set(id, {
+      timestamp: Date.now(),
+      sessions: [...sessions.value],
+      logs: [...logs.value],
+      notes: [...patientNotes.value],
+      charts: {
+        ...patientCharts.value,
+        weeklyActivity: [...patientCharts.value.weeklyActivity],
+        accuracyTrend: [...patientCharts.value.accuracyTrend],
+        muscleFocus: [...patientCharts.value.muscleFocus],
+      },
+    })
 
     nextTick(() => drawAccuracyChart())
   } catch (e) {

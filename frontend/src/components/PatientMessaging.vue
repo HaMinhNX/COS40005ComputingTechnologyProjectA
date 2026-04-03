@@ -212,7 +212,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { Search, MessageCircle, MoreVertical, Paperclip, Send } from 'lucide-vue-next'
 import { API_BASE_URL } from '../config'
 
@@ -225,6 +225,8 @@ const messages = ref([])
 const newMessage = ref('')
 const currentUserId = ref(null)
 const msgList = ref(null)
+let pollIntervalId = null
+let isLoadingMessages = false
 
 const suggestedQuestions = [
   'Bác sĩ ơi, bài tập hôm nay của tôi là gì?',
@@ -287,6 +289,9 @@ async function loadDoctors() {
 
 async function loadMessages() {
   if (!selectedDoctor.value || !currentUserId.value) return
+  if (isLoadingMessages) return
+
+  isLoadingMessages = true
   try {
     const token = localStorage.getItem('token')
     const res = await fetch(
@@ -307,6 +312,8 @@ async function loadMessages() {
     }
   } catch (e) {
     console.error('Error loading messages:', e)
+  } finally {
+    isLoadingMessages = false
   }
 }
 
@@ -393,9 +400,16 @@ onMounted(async () => {
     console.error('Error getting user data:', e)
   }
 
-  setInterval(() => {
+  pollIntervalId = setInterval(() => {
     if (selectedDoctor.value) loadMessages()
   }, 3000)
+})
+
+onUnmounted(() => {
+  if (pollIntervalId) {
+    clearInterval(pollIntervalId)
+    pollIntervalId = null
+  }
 })
 </script>
 

@@ -195,6 +195,14 @@ const notes = ref([])
 const showAddNote = ref(false)
 const newNote = ref({ title: '', content: '' })
 const doctorId = ref(null)
+const CACHE_TTL_MS = 60 * 1000
+const loadedAt = ref({
+  medical_record: 0,
+  history: 0,
+  notes: 0,
+})
+
+const isTabDataFresh = (tabId) => Date.now() - (loadedAt.value[tabId] || 0) < CACHE_TTL_MS
 
 // Fetch Data
 const loadPatientInfo = async () => {
@@ -219,7 +227,10 @@ const loadMedicalRecord = async () => {
     const res = await fetch(`${API_BASE_URL}/medical-records/${props.patientId}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (res.ok) medicalRecord.value = await res.json();
+    if (res.ok) {
+      medicalRecord.value = await res.json();
+      loadedAt.value.medical_record = Date.now();
+    }
   } catch { console.error('Failed to load patient info'); }
 }
 
@@ -229,7 +240,10 @@ const loadHistory = async () => {
     const res = await fetch(`${API_BASE_URL}/patient-logs/${props.patientId}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (res.ok) historyLogs.value = await res.json();
+    if (res.ok) {
+      historyLogs.value = await res.json();
+      loadedAt.value.history = Date.now();
+    }
   } catch { console.error('Failed to load patient info'); }
 }
 
@@ -239,7 +253,10 @@ const loadNotes = async () => {
     const res = await fetch(`${API_BASE_URL}/patient-notes/${props.patientId}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (res.ok) notes.value = await res.json();
+    if (res.ok) {
+      notes.value = await res.json();
+      loadedAt.value.notes = Date.now();
+    }
   } catch { console.error('Failed to load patient info'); }
 }
 
@@ -317,9 +334,9 @@ const formatTime = (dateStr) => {
 
 // Watch tab change to load data
 watch(currentTab, (newTab) => {
-  if (newTab === 'medical_record') loadMedicalRecord();
-  if (newTab === 'history') loadHistory();
-  if (newTab === 'notes') loadNotes();
+  if (newTab === 'medical_record' && !isTabDataFresh('medical_record')) loadMedicalRecord();
+  if (newTab === 'history' && !isTabDataFresh('history')) loadHistory();
+  if (newTab === 'notes' && !isTabDataFresh('notes')) loadNotes();
 })
 
 onMounted(() => {

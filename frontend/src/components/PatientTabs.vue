@@ -50,12 +50,13 @@
     <main class="flex-1 overflow-y-auto p-8 custom-scrollbar">
       <div class="h-full">
         <transition name="fade" mode="out-in">
-          <component
-            :is="currentComponent"
-            :userId="userId"
-            :key="currentTab"
-            @start-workout="handleStartWorkout"
-          />
+          <KeepAlive>
+            <component
+              :is="currentComponent"
+              :userId="userId"
+              @start-workout="handleStartWorkout"
+            />
+          </KeepAlive>
         </transition>
       </div>
     </main>
@@ -99,7 +100,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Activity,
@@ -113,14 +114,14 @@ import {
   Target,
 } from 'lucide-vue-next'
 
-// Import các component con (đảm bảo đã tạo chúng)
-import PatientDashboard from './PatientDashboard.vue'
-import PatientWorkout from './PatientWorkout.vue'
-import BrainExercise from './BrainExercise.vue'
-import SportsTraining from './SportsTraining.vue'
-import PatientScheduling from './PatientScheduling.vue'
-import PatientMessaging from './PatientMessaging.vue'
-import AIChatbox from './AIChatbox.vue'
+// Lazy-load tab components to reduce initial bundle and first paint cost.
+const PatientDashboard = defineAsyncComponent(() => import('./PatientDashboard.vue'))
+const PatientWorkout = defineAsyncComponent(() => import('./PatientWorkout.vue'))
+const BrainExercise = defineAsyncComponent(() => import('./BrainExercise.vue'))
+const SportsTraining = defineAsyncComponent(() => import('./SportsTraining.vue'))
+const PatientScheduling = defineAsyncComponent(() => import('./PatientScheduling.vue'))
+const PatientMessaging = defineAsyncComponent(() => import('./PatientMessaging.vue'))
+const AIChatbox = defineAsyncComponent(() => import('./AIChatbox.vue'))
 
 const router = useRouter()
 

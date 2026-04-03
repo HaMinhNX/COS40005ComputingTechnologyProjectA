@@ -238,7 +238,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { Search, MessageCircle, MoreVertical, Paperclip, Send } from 'lucide-vue-next'
 
 import { API_BASE_URL } from '../config'
@@ -253,6 +253,8 @@ const newMessage = ref('')
 const currentUserId = ref(null)
 const msgList = ref(null)
 const activeTab = ref('doctors') // 'doctors' | 'patients'
+let pollIntervalId = null
+let isLoadingMessages = false
 
 const suggestedQuestions = computed(() => {
   if (activeTab.value === 'patients') {
@@ -354,6 +356,9 @@ async function loadPatients() {
 
 async function loadMessages() {
   if (!selectedUser.value || !currentUserId.value) return
+  if (isLoadingMessages) return
+
+  isLoadingMessages = true
   const otherId =
     activeTab.value === 'doctors' ? selectedUser.value.user_id : selectedUser.value.patient_id
   try {
@@ -374,6 +379,8 @@ async function loadMessages() {
     }
   } catch (e) {
     console.error('Error loading messages:', e)
+  } finally {
+    isLoadingMessages = false
   }
 }
 
@@ -468,9 +475,16 @@ onMounted(async () => {
   }
 
   // Poll for messages
-  setInterval(() => {
+  pollIntervalId = setInterval(() => {
     if (selectedUser.value) loadMessages()
   }, 3000)
+})
+
+onUnmounted(() => {
+  if (pollIntervalId) {
+    clearInterval(pollIntervalId)
+    pollIntervalId = null
+  }
 })
 </script>
 
