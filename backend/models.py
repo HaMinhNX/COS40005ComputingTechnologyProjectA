@@ -260,3 +260,22 @@ class OTPVerification(Base):
     otp_code = Column(String(6), nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=False)
     user_data = Column(Text, nullable=False) # JSON encoded string
+
+
+class WearableHealthData(Base):
+    __tablename__ = "wearable_health_data"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False, index=True)
+    week_start = Column(Date, nullable=False)
+    week_end = Column(Date, nullable=False)
+    avg_heart_rate = Column(Integer)        # bpm
+    avg_resting_hr = Column(Integer)        # bpm
+    total_calories = Column(Integer)        # kcal for the week
+    avg_spo2 = Column(Numeric(4, 1))        # percent
+    avg_sleep_quality = Column(Integer)     # score 0-100
+    avg_sleep_duration_min = Column(Integer) # minutes
+    device = Column(String(100))
+    uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", backref="wearable_data")

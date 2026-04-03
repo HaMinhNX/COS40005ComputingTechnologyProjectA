@@ -1,0 +1,308 @@
+{
+  "device": "SmartWatch Pro X2",
+  "owner": "Sample User",
+  "week": "2026-03-28 to 2026-04-03",
+  "unit_system": "metric",
+  "weekly_summary": {
+    "avg_heart_rate_bpm": 74,
+    "total_kcal_burnt": 14823,
+    "avg_spo2_percent": 97.4,
+    "avg_sleep_quality_score": 72
+  },
+  "daily_records": [
+    {
+      "date": "2026-03-28",
+      "day": "Saturday",
+      "heart_rate": {
+        "avg_bpm": 72,
+        "min_bpm": 54,
+        "max_bpm": 143,
+        "resting_bpm": 58,
+        "hourly_bpm": [61, 58, 57, 56, 59, 63, 71, 78, 80, 76, 74, 79, 82, 77, 75, 74, 88, 105, 98, 82, 75, 71, 67, 63]
+      },
+      "calories": {
+        "total_kcal_burnt": 2105,
+        "active_kcal": 820,
+        "resting_kcal": 1285
+      },
+      "spo2": {
+        "avg_percent": 97.8,
+        "min_percent": 95.2,
+        "max_percent": 99.1,
+        "readings": [
+          { "time": "00:00", "percent": 97.5 },
+          { "time": "04:00", "percent": 96.8 },
+          { "time": "08:00", "percent": 98.2 },
+          { "time": "12:00", "percent": 98.5 },
+          { "time": "16:00", "percent": 97.9 },
+          { "time": "20:00", "percent": 97.3 }
+        ]
+      },
+      "sleep": {
+        "bedtime": "23:15",
+        "wake_time": "07:20",
+        "total_duration_min": 485,
+        "quality_score": 78,
+        "quality_label": "Good",
+        "stages": {
+          "awake_min": 18,
+          "light_min": 198,
+          "deep_min": 112,
+          "rem_min": 157
+        }
+      }
+    },
+    {
+      "date": "2026-03-29",
+      "day": "Sunday",
+      "heart_rate": {
+        "avg_bpm": 69,
+        "min_bpm": 52,
+        "max_bpm": 118,
+        "resting_bpm": 56,
+        "hourly_bpm": [58, 55, 54, 53, 56, 60, 67, 70, 73, 71, 69, 72, 75, 74, 72, 70, 78, 90, 85, 76, 70, 67, 63, 60]
+      },
+      "calories": {
+        "total_kcal_burnt": 1870,
+        "active_kcal": 590,
+        "resting_kcal": 1280
+      },
+      "spo2": {
+        "avg_percent": 98.1,
+        "min_percent": 96.0,
+        "max_percent": 99.3,
+        "readings": [
+          { "time": "00:00", "percent": 98.0 },
+          { "time": "04:00", "percent": 97.4 },
+          { "time": "08:00", "percent": 98.6 },
+          { "time": "12:00", "percent": 98.8 },
+          { "time": "16:00", "percent": 98.2 },
+          { "time": "20:00", "percent": 97.6 }
+        ]
+      },
+      "sleep": {
+        "bedtime": "22:45",
+        "wake_time": "07:50",
+        "total_duration_min": 545,
+        "quality_score": 85,
+        "quality_label": "Excellent",
+        "stages": {
+          "awake_min": 12,
+          "light_min": 210,
+          "deep_min": 135,
+          "rem_min": 188
+        }
+      }
+    },
+    {
+      "date": "2026-03-30",
+      "day": "Monday",
+      "heart_rate": {
+        "avg_bpm": 76,
+        "min_bpm": 57,
+        "max_bpm": 162,
+        "resting_bpm": 60,
+        "hourly_bpm": [63, 60, 58, 57, 60, 66, 74, 82, 88, 84, 79, 85, 90, 83, 80, 78, 120, 148, 130, 95, 80, 74, 69, 65]
+      },
+      "calories": {
+        "total_kcal_burnt": 2480,
+        "active_kcal": 1190,
+        "resting_kcal": 1290
+      },
+      "spo2": {
+        "avg_percent": 97.2,
+        "min_percent": 94.8,
+        "max_percent": 99.0,
+        "readings": [
+          { "time": "00:00", "percent": 97.1 },
+          { "time": "04:00", "percent": 96.2 },
+          { "time": "08:00", "percent": 97.8 },
+          { "time": "12:00", "percent": 98.1 },
+          { "time": "16:00", "percent": 97.5 },
+          { "time": "20:00", "percent": 96.8 }
+        ]
+      },
+      "sleep": {
+        "bedtime": "23:50",
+        "wake_time": "06:45",
+        "total_duration_min": 415,
+        "quality_score": 62,
+        "quality_label": "Fair",
+        "stages": {
+          "awake_min": 30,
+          "light_min": 195,
+          "deep_min": 80,
+          "rem_min": 110
+        }
+      }
+    },
+    {
+      "date": "2026-03-31",
+      "day": "Tuesday",
+      "heart_rate": {
+        "avg_bpm": 75,
+        "min_bpm": 56,
+        "max_bpm": 155,
+        "resting_bpm": 59,
+        "hourly_bpm": [62, 59, 57, 56, 59, 65, 73, 80, 85, 81, 77, 83, 87, 81, 78, 76, 115, 140, 125, 90, 78, 73, 68, 64]
+      },
+      "calories": {
+        "total_kcal_burnt": 2210,
+        "active_kcal": 925,
+        "resting_kcal": 1285
+      },
+      "spo2": {
+        "avg_percent": 97.5,
+        "min_percent": 95.5,
+        "max_percent": 99.2,
+        "readings": [
+          { "time": "00:00", "percent": 97.4 },
+          { "time": "04:00", "percent": 96.5 },
+          { "time": "08:00", "percent": 98.0 },
+          { "time": "12:00", "percent": 98.3 },
+          { "time": "16:00", "percent": 97.7 },
+          { "time": "20:00", "percent": 97.1 }
+        ]
+      },
+      "sleep": {
+        "bedtime": "23:30",
+        "wake_time": "07:00",
+        "total_duration_min": 450,
+        "quality_score": 70,
+        "quality_label": "Good",
+        "stages": {
+          "awake_min": 22,
+          "light_min": 200,
+          "deep_min": 98,
+          "rem_min": 130
+        }
+      }
+    },
+    {
+      "date": "2026-04-01",
+      "day": "Wednesday",
+      "heart_rate": {
+        "avg_bpm": 78,
+        "min_bpm": 58,
+        "max_bpm": 170,
+        "resting_bpm": 61,
+        "hourly_bpm": [65, 62, 60, 59, 62, 68, 76, 84, 91, 86, 82, 88, 92, 85, 82, 80, 130, 158, 142, 100, 83, 77, 71, 67]
+      },
+      "calories": {
+        "total_kcal_burnt": 2650,
+        "active_kcal": 1360,
+        "resting_kcal": 1290
+      },
+      "spo2": {
+        "avg_percent": 96.9,
+        "min_percent": 94.5,
+        "max_percent": 98.8,
+        "readings": [
+          { "time": "00:00", "percent": 96.8 },
+          { "time": "04:00", "percent": 95.9 },
+          { "time": "08:00", "percent": 97.5 },
+          { "time": "12:00", "percent": 97.9 },
+          { "time": "16:00", "percent": 97.2 },
+          { "time": "20:00", "percent": 96.5 }
+        ]
+      },
+      "sleep": {
+        "bedtime": "00:10",
+        "wake_time": "06:30",
+        "total_duration_min": 380,
+        "quality_score": 55,
+        "quality_label": "Poor",
+        "stages": {
+          "awake_min": 42,
+          "light_min": 188,
+          "deep_min": 65,
+          "rem_min": 85
+        }
+      }
+    },
+    {
+      "date": "2026-04-02",
+      "day": "Thursday",
+      "heart_rate": {
+        "avg_bpm": 74,
+        "min_bpm": 55,
+        "max_bpm": 148,
+        "resting_bpm": 58,
+        "hourly_bpm": [62, 59, 57, 56, 59, 64, 72, 79, 83, 80, 76, 81, 85, 80, 77, 75, 110, 135, 122, 88, 77, 72, 67, 63]
+      },
+      "calories": {
+        "total_kcal_burnt": 2180,
+        "active_kcal": 895,
+        "resting_kcal": 1285
+      },
+      "spo2": {
+        "avg_percent": 97.6,
+        "min_percent": 95.8,
+        "max_percent": 99.1,
+        "readings": [
+          { "time": "00:00", "percent": 97.5 },
+          { "time": "04:00", "percent": 96.7 },
+          { "time": "08:00", "percent": 98.1 },
+          { "time": "12:00", "percent": 98.4 },
+          { "time": "16:00", "percent": 97.8 },
+          { "time": "20:00", "percent": 97.2 }
+        ]
+      },
+      "sleep": {
+        "bedtime": "23:00",
+        "wake_time": "07:10",
+        "total_duration_min": 490,
+        "quality_score": 80,
+        "quality_label": "Good",
+        "stages": {
+          "awake_min": 15,
+          "light_min": 205,
+          "deep_min": 120,
+          "rem_min": 150
+        }
+      }
+    },
+    {
+      "date": "2026-04-03",
+      "day": "Friday",
+      "heart_rate": {
+        "avg_bpm": 73,
+        "min_bpm": 55,
+        "max_bpm": 140,
+        "resting_bpm": 57,
+        "hourly_bpm": [61, 58, 56, 55, 58, 63, 71, 78, 82, 79, 75, 80, 84, 79, 76, 74, 108, 128, 118, 86, 76, 71, 66, 62]
+      },
+      "calories": {
+        "total_kcal_burnt": 1980,
+        "active_kcal": 695,
+        "resting_kcal": 1285
+      },
+      "spo2": {
+        "avg_percent": 97.7,
+        "min_percent": 96.0,
+        "max_percent": 99.2,
+        "readings": [
+          { "time": "00:00", "percent": 97.6 },
+          { "time": "04:00", "percent": 96.8 },
+          { "time": "08:00", "percent": 98.2 },
+          { "time": "12:00", "percent": 98.5 },
+          { "time": "16:00", "percent": 97.9 },
+          { "time": "20:00", "percent": 97.3 }
+        ]
+      },
+      "sleep": {
+        "bedtime": "22:30",
+        "wake_time": "07:00",
+        "total_duration_min": 510,
+        "quality_score": 82,
+        "quality_label": "Good",
+        "stages": {
+          "awake_min": 14,
+          "light_min": 212,
+          "deep_min": 128,
+          "rem_min": 156
+        }
+      }
+    }
+  ]
+}

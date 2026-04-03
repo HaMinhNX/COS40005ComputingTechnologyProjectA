@@ -110,9 +110,9 @@ async def get_week_plans(
     # Ownership verified via ResourceAccess.patient dependency
     return db.query(WeekPlan).filter(WeekPlan.patient_id == patient_id).order_by(WeekPlan.start_date.desc()).all()
 
-@router.get("/patient/today/{user_id}")
+@router.get("/patient/today/{patient_id}")
 async def get_today_plan(
-    user_id: UUID, 
+    patient_id: UUID,
     db: Session = Depends(get_db), 
     patient: User = Depends(ResourceAccess.patient)
 ):
@@ -127,7 +127,7 @@ async def get_today_plan(
     
     # 1. Get assignments from active week plans for today's day of week
     plan = db.query(WeekPlan).filter(
-        WeekPlan.patient_id == user_id,
+        WeekPlan.patient_id == patient_id,
         WeekPlan.start_date <= today,
         WeekPlan.end_date >= today,
         WeekPlan.status == 'active'
@@ -142,7 +142,7 @@ async def get_today_plan(
     
     # 2. Get direct assignments (no week plan) with assigned_date = today
     direct_assignments = db.query(Assignment).filter(
-        Assignment.patient_id == user_id,
+        Assignment.patient_id == patient_id,
         Assignment.week_plan_id == None,  # Direct assignment, not from week plan
         Assignment.assigned_date == today
     ).all()
@@ -150,7 +150,7 @@ async def get_today_plan(
     
     # 3. Also get daily assignments (frequency = 'Daily')
     daily_assignments = db.query(Assignment).filter(
-        Assignment.patient_id == user_id,
+        Assignment.patient_id == patient_id,
         Assignment.frequency == 'Daily'
     ).all()
     

@@ -8,18 +8,24 @@
           <span class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></span>
           Dữ liệu từ smartwatch
         </p>
+        <p v-if="healthData.hasData" class="text-sm text-slate-500 font-semibold mt-1">
+          Đồng bộ: {{ healthData.device || 'Thiết bị không xác định' }} • {{ formatWeekRange() }}
+        </p>
       </div>
-    <button
-      @click="showEmailModal = true"
-      class="flex items-center gap-2 px-5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-xl transition-all hover:scale-105 text-sm"
-    >
+      <button
+        @click="showEmailModal = true"
+        class="flex items-center gap-2 px-5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-xl transition-all hover:scale-105 text-sm"
+      >
         <Mail :size="20" />
         Gửi báo cáo phục hồi
       </button>
     </div>
 
     <!-- Health Metrics Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
+    <div
+      v-if="healthData.hasData"
+      class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-10"
+    >
       <!-- Heart Rate -->
       <div
         class="bg-white rounded-2xl p-7 border-3 border-red-200 shadow-xl hover:scale-105 transition-transform duration-200"
@@ -33,7 +39,7 @@
           <div class="text-5xl font-black text-red-600 mb-1">{{ healthData.heartRate }}</div>
           <div class="text-xl font-black text-red-700 uppercase tracking-wide">BPM</div>
         </div>
-        <p class="text-base text-slate-700 font-bold leading-relaxed">Nhịp tim trung bình</p>
+        <p class="text-base text-slate-700 font-bold leading-relaxed">Nhịp tim trung bình tuần</p>
       </div>
 
       <!-- SpO2 -->
@@ -46,9 +52,14 @@
           >
             <Wind :size="32" class="text-white" />
           </div>
-          <span class="text-sm font-black text-emerald-700 bg-emerald-100 px-3 py-1.5 rounded-xl"
-            >Tốt</span
+          <span
+            :class="[
+              'text-sm font-black px-3 py-1.5 rounded-xl',
+              getSpo2BadgeClass(healthData.spo2),
+            ]"
           >
+            {{ getSpo2Label(healthData.spo2) }}
+          </span>
         </div>
         <div class="mb-3">
           <div class="text-5xl font-black text-emerald-600 mb-1">
@@ -74,7 +85,9 @@
           <div class="text-5xl font-black text-purple-600 mb-1">{{ healthData.sleepQuality }}</div>
           <div class="text-xl font-black text-purple-700 uppercase tracking-wide">/ 100</div>
         </div>
-        <p class="text-base text-slate-700 font-bold leading-relaxed">Chất lượng giấc ngủ</p>
+        <p class="text-base text-slate-700 font-bold leading-relaxed">
+          Chất lượng giấc ngủ trung bình tuần
+        </p>
       </div>
 
       <!-- Calories -->
@@ -92,7 +105,7 @@
           <div class="text-5xl font-black text-orange-600 mb-1">{{ healthData.calories }}</div>
           <div class="text-xl font-black text-orange-700 uppercase tracking-wide">KCAL</div>
         </div>
-        <p class="text-base text-slate-700 font-bold leading-relaxed">Calo đã đốt hôm nay</p>
+        <p class="text-base text-slate-700 font-bold leading-relaxed">Tổng calo trong tuần</p>
       </div>
 
       <!-- Resting Heart Rate -->
@@ -108,7 +121,9 @@
           <div class="text-5xl font-black text-blue-600 mb-1">{{ healthData.restingHR }}</div>
           <div class="text-xl font-black text-blue-700 uppercase tracking-wide">BPM</div>
         </div>
-        <p class="text-base text-slate-700 font-bold leading-relaxed">Nhịp tim lúc nghỉ</p>
+        <p class="text-base text-slate-700 font-bold leading-relaxed">
+          Nhịp tim nghỉ trung bình tuần
+        </p>
       </div>
 
       <!-- Exercise Summary -->
@@ -132,13 +147,66 @@
             <div class="text-base font-bold text-indigo-700 uppercase mt-1">Tổng reps</div>
           </div>
           <div class="border-t-2 border-slate-200 pt-2">
-            <div class="text-3xl font-black text-emerald-600">{{ brainStats.today_score || 0 }}</div>
-            <div class="text-base font-bold text-emerald-700 uppercase mt-1 flex items-center gap-2">
+            <div class="text-3xl font-black text-emerald-600">
+              {{ brainStats.today_score || 0 }}
+            </div>
+            <div
+              class="text-base font-bold text-emerald-700 uppercase mt-1 flex items-center gap-2"
+            >
               <Sparkles :size="16" />
               Điểm trí tuệ
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- No wearable data — JSON upload prompt -->
+    <div v-else class="mb-10">
+      <!-- Exercise stats still shown (from workout sessions) -->
+      <div class="grid grid-cols-3 gap-6 mb-6">
+        <div class="bg-white rounded-2xl p-6 border-2 border-indigo-200 shadow-lg text-center">
+          <div class="text-4xl font-black text-indigo-600">{{ stats.total_days || 0 }}</div>
+          <div class="text-sm font-bold text-indigo-700 uppercase mt-1">Ngày đã tập</div>
+        </div>
+        <div class="bg-white rounded-2xl p-6 border-2 border-indigo-200 shadow-lg text-center">
+          <div class="text-4xl font-black text-indigo-600">{{ stats.total_reps || 0 }}</div>
+          <div class="text-sm font-bold text-indigo-700 uppercase mt-1">Tổng reps</div>
+        </div>
+        <div class="bg-white rounded-2xl p-6 border-2 border-emerald-200 shadow-lg text-center">
+          <div class="text-4xl font-black text-emerald-600">{{ brainStats.today_score || 0 }}</div>
+          <div
+            class="text-sm font-bold text-emerald-700 uppercase mt-1 flex items-center justify-center gap-1"
+          >
+            <Sparkles :size="14" /> Điểm trí tuệ
+          </div>
+        </div>
+      </div>
+
+      <!-- JSON upload card -->
+      <div
+        class="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl border-2 border-dashed border-blue-300 p-10 text-center"
+      >
+        <div
+          class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4"
+        >
+          <Activity :size="40" class="text-blue-400" />
+        </div>
+        <h3 class="text-xl font-black text-slate-800 mb-2">Chưa có dữ liệu sức khỏe</h3>
+        <p class="text-slate-500 font-bold mb-6 max-w-md mx-auto">
+          Tải lên file JSON từ đồng hồ thông minh của bạn (Apple Health, Garmin, Fitbit) để xem nhịp
+          tim, SpO2 và chất lượng giấc ngủ.
+        </p>
+        <label
+          class="cursor-pointer inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-black rounded-xl shadow-lg transition-all hover:scale-105"
+        >
+          <Upload :size="20" />
+          Tải lên file JSON
+          <input type="file" accept=".json" class="hidden" @change="handleXmlUpload" />
+        </label>
+        <p class="text-xs text-slate-400 font-medium mt-3">
+          Hỗ trợ: SmartWatch Pro, Apple Health JSON, Garmin JSON
+        </p>
       </div>
     </div>
 
@@ -234,10 +302,10 @@
         <div class="flex items-center justify-between mb-4">
           <h3 class="font-black text-slate-900 text-xl flex items-center gap-2">
             <Heart :size="22" class="text-red-500" />
-            Nhịp tim tuần này
+            Nhịp tim ước tính theo vận động
           </h3>
           <span class="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full"
-            >7 ngày</span
+            >Ước tính</span
           >
         </div>
         <div id="heart-rate-chart" class="h-80 w-full"></div>
@@ -385,7 +453,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick, markRaw } from 'vue'
+import { ref, onMounted, onUnmounted, onActivated, nextTick, markRaw, watch } from 'vue'
 import {
   Heart,
   Flame,
@@ -402,6 +470,7 @@ import {
   Mail,
   Send,
   Sparkles,
+  Upload,
 } from 'lucide-vue-next'
 import * as d3 from 'd3'
 import { API_BASE_URL } from '../config'
@@ -410,11 +479,12 @@ const props = defineProps(['userId'])
 
 // Health data from smartwatch
 const healthData = ref({
-  heartRate: 72,
-  calories: 420,
-  restingHR: 58,
-  spo2: 98,
-  sleepQuality: 85,
+  heartRate: null,
+  calories: null,
+  restingHR: null,
+  spo2: null,
+  sleepQuality: null,
+  hasData: false,
 })
 
 // Exercise stats
@@ -435,12 +505,35 @@ const emailForm = ref({
   receiverEmail: '',
 })
 const emailToast = ref({ show: false, message: '', type: 'success' })
+let isFetchingDashboard = false
+const handleResize = () => {}
 
 const showToast = (message, type = 'success') => {
   emailToast.value = { show: true, message, type }
   setTimeout(() => {
     emailToast.value.show = false
   }, 4000)
+}
+
+const formatWeekRange = () => {
+  if (!healthData.value.weekStart || !healthData.value.weekEnd) return 'Tuần gần nhất'
+  const start = new Date(healthData.value.weekStart).toLocaleDateString('vi-VN')
+  const end = new Date(healthData.value.weekEnd).toLocaleDateString('vi-VN')
+  return `${start} - ${end}`
+}
+
+const getSpo2Label = (spo2) => {
+  if (!spo2 && spo2 !== 0) return 'N/A'
+  if (spo2 >= 97) return 'Tốt'
+  if (spo2 >= 95) return 'Theo dõi'
+  return 'Thấp'
+}
+
+const getSpo2BadgeClass = (spo2) => {
+  if (!spo2 && spo2 !== 0) return 'bg-slate-100 text-slate-600'
+  if (spo2 >= 97) return 'bg-emerald-100 text-emerald-700'
+  if (spo2 >= 95) return 'bg-amber-100 text-amber-700'
+  return 'bg-red-100 text-red-700'
 }
 
 const sendReport = async () => {
@@ -474,17 +567,18 @@ const sendReport = async () => {
 
 // Generate dynamic health data
 const updateHealthData = async () => {
-  if (!props.userId) return
-  
   try {
     const token = localStorage.getItem('token')
-    const headers = { Authorization: `Bearer ${token}` }
-    const res = await fetch(`${API_URL}/patient/health-metrics/${props.userId}`, { headers })
+    if (!token) return
+    const res = await fetch(`${API_URL}/wearable/latest/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
     if (res.ok) {
-      healthData.value = await res.json()
+      const data = await res.json()
+      healthData.value = data
     }
   } catch {
-    console.error('Failed to load real health metrics');
+    console.error('Failed to load wearable health data')
   }
 }
 
@@ -523,9 +617,9 @@ const drawHeartRateChart = (heartRateData) => {
   container.selectAll('*').remove()
 
   // Format JS date strings
-  const formattedData = heartRateData.map(d => ({
+  const formattedData = heartRateData.map((d) => ({
     date: new Date(d.date).toLocaleDateString('vi-VN', { weekday: 'short' }),
-    rate: d.rate
+    rate: d.rate,
   }))
 
   const margin = { top: 20, right: 20, bottom: 30, left: 40 }
@@ -567,9 +661,9 @@ const drawWeeklyChart = (weeklyData) => {
   if (container.empty() || !weeklyData) return
   container.selectAll('*').remove()
 
-  const formattedData = weeklyData.map(d => ({
+  const formattedData = weeklyData.map((d) => ({
     date: new Date(d.date).toLocaleDateString('vi-VN', { weekday: 'short' }),
-    reps: d.reps
+    reps: d.reps,
   }))
 
   const margin = { top: 20, right: 20, bottom: 30, left: 40 }
@@ -587,7 +681,7 @@ const drawWeeklyChart = (weeklyData) => {
   const y = d3.scaleLinear().range([height, 0])
 
   x.domain(formattedData.map((d) => d.date))
-  const maxReps = d3.max(formattedData, (d) => d.reps) || 10;
+  const maxReps = d3.max(formattedData, (d) => d.reps) || 10
   y.domain([0, maxReps * 1.2])
 
   svg.append('g').attr('transform', `translate(0,${height})`).call(d3.axisBottom(x))
@@ -620,8 +714,38 @@ const drawWeeklyChart = (weeklyData) => {
     .attr('stroke-width', 2)
 }
 
+const handleXmlUpload = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = async (e) => {
+    try {
+      const json = JSON.parse(e.target.result)
+      const token = localStorage.getItem('token')
+      const res = await fetch(`${API_URL}/wearable/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(json),
+      })
+      if (res.ok) {
+        showToast('Dữ liệu sức khỏe đã được lưu thành công!', 'success')
+        await updateHealthData()
+      } else {
+        const err = await res.json()
+        showToast(err.detail || 'Lỗi khi lưu dữ liệu', 'error')
+      }
+    } catch {
+      showToast('File không hợp lệ. Vui lòng kiểm tra định dạng JSON.', 'error')
+    }
+  }
+  reader.readAsText(file)
+}
+
 async function fetchData() {
   if (!props.userId) return
+  if (isFetchingDashboard) return
+
+  isFetchingDashboard = true
   try {
     const query = `?user_id=${props.userId}`
     const token = localStorage.getItem('token')
@@ -639,7 +763,7 @@ async function fetchData() {
     if (historyRes.ok) history.value = await historyRes.json()
     if (planRes.ok) todayPlan.value = await planRes.json()
     if (brainRes.ok) brainStats.value = await brainRes.json()
-    
+
     let chartData = null
     if (chartsRes.ok) chartData = await chartsRes.json()
 
@@ -653,8 +777,26 @@ async function fetchData() {
     })
   } catch (e) {
     console.error('Error loading dashboard data:', e)
+  } finally {
+    isFetchingDashboard = false
   }
 }
+
+watch(
+  () => props.userId,
+  (newUserId) => {
+    if (newUserId) {
+      fetchData()
+    }
+  },
+  { immediate: true },
+)
+
+onActivated(() => {
+  if (props.userId) {
+    fetchData()
+  }
+})
 
 onMounted(() => {
   // Pre-fill patient name from localStorage
@@ -668,17 +810,11 @@ onMounted(() => {
     }
   }
 
-  fetchData()
-
-  window.addEventListener('resize', () => {
-    // Cannot redraw easily without storing chartData globally, but that's fine for now 
-    // Data is static until refresh. 
-    // We can just rely on refresh, or optionally define a reactive ref for chartData
-  })
+  window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('resize', () => {})
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 

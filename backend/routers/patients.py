@@ -8,6 +8,7 @@ from dependencies import get_current_user, get_current_doctor
 from middleware.ownership import ResourceAccess
 from schemas import UserResponse, PatientCreate, PatientNoteCreate
 from utils import paginate
+from enums import UserRole
 from datetime import datetime
 
 
@@ -49,7 +50,7 @@ async def create_user(user: PatientCreate, db: Session = Depends(get_db), curren
             password_hash=get_password_hash(user.password),
             full_name=user.full_name,
             email=user.email,
-            role=user.role.value if hasattr(user.role, 'value') else user.role
+            role=UserRole.PATIENT.value
         )
         db.add(new_user)
         db.commit()
