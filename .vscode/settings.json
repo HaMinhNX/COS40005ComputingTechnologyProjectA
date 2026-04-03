@@ -14,5 +14,6 @@
   "python.analysis.extraPaths": ["./backend"],
   "python.analysis.autoImportCompletions": true,
   "python.defaultInterpreterPath": "./backend/.venv/bin/python",
-  "python.languageServer": "Default"
+  "python.languageServer": "Default",
+  "workbench.browser.enableChatTools": true
 }

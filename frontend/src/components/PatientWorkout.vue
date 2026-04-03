@@ -61,7 +61,9 @@
 
         <h2>{{ currentStep.name }}</h2>
         <div class="instruction-content">
-          <p class="instruction-text">{{ currentStep.instructions }}</p>
+          <p class="instruction-text">
+            {{ currentStep.instructions || 'Làm theo hướng dẫn trên màn hình' }}
+          </p>
           <div class="target-box">
             <span>Mục tiêu:</span>
             <strong>{{ formatTarget(currentStep) }}</strong>
@@ -95,6 +97,11 @@
               <video ref="videoEl" autoplay playsinline></video>
               <canvas ref="canvasEl"></canvas>
 
+              <!-- Current Action Guidance (sync with Free Training style) -->
+              <div v-if="isCameraOn" class="guidance-overlay">
+                <p>{{ currentActionGuidance }}</p>
+              </div>
+
               <!-- TIER 2: CORRECTIONS (3s Sticky) -->
               <div v-if="showCorrection" class="correction-overlay animate-slide-up">
                 <div class="correction-content">
@@ -126,7 +133,7 @@
             <div class="counter-label">Số lần</div>
             <div class="counter-display">
               <span class="current-count">{{ currentReps }}</span>
-              <span class="target-count">/ {{ currentStep.target }}</span>
+              <span class="target-count">/ {{ currentTargetReps }}</span>
             </div>
             <div class="progress-ring">
               <svg width="200" height="200">
@@ -139,7 +146,7 @@
                   stroke="#6366f1"
                   stroke-width="12"
                   :stroke-dasharray="565.48"
-                  :stroke-dashoffset="565.48 * (1 - currentReps / currentStep.target)"
+                  :stroke-dashoffset="565.48 * (1 - repsProgress)"
                   transform="rotate(-90 100 100)"
                   style="transition: stroke-dashoffset 0.3s ease"
                 />
@@ -153,10 +160,11 @@
               <span class="feedback-icon-large">
                 <component :is="feedbackIcon" :size="32" />
               </span>
-              <span class="feedback-label">Hướng dẫn</span>
+              <span class="feedback-label">Hướng dẫn động tác</span>
             </div>
 
-            <div class="feedback-message">{{ feedbackText }}</div>
+            <div class="feedback-message">{{ currentActionGuidance }}</div>
+            <div v-if="detailedFeedback" class="feedback-submessage">{{ detailedFeedback }}</div>
           </div>
 
           <!-- CONTROLS -->
@@ -227,7 +235,7 @@ const CAMERA_BASE = CAMERA_API_URL
 // Configuration
 const exerciseConfig = ref({
   exercises: [],
-  daily_targets: {}
+  daily_targets: {},
 })
 
 // Exercise Name Mapping - Convert Vietnamese/Display names to Backend API keys
@@ -235,16 +243,21 @@ const mapExerciseName = (name) => {
   if (!name) return null
 
   // Try to find in dynamic config
-  const found = exerciseConfig.value.exercises.find(e => 
-    e.id === name || 
-    e.name.toLowerCase() === name.toLowerCase()
+  const found = exerciseConfig.value.exercises.find(
+    (e) => e.id === name || e.name.toLowerCase() === name.toLowerCase(),
   )
   if (found) return found.id
 
   // Keyword-based fallback
   const lowerName = name.toLowerCase()
-  if (lowerName.includes('squat') || lowerName.includes('ngồi xuống') || lowerName.includes('đứng lên')) return 'squat'
-  if (lowerName.includes('curl') || lowerName.includes('bắp tay') || lowerName.includes('gập')) return 'bicep-curl'
+  if (
+    lowerName.includes('squat') ||
+    lowerName.includes('ngồi xuống') ||
+    lowerName.includes('đứng lên')
+  )
+    return 'squat'
+  if (lowerName.includes('curl') || lowerName.includes('bắp tay') || lowerName.includes('gập'))
+    return 'bicep-curl'
   if (lowerName.includes('shoulder') || lowerName.includes('vai')) return 'shoulder-flexion'
   if (lowerName.includes('knee') || lowerName.includes('đầu gối')) return 'knee-raise'
 
@@ -266,6 +279,29 @@ const currentReps = ref(0)
 const feedbackText = ref('Sẵn sàng...')
 const feedbackClass = ref('fb-neutral')
 const feedbackIcon = ref(markRaw(Info))
+const currentActionGuidance = ref('Sẵn sàng...')
+const detailedFeedback = ref('')
+
+let lastSpokenText = ''
+let lastSpokenAt = 0
+const SPEAK_COOLDOWN_MS = 1500
+
+const speak = (text, force = false) => {
+  if (!text || !window.speechSynthesis) return
+  const now = Date.now()
+  if (!force) {
+    if (text === lastSpokenText) return
+    if (now - lastSpokenAt < SPEAK_COOLDOWN_MS) return
+  }
+
+  window.speechSynthesis.cancel()
+  const utterance = new SpeechSynthesisUtterance(text)
+  utterance.lang = 'vi-VN'
+  utterance.rate = 1.05
+  window.speechSynthesis.speak(utterance)
+  lastSpokenText = text
+  lastSpokenAt = now
+}
 
 // 3-Tier Feedback System States
 const correctionText = ref('')
@@ -310,26 +346,26 @@ const isLiveCoachingActive = ref(false)
 
 const connectWebSocket = (sessId) => {
   if (!sessId) return
-  
+
   // Construct WS URL (assumes same host as API but ws:// or wss://)
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   const host = API_URL.replace('http://', '').replace('https://', '')
   const token = localStorage.getItem('token')
   const wsUrl = `${protocol}//${host}/ws/session/${sessId}?token=${token}`
-  
+
   console.log(`📡 Connecting to Live Coaching WebSocket: ${wsUrl}`)
   ws.value = new WebSocket(wsUrl)
-  
+
   ws.value.onopen = () => {
     console.log('✅ Live Coaching connected')
     isLiveCoachingActive.value = true
   }
-  
+
   ws.value.onclose = () => {
     console.log('❌ Live Coaching disconnected')
     isLiveCoachingActive.value = false
   }
-  
+
   ws.value.onerror = (err) => {
     console.error('WebSocket Error:', err)
   }
@@ -337,12 +373,14 @@ const connectWebSocket = (sessId) => {
 
 const sendLiveUpdate = (data) => {
   if (ws.value && ws.value.readyState === WebSocket.OPEN) {
-    ws.value.send(JSON.stringify({
-      exercise: currentStep.value.name,
-      reps: currentReps.value,
-      feedback: feedbackText.value,
-      ...data
-    }))
+    ws.value.send(
+      JSON.stringify({
+        exercise: currentStep.value.name,
+        reps: currentReps.value,
+        feedback: feedbackText.value,
+        ...data,
+      }),
+    )
   }
 }
 const currentStep = computed(() => planItems.value[currentStepIndex.value] || {})
@@ -363,6 +401,17 @@ const totalDurationFormatted = computed(() => {
   const m = Math.floor(diff / 60)
   const s = diff % 60
   return `${m}p ${s}s`
+})
+
+const currentTargetReps = computed(() => {
+  const parsed = Number(currentStep.value?.target)
+  if (!Number.isFinite(parsed) || parsed <= 0) return 1
+  return parsed
+})
+
+const repsProgress = computed(() => {
+  const progress = currentReps.value / currentTargetReps.value
+  return Math.min(Math.max(progress, 0), 1)
 })
 
 // Icons
@@ -402,7 +451,7 @@ const loadPlan = async () => {
   sessionState.value = 'loading'
   try {
     const token = localStorage.getItem('token')
-    
+
     // Fetch Plan and Config in parallel
     const [planRes, configRes] = await Promise.all([
       fetch(`${API_URL}/patient/today/${props.userId}`, {
@@ -410,7 +459,7 @@ const loadPlan = async () => {
       }),
       fetch(`${API_URL}/exercises/config`, {
         headers: { Authorization: `Bearer ${token}` },
-      })
+      }),
     ])
 
     if (planRes.ok) {
@@ -445,7 +494,7 @@ const startSession = async () => {
       sessionStartTime.value = Date.now()
       currentStepIndex.value = 0
       sessionState.value = 'instruction'
-      
+
       // Start real-time coaching connection
       connectWebSocket(sessionId.value)
     }
@@ -457,14 +506,18 @@ const startSession = async () => {
 const startStep = async () => {
   sessionState.value = 'exercising'
   currentReps.value = 0
-  feedbackText.value = 'Bắt đầu!'
+  feedbackText.value = 'Giữ tư thế chuẩn bị'
+  currentActionGuidance.value = 'Giữ tư thế chuẩn bị'
+  detailedFeedback.value = 'Thực hiện chậm và đúng kỹ thuật để được tính lần.'
 
   if (currentStep.value.type === 'exercise') {
     const exerciseType = mapExerciseName(currentStep.value.name)
     if (exerciseType) {
       try {
+        const token = localStorage.getItem('token')
         await fetch(`${CAMERA_BASE}/select_exercise?exercise_name=${exerciseType}`, {
           method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
         })
       } catch (e) {
         console.error(e)
@@ -652,9 +705,14 @@ const processLandmarks = async (landmarks) => {
       return
     }
 
+    const token = localStorage.getItem('token')
+
     const res = await fetch(`${CAMERA_BASE}/process_landmarks`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: JSON.stringify({
         landmarks: landmarkData,
         current_exercise: exerciseType,
@@ -669,6 +727,7 @@ const processLandmarks = async (landmarks) => {
     }
 
     const data = await res.json()
+    updateActionGuidance(data, exerciseType)
 
     // Update Reps based on exercise type
     let newReps = 0
@@ -677,34 +736,42 @@ const processLandmarks = async (landmarks) => {
     else if (exerciseType === 'shoulder-flexion') newReps = data.shoulder_flexion_count
     else if (exerciseType === 'knee-raise') newReps = data.knee_raise_count
 
+    const stableReps = Math.max(newReps || 0, currentReps.value)
+
     // Check if reps increased
-    if (newReps > currentReps.value) {
-      currentReps.value = newReps
+    if (stableReps > currentReps.value) {
+      currentReps.value = stableReps
       // Check target
-      if (currentReps.value >= currentStep.value.target) {
+      if (currentReps.value >= currentTargetReps.value) {
         // Complete Step
         stopCamera()
         setSuccess('HOÀN THÀNH BÀI TẬP! 🏆')
+        detailedFeedback.value = 'Bạn đã hoàn thành mục tiêu của bài tập.'
+        speak('Hoàn thành bài tập, rất tốt', true)
         await logStep({ reps: currentReps.value })
         nextStep()
       } else {
         // Tier 3: Rep Success Feedback
         setSuccess('XUẤT SẮC! 👍')
+        detailedFeedback.value = `Đã hoàn thành ${stableReps}/${currentTargetReps.value} lần.`
+        speak(`${stableReps}`, true)
         // Send live update to doctor via WebSocket
-        sendLiveUpdate({ reps: newReps })
+        sendLiveUpdate({ reps: stableReps })
       }
     }
 
     if (data.feedback) {
-      // Tier 1: Guidance (Always visible)
-      feedbackText.value = data.feedback
-      
-      // Tier 2: Correction Detection
-      if (data.feedback.includes('!') || data.feedback.includes('⚠') || data.feedback.length > 20) {
+      const isCorrectionLike =
+        data.feedback.includes('!') || data.feedback.includes('⚠') || data.feedback.length > 20
+
+      // Tier 2: only show correction popup when feedback looks like corrective message
+      if (isCorrectionLike && data.feedback !== feedbackText.value) {
         setCorrection(data.feedback)
+        detailedFeedback.value = data.feedback
+        speak(data.feedback)
       }
 
-      // Simple feedback classification for Tier 1 styling
+      // Classify visual tone for guidance panel
       if (
         data.feedback.includes('Good') ||
         data.feedback.includes('Tốt') ||
@@ -718,10 +785,66 @@ const processLandmarks = async (landmarks) => {
       } else {
         feedbackClass.value = 'fb-neutral'
         feedbackIcon.value = markRaw(Info)
+        if (!isCorrectionLike) {
+          detailedFeedback.value = data.feedback
+        }
       }
     }
   } catch (e) {
     console.error('[PROCESS ERROR]', e)
+  }
+}
+
+const updateActionGuidance = (data, exerciseType) => {
+  const stateGuidanceMap = {
+    squat: {
+      IDLE: 'Đứng thẳng, chuẩn bị',
+      SQUAT_START: 'Hạ thấp người xuống',
+      SQUAT_DOWN: 'Đứng lên nào!',
+      SQUAT_HOLD: 'Giữ thăng bằng',
+    },
+    'bicep-curl': {
+      IDLE: 'Duỗi thẳng tay',
+      CURL_START: 'Gập tay lên',
+      CURL_UP: 'Hạ tay xuống',
+      CURL_HOLD: 'Giữ ngắn rồi hạ',
+    },
+    'shoulder-flexion': {
+      IDLE: 'Hạ tay xuống',
+      FLEXION_START: 'Nâng tay lên cao',
+      FLEXION_UP: 'Giữ vai ổn định',
+      FLEXION_DOWN: 'Hạ tay có kiểm soát',
+    },
+    'knee-raise': {
+      IDLE: 'Đứng thẳng, giữ core',
+      RAISE_START: 'Nâng gối và tay đối diện',
+      RAISE_UP: 'Giữ ngắn rồi hạ xuống',
+      RAISE_DOWN: 'Trở về tư thế chuẩn bị',
+    },
+  }
+
+  let currentStateName = ''
+  if (exerciseType === 'squat') currentStateName = data.squat_state_name
+  else if (exerciseType === 'bicep-curl') currentStateName = data.curl_state_name
+  else if (exerciseType === 'shoulder-flexion') currentStateName = data.shoulder_flexion_state_name
+  else if (exerciseType === 'knee-raise') currentStateName = data.knee_raise_state_name
+
+  const mappedGuidance = stateGuidanceMap[exerciseType]?.[currentStateName]
+  if (mappedGuidance) {
+    if (currentActionGuidance.value !== mappedGuidance) {
+      currentActionGuidance.value = mappedGuidance
+      feedbackText.value = mappedGuidance
+      speak(mappedGuidance)
+    }
+    return
+  }
+
+  if (data.feedback && data.feedback.length <= 60) {
+    currentActionGuidance.value = data.feedback
+    feedbackText.value = data.feedback
+  } else if (!feedbackText.value || feedbackText.value.includes('Lỗi')) {
+    currentActionGuidance.value = 'Giữ tư thế chuẩn bị'
+    feedbackText.value = 'Giữ tư thế chuẩn bị'
   }
 }
 
@@ -731,6 +854,9 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopCamera()
+  if (window.speechSynthesis) {
+    window.speechSynthesis.cancel()
+  }
 })
 </script>
 
@@ -914,6 +1040,27 @@ onUnmounted(() => {
   position: relative;
 }
 
+.guidance-overlay {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 12;
+  padding: 12px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.guidance-overlay p {
+  margin: 0;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
 video,
 canvas {
   width: 100%;
@@ -1092,6 +1239,14 @@ canvas {
   flex: 1;
   display: flex;
   align-items: center;
+}
+
+.feedback-submessage {
+  font-size: 16px;
+  line-height: 1.4;
+  font-weight: 600;
+  color: #334155;
+  margin-top: -4px;
 }
 
 /* Feedback States */
@@ -1321,16 +1476,35 @@ canvas {
 }
 
 @keyframes slide-up {
-  from { transform: translate(-50%, 20px); opacity: 0; }
-  to { transform: translate(-50%, 0); opacity: 1; }
+  from {
+    transform: translate(-50%, 20px);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
 }
 
 @keyframes pop-in {
-  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
-  70% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
-  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0;
+  }
+  70% {
+    transform: translate(-50%, -50%) scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
 }
 
-.animate-slide-up { animation: slide-up 0.3s ease-out forwards; }
-.animate-pop-in { animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out forwards;
+}
+.animate-pop-in {
+  animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
 </style>

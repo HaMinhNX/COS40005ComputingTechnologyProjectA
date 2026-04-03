@@ -1,9 +1,7 @@
 <template>
   <div class="h-full flex flex-col space-y-6" data-isolated-ui>
     <!-- Header with Gradient -->
-    <div
-      class="relative overflow-hidden bg-indigo-600 p-8 rounded-3xl shadow-2xl text-white"
-    >
+    <div class="relative overflow-hidden bg-indigo-600 p-8 rounded-3xl shadow-2xl text-white">
       <div
         class="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20"
       ></div>
@@ -44,9 +42,7 @@
       class="flex-1 bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/50 flex flex-col overflow-hidden"
     >
       <!-- Toolbar -->
-      <div
-        class="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50"
-      >
+      <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
         <div class="flex items-center gap-4">
           <button
             @click="today"
@@ -75,9 +71,7 @@
       <!-- Month View -->
       <div v-if="currentView === 'Tháng'" class="flex-1 flex flex-col min-h-0 w-full">
         <!-- Days Header -->
-        <div
-          class="grid grid-cols-7 border-b border-slate-200 bg-indigo-50 w-full"
-        >
+        <div class="grid grid-cols-7 border-b border-slate-200 bg-indigo-50 w-full">
           <div
             v-for="day in ['CN', 'Hai', 'Ba', 'Tư', 'Năm', 'Sáu', 'Bảy']"
             :key="day"
@@ -95,9 +89,7 @@
             :class="[
               'border-b border-r border-slate-100 p-2 transition-all relative flex flex-col gap-1 min-h-[100px]',
               !cell.inMonth ? 'bg-slate-50/50 text-slate-400' : 'bg-white',
-              cell.isToday
-                ? 'bg-indigo-50 ring-2 ring-inset ring-indigo-200'
-                : '',
+              cell.isToday ? 'bg-indigo-50 ring-2 ring-inset ring-indigo-200' : '',
             ]"
           >
             <div class="flex justify-between items-start mb-1">
@@ -139,9 +131,7 @@
       <!-- Week View -->
       <div v-else-if="currentView === 'Tuần'" class="flex-1 flex flex-col min-h-0">
         <!-- Week Days Header -->
-        <div
-          class="grid grid-cols-8 border-b border-slate-200 bg-indigo-50 sticky top-0 z-10"
-        >
+        <div class="grid grid-cols-8 border-b border-slate-200 bg-indigo-50 sticky top-0 z-10">
           <div
             class="py-3 px-2 text-center text-xs font-black text-slate-600 uppercase tracking-wider border-r border-slate-200"
           >
@@ -411,6 +401,19 @@ function formatDayViewDate(date) {
 
 function today() {
   current.value = new Date()
+}
+
+function getEventClass(type) {
+  switch (type) {
+    case 'Khám':
+      return 'bg-blue-100 text-blue-800 border-blue-500 hover:bg-blue-200 hover:shadow-xl hover:scale-[1.02]'
+    case 'Tái khám':
+      return 'bg-emerald-100 text-emerald-800 border-emerald-500 hover:bg-emerald-200 hover:shadow-xl hover:scale-[1.02]'
+    case 'Đánh giá bài tập':
+      return 'bg-amber-100 text-amber-800 border-amber-500 hover:bg-amber-200 hover:shadow-xl hover:scale-[1.02]'
+    default:
+      return 'bg-indigo-100 text-indigo-800 border-indigo-500 hover:bg-indigo-200 hover:shadow-xl hover:scale-[1.02]'
+  }
 }
 
 function edit(ev) {

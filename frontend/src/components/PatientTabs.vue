@@ -101,7 +101,17 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Activity, LogOut, BarChart3, Brain, Calendar, MessageSquare, Sparkles } from 'lucide-vue-next'
+import {
+  Activity,
+  LogOut,
+  BarChart3,
+  Brain,
+  Calendar,
+  MessageSquare,
+  Sparkles,
+  ClipboardList,
+  Target,
+} from 'lucide-vue-next'
 
 // Import các component con (đảm bảo đã tạo chúng)
 import PatientDashboard from './PatientDashboard.vue'
@@ -121,9 +131,9 @@ const showLogoutModal = ref(false)
 
 const tabs = [
   { id: 'dashboard', label: 'Tổng quan', iconComponent: BarChart3 },
-  { id: 'workout', label: 'Tập luyện', iconComponent: Activity },
+  { id: 'workout', label: 'Kế hoạch phục hồi', iconComponent: ClipboardList },
   { id: 'brain', label: 'Trí tuệ', iconComponent: Brain },
-  { id: 'sports', label: 'Thể thao', iconComponent: Activity },
+  { id: 'sports', label: 'Luyện tập tự do', iconComponent: Target },
   { id: 'messages', label: 'Tin nhắn', iconComponent: MessageSquare },
   { id: 'aiChat', label: 'Trợ lý AI', iconComponent: Sparkles },
   { id: 'scheduling', label: 'Lịch hẹn', iconComponent: Calendar },
