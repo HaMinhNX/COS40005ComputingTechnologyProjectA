@@ -4,9 +4,7 @@
     <div
       class="w-80 bg-white rounded-[2rem] shadow-xl border border-slate-100 flex flex-col overflow-hidden"
     >
-      <div
-        class="p-6 border-b border-slate-100 bg-indigo-600 text-white"
-      >
+      <div class="p-6 border-b border-slate-100 bg-indigo-600 text-white">
         <h3 class="text-xl font-black tracking-tight mb-1">Tin Nhắn</h3>
         <div class="flex gap-2 mt-2">
           <button
@@ -167,19 +165,27 @@
                     ? 'bg-indigo-600 text-white rounded-tr-none'
                     : 'bg-white text-slate-700 border border-slate-100 rounded-tl-none',
                   msg.status === 'sending' ? 'opacity-70' : '',
-                  msg.status === 'error' ? 'bg-red-50 text-red-900 border border-red-200 opacity-90' : ''
+                  msg.status === 'error'
+                    ? 'bg-red-50 text-red-900 border border-red-200 opacity-90'
+                    : '',
                 ]"
               >
                 {{ msg.content }}
               </div>
-              <span 
+              <span
                 class="text-[10px] font-bold mt-1 flex items-center gap-1"
-                :class="msg.sender_id === currentUserId ? 'justify-end text-indigo-200' : 'px-1 text-slate-400'"
+                :class="
+                  msg.sender_id === currentUserId
+                    ? 'justify-end text-indigo-200'
+                    : 'px-1 text-slate-400'
+                "
               >
                 {{ formatTime(msg.created_at) }}
                 <template v-if="msg.sender_id === currentUserId">
                   <span v-if="msg.status === 'sending'" class="animate-pulse">· Đang gửi...</span>
-                  <span v-else-if="msg.status === 'error'" class="text-red-400">· Ôi lỗi gửi (thử lại sau)</span>
+                  <span v-else-if="msg.status === 'error'" class="text-red-400"
+                    >· Ôi lỗi gửi (thử lại sau)</span
+                  >
                   <span v-else class="text-indigo-400">· Đã nhận</span>
                 </template>
               </span>
@@ -188,9 +194,12 @@
         </div>
 
         <!-- Suggested Questions (The fix for "it fails to give chat questions") -->
-        <div v-if="selectedUser && messages.length < 30" class="px-6 py-3 flex gap-2 overflow-x-auto custom-scrollbar no-scrollbar scroll-smooth">
-          <button 
-            v-for="q in suggestedQuestions" 
+        <div
+          v-if="selectedUser && messages.length < 30"
+          class="px-6 py-3 flex gap-2 overflow-x-auto custom-scrollbar no-scrollbar scroll-smooth"
+        >
+          <button
+            v-for="q in suggestedQuestions"
             :key="q"
             @click="useSuggestedQuestion(q)"
             class="whitespace-nowrap px-4 py-2 bg-indigo-50 border border-indigo-100 rounded-full text-xs font-bold text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all shadow-sm active:scale-95 flex-shrink-0"
@@ -370,11 +379,13 @@ async function loadMessages() {
     if (res.ok) {
       const data = await res.json()
       const items = data.items || data
-      
-      const tempMsgs = messages.value.filter(m => m.status === 'sending' || m.status === 'error')
-      const loadedMsgs = items.map(m => ({ ...m, status: 'delivered' }))
-      
-      messages.value = [...loadedMsgs, ...tempMsgs].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+
+      const tempMsgs = messages.value.filter((m) => m.status === 'sending' || m.status === 'error')
+      const loadedMsgs = items.map((m) => ({ ...m, status: 'delivered' }))
+
+      messages.value = [...loadedMsgs, ...tempMsgs].sort(
+        (a, b) => new Date(a.created_at) - new Date(b.created_at),
+      )
       scrollToBottom()
     }
   } catch (e) {
@@ -389,10 +400,10 @@ async function sendMessage() {
 
   const receiverId =
     activeTab.value === 'doctors' ? selectedUser.value.user_id : selectedUser.value.patient_id
-  
+
   const contentToSend = newMessage.value.trim()
   newMessage.value = ''
-  
+
   const tempId = Date.now()
   const tempMsg = {
     message_id: tempId,
@@ -400,9 +411,9 @@ async function sendMessage() {
     receiver_id: receiverId,
     content: contentToSend,
     created_at: new Date().toISOString(),
-    status: 'sending'
+    status: 'sending',
   }
-  
+
   messages.value.push(tempMsg)
   scrollToBottom()
 
@@ -422,7 +433,7 @@ async function sendMessage() {
       body: JSON.stringify(payload),
     })
 
-    const idx = messages.value.findIndex(m => m.message_id === tempId)
+    const idx = messages.value.findIndex((m) => m.message_id === tempId)
 
     if (res.ok) {
       const sentMsg = await res.json()
@@ -436,7 +447,7 @@ async function sendMessage() {
       console.error('Lỗi khi gửi')
     }
   } catch (e) {
-    const idx = messages.value.findIndex(m => m.message_id === tempId)
+    const idx = messages.value.findIndex((m) => m.message_id === tempId)
     if (idx !== -1) {
       messages.value[idx].status = 'error'
     }

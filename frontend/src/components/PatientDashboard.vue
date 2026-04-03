@@ -12,19 +12,24 @@
           Đồng bộ: {{ healthData.device || 'Thiết bị không xác định' }} • {{ formatWeekRange() }}
         </p>
       </div>
-    <button
-      @click="showEmailModal = true"
-      class="flex items-center gap-2 px-5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-xl transition-all hover:scale-105 text-sm"
-    >
+      <button
+        @click="showEmailModal = true"
+        class="flex items-center gap-2 px-5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-xl transition-all hover:scale-105 text-sm"
+      >
         <Mail :size="20" />
         Gửi báo cáo phục hồi
       </button>
     </div>
 
     <!-- Health Metrics Cards -->
-    <div v-if="healthData.hasData" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
+    <div
+      v-if="healthData.hasData"
+      class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-10"
+    >
       <!-- Heart Rate -->
-      <div class="bg-white rounded-2xl p-7 border-3 border-red-200 shadow-xl hover:scale-105 transition-transform duration-200">
+      <div
+        class="bg-white rounded-2xl p-7 border-3 border-red-200 shadow-xl hover:scale-105 transition-transform duration-200"
+      >
         <div class="flex items-center justify-between mb-3">
           <div class="w-16 h-16 rounded-xl bg-red-500 shadow-lg flex items-center justify-center">
             <Heart :size="32" class="text-white" />
@@ -38,9 +43,13 @@
       </div>
 
       <!-- SpO2 -->
-      <div class="bg-white rounded-2xl p-7 border-3 border-emerald-200 shadow-xl hover:scale-105 transition-transform duration-200">
+      <div
+        class="bg-white rounded-2xl p-7 border-3 border-emerald-200 shadow-xl hover:scale-105 transition-transform duration-200"
+      >
         <div class="flex items-center justify-between mb-3">
-          <div class="w-16 h-16 rounded-xl bg-emerald-500 shadow-lg flex items-center justify-center">
+          <div
+            class="w-16 h-16 rounded-xl bg-emerald-500 shadow-lg flex items-center justify-center"
+          >
             <Wind :size="32" class="text-white" />
           </div>
           <span
@@ -53,16 +62,22 @@
           </span>
         </div>
         <div class="mb-3">
-          <div class="text-5xl font-black text-emerald-600 mb-1">{{ healthData.spo2 }}<span class="text-3xl">%</span></div>
+          <div class="text-5xl font-black text-emerald-600 mb-1">
+            {{ healthData.spo2 }}<span class="text-3xl">%</span>
+          </div>
           <div class="text-xl font-black text-emerald-700 uppercase tracking-wide">Oxy máu</div>
         </div>
         <p class="text-base text-slate-700 font-bold leading-relaxed">Nồng độ oxy trong máu</p>
       </div>
 
       <!-- Sleep Quality -->
-      <div class="bg-white rounded-2xl p-7 border-3 border-purple-200 shadow-xl hover:scale-105 transition-transform duration-200">
+      <div
+        class="bg-white rounded-2xl p-7 border-3 border-purple-200 shadow-xl hover:scale-105 transition-transform duration-200"
+      >
         <div class="flex items-center justify-between mb-3">
-          <div class="w-16 h-16 rounded-xl bg-purple-500 shadow-lg flex items-center justify-center">
+          <div
+            class="w-16 h-16 rounded-xl bg-purple-500 shadow-lg flex items-center justify-center"
+          >
             <Moon :size="32" class="text-white" />
           </div>
         </div>
@@ -70,13 +85,19 @@
           <div class="text-5xl font-black text-purple-600 mb-1">{{ healthData.sleepQuality }}</div>
           <div class="text-xl font-black text-purple-700 uppercase tracking-wide">/ 100</div>
         </div>
-        <p class="text-base text-slate-700 font-bold leading-relaxed">Chất lượng giấc ngủ trung bình tuần</p>
+        <p class="text-base text-slate-700 font-bold leading-relaxed">
+          Chất lượng giấc ngủ trung bình tuần
+        </p>
       </div>
 
       <!-- Calories -->
-      <div class="bg-white rounded-2xl p-7 border-3 border-orange-200 shadow-xl hover:scale-105 transition-transform duration-200">
+      <div
+        class="bg-white rounded-2xl p-7 border-3 border-orange-200 shadow-xl hover:scale-105 transition-transform duration-200"
+      >
         <div class="flex items-center justify-between mb-3">
-          <div class="w-16 h-16 rounded-xl bg-orange-500 shadow-lg flex items-center justify-center">
+          <div
+            class="w-16 h-16 rounded-xl bg-orange-500 shadow-lg flex items-center justify-center"
+          >
             <Flame :size="32" class="text-white" />
           </div>
         </div>
@@ -88,7 +109,9 @@
       </div>
 
       <!-- Resting Heart Rate -->
-      <div class="bg-white rounded-2xl p-7 border-3 border-blue-200 shadow-xl hover:scale-105 transition-transform duration-200">
+      <div
+        class="bg-white rounded-2xl p-7 border-3 border-blue-200 shadow-xl hover:scale-105 transition-transform duration-200"
+      >
         <div class="flex items-center justify-between mb-3">
           <div class="w-16 h-16 rounded-xl bg-blue-500 shadow-lg flex items-center justify-center">
             <Activity :size="32" class="text-white" />
@@ -98,13 +121,19 @@
           <div class="text-5xl font-black text-blue-600 mb-1">{{ healthData.restingHR }}</div>
           <div class="text-xl font-black text-blue-700 uppercase tracking-wide">BPM</div>
         </div>
-        <p class="text-base text-slate-700 font-bold leading-relaxed">Nhịp tim nghỉ trung bình tuần</p>
+        <p class="text-base text-slate-700 font-bold leading-relaxed">
+          Nhịp tim nghỉ trung bình tuần
+        </p>
       </div>
 
       <!-- Exercise Summary -->
-      <div class="bg-white rounded-2xl p-7 border-3 border-indigo-200 shadow-xl hover:scale-105 transition-transform duration-200">
+      <div
+        class="bg-white rounded-2xl p-7 border-3 border-indigo-200 shadow-xl hover:scale-105 transition-transform duration-200"
+      >
         <div class="flex items-center justify-between mb-3">
-          <div class="w-16 h-16 rounded-xl bg-indigo-500 shadow-lg flex items-center justify-center">
+          <div
+            class="w-16 h-16 rounded-xl bg-indigo-500 shadow-lg flex items-center justify-center"
+          >
             <Dumbbell :size="32" class="text-white" />
           </div>
         </div>
@@ -118,8 +147,12 @@
             <div class="text-base font-bold text-indigo-700 uppercase mt-1">Tổng reps</div>
           </div>
           <div class="border-t-2 border-slate-200 pt-2">
-            <div class="text-3xl font-black text-emerald-600">{{ brainStats.today_score || 0 }}</div>
-            <div class="text-base font-bold text-emerald-700 uppercase mt-1 flex items-center gap-2">
+            <div class="text-3xl font-black text-emerald-600">
+              {{ brainStats.today_score || 0 }}
+            </div>
+            <div
+              class="text-base font-bold text-emerald-700 uppercase mt-1 flex items-center gap-2"
+            >
               <Sparkles :size="16" />
               Điểm trí tuệ
             </div>
@@ -142,27 +175,38 @@
         </div>
         <div class="bg-white rounded-2xl p-6 border-2 border-emerald-200 shadow-lg text-center">
           <div class="text-4xl font-black text-emerald-600">{{ brainStats.today_score || 0 }}</div>
-          <div class="text-sm font-bold text-emerald-700 uppercase mt-1 flex items-center justify-center gap-1">
+          <div
+            class="text-sm font-bold text-emerald-700 uppercase mt-1 flex items-center justify-center gap-1"
+          >
             <Sparkles :size="14" /> Điểm trí tuệ
           </div>
         </div>
       </div>
 
       <!-- JSON upload card -->
-      <div class="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl border-2 border-dashed border-blue-300 p-10 text-center">
-        <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+      <div
+        class="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl border-2 border-dashed border-blue-300 p-10 text-center"
+      >
+        <div
+          class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4"
+        >
           <Activity :size="40" class="text-blue-400" />
         </div>
         <h3 class="text-xl font-black text-slate-800 mb-2">Chưa có dữ liệu sức khỏe</h3>
         <p class="text-slate-500 font-bold mb-6 max-w-md mx-auto">
-          Tải lên file JSON từ đồng hồ thông minh của bạn (Apple Health, Garmin, Fitbit) để xem nhịp tim, SpO2 và chất lượng giấc ngủ.
+          Tải lên file JSON từ đồng hồ thông minh của bạn (Apple Health, Garmin, Fitbit) để xem nhịp
+          tim, SpO2 và chất lượng giấc ngủ.
         </p>
-        <label class="cursor-pointer inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-black rounded-xl shadow-lg transition-all hover:scale-105">
+        <label
+          class="cursor-pointer inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-black rounded-xl shadow-lg transition-all hover:scale-105"
+        >
           <Upload :size="20" />
           Tải lên file JSON
           <input type="file" accept=".json" class="hidden" @change="handleXmlUpload" />
         </label>
-        <p class="text-xs text-slate-400 font-medium mt-3">Hỗ trợ: SmartWatch Pro, Apple Health JSON, Garmin JSON</p>
+        <p class="text-xs text-slate-400 font-medium mt-3">
+          Hỗ trợ: SmartWatch Pro, Apple Health JSON, Garmin JSON
+        </p>
       </div>
     </div>
 
@@ -527,7 +571,7 @@ const updateHealthData = async () => {
     const token = localStorage.getItem('token')
     if (!token) return
     const res = await fetch(`${API_URL}/wearable/latest/me`, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
     })
     if (res.ok) {
       const data = await res.json()
@@ -573,9 +617,9 @@ const drawHeartRateChart = (heartRateData) => {
   container.selectAll('*').remove()
 
   // Format JS date strings
-  const formattedData = heartRateData.map(d => ({
+  const formattedData = heartRateData.map((d) => ({
     date: new Date(d.date).toLocaleDateString('vi-VN', { weekday: 'short' }),
-    rate: d.rate
+    rate: d.rate,
   }))
 
   const margin = { top: 20, right: 20, bottom: 30, left: 40 }
@@ -617,9 +661,9 @@ const drawWeeklyChart = (weeklyData) => {
   if (container.empty() || !weeklyData) return
   container.selectAll('*').remove()
 
-  const formattedData = weeklyData.map(d => ({
+  const formattedData = weeklyData.map((d) => ({
     date: new Date(d.date).toLocaleDateString('vi-VN', { weekday: 'short' }),
-    reps: d.reps
+    reps: d.reps,
   }))
 
   const margin = { top: 20, right: 20, bottom: 30, left: 40 }
@@ -637,7 +681,7 @@ const drawWeeklyChart = (weeklyData) => {
   const y = d3.scaleLinear().range([height, 0])
 
   x.domain(formattedData.map((d) => d.date))
-  const maxReps = d3.max(formattedData, (d) => d.reps) || 10;
+  const maxReps = d3.max(formattedData, (d) => d.reps) || 10
   y.domain([0, maxReps * 1.2])
 
   svg.append('g').attr('transform', `translate(0,${height})`).call(d3.axisBottom(x))
@@ -719,7 +763,7 @@ async function fetchData() {
     if (historyRes.ok) history.value = await historyRes.json()
     if (planRes.ok) todayPlan.value = await planRes.json()
     if (brainRes.ok) brainStats.value = await brainRes.json()
-    
+
     let chartData = null
     if (chartsRes.ok) chartData = await chartsRes.json()
 

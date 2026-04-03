@@ -178,7 +178,6 @@
         <div class="detail-content custom-scrollbar">
           <!-- Overview Tab: real multi-chart dashboard -->
           <div v-if="activeTab === 'overview'" class="tab-pane fade-in">
-
             <!-- Quick Stats Row -->
             <div class="overview-stats-row">
               <div class="ov-stat">
@@ -205,11 +204,7 @@
                 <BarChart2 :size="16" /> Hoạt động tuần này (Số reps theo ngày)
               </h4>
               <div class="bar-chart">
-                <div
-                  v-for="day in weeklyActivity"
-                  :key="day.date"
-                  class="bar-col"
-                >
+                <div v-for="day in weeklyActivity" :key="day.date" class="bar-col">
                   <div class="bar-wrap">
                     <div
                       class="bar-fill"
@@ -234,11 +229,13 @@
 
             <!-- Exercise Distribution -->
             <div class="chart-box" v-if="exerciseDistribution.length">
-              <h4 class="chart-title">
-                <PieChart :size="16" /> Phân bố bài tập
-              </h4>
+              <h4 class="chart-title"><PieChart :size="16" /> Phân bố bài tập</h4>
               <div class="exercise-dist">
-                <div v-for="ex in exerciseDistribution" :key="ex.exercise_type" class="ex-dist-item">
+                <div
+                  v-for="ex in exerciseDistribution"
+                  :key="ex.exercise_type"
+                  class="ex-dist-item"
+                >
                   <div class="ex-dist-bar-wrap">
                     <div
                       class="ex-dist-bar"
@@ -299,7 +296,7 @@
             </div>
           </div>
 
-           <!-- Notes Tab -->
+          <!-- Notes Tab -->
           <div v-else-if="activeTab === 'notes'" class="tab-pane fade-in">
             <h4>Ghi chú bệnh nhân</h4>
             <div v-if="patientNotes.length === 0" class="empty-state">Chưa có ghi chú nào</div>
@@ -628,14 +625,14 @@ const drawAccuracyChart = () => {
   const innerW = width - margin.left - margin.right
   const innerH = height - margin.top - margin.bottom
 
-  const svg = container
-    .append('svg')
-    .attr('width', width)
-    .attr('height', height)
+  const svg = container.append('svg').attr('width', width).attr('height', height)
 
   const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`)
 
-  const x = d3.scaleLinear().domain([0, data.length - 1]).range([0, innerW])
+  const x = d3
+    .scaleLinear()
+    .domain([0, data.length - 1])
+    .range([0, innerW])
   const y = d3.scaleLinear().domain([0, 100]).range([innerH, 0])
 
   // Grid lines
@@ -644,35 +641,47 @@ const drawAccuracyChart = () => {
     .enter()
     .append('line')
     .attr('class', 'grid-line')
-    .attr('x1', 0).attr('x2', innerW)
-    .attr('y1', d => y(d)).attr('y2', d => y(d))
+    .attr('x1', 0)
+    .attr('x2', innerW)
+    .attr('y1', (d) => y(d))
+    .attr('y2', (d) => y(d))
     .attr('stroke', '#f1f5f9')
     .attr('stroke-width', 1)
 
   // Area fill
-  const area = d3.area()
+  const area = d3
+    .area()
     .x((d, i) => x(i))
     .y0(innerH)
-    .y1(d => y(d.score))
+    .y1((d) => y(d.score))
     .curve(d3.curveCatmullRom)
 
   const defs = svg.append('defs')
-  const areaGrad = defs.append('linearGradient')
+  const areaGrad = defs
+    .append('linearGradient')
     .attr('id', 'area-grad')
-    .attr('x1', 0).attr('x2', 0)
-    .attr('y1', 0).attr('y2', 1)
-  areaGrad.append('stop').attr('offset', '0%').attr('stop-color', '#6366f1').attr('stop-opacity', 0.2)
-  areaGrad.append('stop').attr('offset', '100%').attr('stop-color', '#6366f1').attr('stop-opacity', 0.05)
+    .attr('x1', 0)
+    .attr('x2', 0)
+    .attr('y1', 0)
+    .attr('y2', 1)
+  areaGrad
+    .append('stop')
+    .attr('offset', '0%')
+    .attr('stop-color', '#6366f1')
+    .attr('stop-opacity', 0.2)
+  areaGrad
+    .append('stop')
+    .attr('offset', '100%')
+    .attr('stop-color', '#6366f1')
+    .attr('stop-opacity', 0.05)
 
-  g.append('path')
-    .datum(data)
-    .attr('fill', 'url(#area-grad)')
-    .attr('d', area)
+  g.append('path').datum(data).attr('fill', 'url(#area-grad)').attr('d', area)
 
   // Line
-  const line = d3.line()
+  const line = d3
+    .line()
     .x((d, i) => x(i))
-    .y(d => y(d.score))
+    .y((d) => y(d.score))
     .curve(d3.curveCatmullRom)
 
   g.append('path')
@@ -688,7 +697,7 @@ const drawAccuracyChart = () => {
     .enter()
     .append('circle')
     .attr('cx', (d, i) => x(i))
-    .attr('cy', d => y(d.score))
+    .attr('cy', (d) => y(d.score))
     .attr('r', 4)
     .attr('fill', 'white')
     .attr('stroke', '#6366f1')
@@ -700,16 +709,19 @@ const drawAccuracyChart = () => {
     .enter()
     .append('text')
     .attr('x', -8)
-    .attr('y', d => y(d) + 4)
+    .attr('y', (d) => y(d) + 4)
     .attr('text-anchor', 'end')
     .attr('font-size', 10)
     .attr('fill', '#94a3b8')
-    .text(d => `${d}%`)
+    .text((d) => `${d}%`)
 
   // X-axis date labels (every 2nd point)
   data.forEach((d, i) => {
     if (i % 2 === 0 || i === data.length - 1) {
-      const dateStr = new Date(d.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
+      const dateStr = new Date(d.date).toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+      })
       g.append('text')
         .attr('x', x(i))
         .attr('y', innerH + 18)
@@ -825,10 +837,18 @@ watch(activeTab, (newTab) => {
   z-index: 2;
 }
 
-.stat-card.blue .stat-icon { background: #3b82f6; }
-.stat-card.green .stat-icon { background: #10b981; }
-.stat-card.orange .stat-icon { background: #f59e0b; }
-.stat-card.purple .stat-icon { background: #8b5cf6; }
+.stat-card.blue .stat-icon {
+  background: #3b82f6;
+}
+.stat-card.green .stat-icon {
+  background: #10b981;
+}
+.stat-card.orange .stat-icon {
+  background: #f59e0b;
+}
+.stat-card.purple .stat-icon {
+  background: #8b5cf6;
+}
 
 .stat-info {
   position: relative;
@@ -856,8 +876,12 @@ watch(activeTab, (newTab) => {
   gap: 4px;
 }
 
-.stat-trend.positive { color: #10b981; }
-.stat-trend.negative { color: #ef4444; }
+.stat-trend.positive {
+  color: #10b981;
+}
+.stat-trend.negative {
+  color: #ef4444;
+}
 
 .stat-bg-icon {
   position: absolute;
@@ -1043,9 +1067,18 @@ watch(activeTab, (newTab) => {
   font-weight: 600;
 }
 
-.status-badge.active { background: #dcfce7; color: #166534; }
-.status-badge.needs_attention { background: #fef3c7; color: #92400e; }
-.status-badge.inactive { background: #f1f5f9; color: #64748b; }
+.status-badge.active {
+  background: #dcfce7;
+  color: #166534;
+}
+.status-badge.needs_attention {
+  background: #fef3c7;
+  color: #92400e;
+}
+.status-badge.inactive {
+  background: #f1f5f9;
+  color: #64748b;
+}
 
 .progress-cell {
   display: flex;
@@ -1387,8 +1420,14 @@ watch(activeTab, (newTab) => {
   justify-content: center;
 }
 
-.activity-icon.good { background: #dcfce7; color: #166534; }
-.activity-icon.poor { background: #fee2e2; color: #991b1b; }
+.activity-icon.good {
+  background: #dcfce7;
+  color: #166534;
+}
+.activity-icon.poor {
+  background: #fee2e2;
+  color: #991b1b;
+}
 
 .activity-details {
   flex: 1;
@@ -1413,7 +1452,8 @@ watch(activeTab, (newTab) => {
 }
 
 /* History / Notes */
-.history-list, .notes-list {
+.history-list,
+.notes-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1553,12 +1593,22 @@ watch(activeTab, (newTab) => {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.custom-scrollbar::-webkit-scrollbar { width: 6px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background-color: #e2e8f0;
   border-radius: 20px;
