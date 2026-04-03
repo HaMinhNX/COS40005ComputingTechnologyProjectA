@@ -17,3 +17,5 @@ dist/
 
 tests/
 .vscode/
+.agent/
+agent/
