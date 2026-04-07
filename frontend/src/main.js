@@ -1,8 +1,8 @@
 import { createApp } from 'vue'
-import { createPinia } from 'pinia'  // If using Pinia
+import { createPinia } from 'pinia' // If using Pinia
 import App from './App.vue'
-import router from './router.js'  // Adjust path if in src/router/
-import './style.css'  // This loads Tailwind
+import router from './router.js' // Adjust path if in src/router/
+import './style.css' // This loads Tailwind
 
 // Recover from stale hashed assets after deployment (e.g. CSS/JS chunk 404).
 window.addEventListener('vite:preloadError', (event) => {

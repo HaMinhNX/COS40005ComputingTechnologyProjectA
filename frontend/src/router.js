@@ -39,7 +39,7 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   console.log(`Navigating to: ${to.path}`)
   const token = localStorage.getItem('token')
-  let user;
+  let user
   try {
     const userStr = localStorage.getItem('user')
     user = userStr ? JSON.parse(userStr) : null

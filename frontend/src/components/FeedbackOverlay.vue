@@ -16,40 +16,40 @@
 </template>
 
 <script setup>
-import { computed, markRaw } from 'vue';
-import { Trophy, Star, CheckCircle2, AlertCircle } from 'lucide-vue-next';
+import { computed, markRaw } from 'vue'
+import { Trophy, Star, CheckCircle2, AlertCircle } from 'lucide-vue-next'
 
 const props = defineProps({
   show: Boolean,
   tier: {
     type: String,
     default: 'normal', // 'excellent', 'good', 'normal'
-    validator: (v) => ['excellent', 'good', 'normal', 'incorrect'].includes(v)
-  }
-});
+    validator: (v) => ['excellent', 'good', 'normal', 'incorrect'].includes(v),
+  },
+})
 
-const tierClass = computed(() => `tier-${props.tier}`);
+const tierClass = computed(() => `tier-${props.tier}`)
 
 const icon = computed(() => {
-  if (props.tier === 'incorrect') return markRaw(AlertCircle);
-  if (props.tier === 'excellent') return markRaw(Trophy);
-  if (props.tier === 'good') return markRaw(Star);
-  return markRaw(CheckCircle2);
-});
+  if (props.tier === 'incorrect') return markRaw(AlertCircle)
+  if (props.tier === 'excellent') return markRaw(Trophy)
+  if (props.tier === 'good') return markRaw(Star)
+  return markRaw(CheckCircle2)
+})
 
 const title = computed(() => {
-  if (props.tier === 'incorrect') return 'CHƯA ĐÚNG!';
-  if (props.tier === 'excellent') return 'XUẤT SẮC!';
-  if (props.tier === 'good') return 'RẤT TỐT!';
-  return 'CHÍNH XÁC!';
-});
+  if (props.tier === 'incorrect') return 'CHƯA ĐÚNG!'
+  if (props.tier === 'excellent') return 'XUẤT SẮC!'
+  if (props.tier === 'good') return 'RẤT TỐT!'
+  return 'CHÍNH XÁC!'
+})
 
 const message = computed(() => {
-  if (props.tier === 'incorrect') return 'Thử lại lần nữa nhé!';
-  if (props.tier === 'excellent') return 'Bạn thật tuyệt vời! 🌟';
-  if (props.tier === 'good') return 'Tiếp tục phát huy nhé! 👏';
-  return 'Làm tốt lắm! 💪';
-});
+  if (props.tier === 'incorrect') return 'Thử lại lần nữa nhé!'
+  if (props.tier === 'excellent') return 'Bạn thật tuyệt vời! 🌟'
+  if (props.tier === 'good') return 'Tiếp tục phát huy nhé! 👏'
+  return 'Làm tốt lắm! 💪'
+})
 </script>
 
 <style scoped>
@@ -107,47 +107,55 @@ const message = computed(() => {
 
 /* Tier Specific Styles */
 .tier-excellent {
-  color: #F59E0B; /* Amber/Gold */
+  color: #f59e0b; /* Amber/Gold */
 }
 .tier-excellent .feedback-content {
-  border-color: #F59E0B;
-  background: linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%);
+  border-color: #f59e0b;
+  background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
 }
 
 .tier-good {
-  color: #10B981; /* Emerald */
+  color: #10b981; /* Emerald */
 }
 .tier-good .feedback-content {
-  border-color: #10B981;
-  background: linear-gradient(135deg, #ECFDF5 0%, #FFFFFF 100%);
+  border-color: #10b981;
+  background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%);
 }
 
 .tier-normal {
-  color: #3B82F6; /* Blue */
+  color: #3b82f6; /* Blue */
 }
 .tier-normal .feedback-content {
-  border-color: #3B82F6;
-  background: linear-gradient(135deg, #EFF6FF 0%, #FFFFFF 100%);
+  border-color: #3b82f6;
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
 }
 
 .tier-incorrect {
-  color: #DC2626;
+  color: #dc2626;
 }
 .tier-incorrect .feedback-content {
-  border-color: #DC2626;
-  background: linear-gradient(135deg, #FFF1F2 0%, #FFFFFF 100%);
+  border-color: #dc2626;
+  background: linear-gradient(135deg, #fff1f2 0%, #ffffff 100%);
 }
 
 /* Animations */
 @keyframes popIn {
-  from { opacity: 0; transform: scale(0.8) translateY(20px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
-.feedback-fade-enter-active, .feedback-fade-leave-active {
+.feedback-fade-enter-active,
+.feedback-fade-leave-active {
   transition: all 0.4s ease;
 }
-.feedback-fade-enter-from, .feedback-fade-leave-to {
+.feedback-fade-enter-from,
+.feedback-fade-leave-to {
   opacity: 0;
   transform: scale(1.1);
 }
@@ -165,27 +173,99 @@ const message = computed(() => {
   position: absolute;
   width: 10px;
   height: 10px;
-  background: #F59E0B;
+  background: #f59e0b;
   border-radius: 2px;
   animation: explode 1s ease-out forwards;
 }
 
 @keyframes explode {
-  0% { transform: translate(0, 0) rotate(0); opacity: 1; }
-  100% { transform: translate(var(--dx), var(--dy)) rotate(var(--dr)); opacity: 0; }
+  0% {
+    transform: translate(0, 0) rotate(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx), var(--dy)) rotate(var(--dr));
+    opacity: 0;
+  }
 }
 
 /* Dynamic particle values */
-.particle:nth-child(1) { --dx: -80px; --dy: -80px; --dr: 45deg; animation-delay: 0.1s; background: #FCD34D; }
-.particle:nth-child(2) { --dx: 80px; --dy: -90px; --dr: -30deg; animation-delay: 0.05s; background: #6366F1; }
-.particle:nth-child(3) { --dx: -60px; --dy: 90px; --dr: 120deg; animation-delay: 0.15s; background: #10B981; }
-.particle:nth-child(4) { --dx: 90px; --dy: 60px; --dr: 200deg; animation-delay: 0s; background: #F43F5E; }
-.particle:nth-child(5) { --dx: -100px; --dy: 0px; --dr: 90deg; animation-delay: 0.2s; background: #8B5CF6; }
-.particle:nth-child(6) { --dx: 100px; --dy: 0px; --dr: -45deg; animation-delay: 0.1s; background: #0EA5E9; }
-.particle:nth-child(7) { --dx: -40px; --dy: -100px; --dr: 30deg; animation-delay: 0.05s; }
-.particle:nth-child(8) { --dx: 40px; --dy: -100px; --dr: -60deg; animation-delay: 0.15s; }
-.particle:nth-child(9) { --dx: -40px; --dy: 100px; --dr: 180deg; animation-delay: 0s; }
-.particle:nth-child(10) { --dx: 40px; --dy: 100px; --dr: 75deg; animation-delay: 0.2s; }
-.particle:nth-child(11) { --dx: 0px; --dy: -110px; --dr: 0deg; animation-delay: 0.1s; }
-.particle:nth-child(12) { --dx: 0px; --dy: 110px; --dr: 15deg; animation-delay: 0.05s; }
+.particle:nth-child(1) {
+  --dx: -80px;
+  --dy: -80px;
+  --dr: 45deg;
+  animation-delay: 0.1s;
+  background: #fcd34d;
+}
+.particle:nth-child(2) {
+  --dx: 80px;
+  --dy: -90px;
+  --dr: -30deg;
+  animation-delay: 0.05s;
+  background: #6366f1;
+}
+.particle:nth-child(3) {
+  --dx: -60px;
+  --dy: 90px;
+  --dr: 120deg;
+  animation-delay: 0.15s;
+  background: #10b981;
+}
+.particle:nth-child(4) {
+  --dx: 90px;
+  --dy: 60px;
+  --dr: 200deg;
+  animation-delay: 0s;
+  background: #f43f5e;
+}
+.particle:nth-child(5) {
+  --dx: -100px;
+  --dy: 0px;
+  --dr: 90deg;
+  animation-delay: 0.2s;
+  background: #8b5cf6;
+}
+.particle:nth-child(6) {
+  --dx: 100px;
+  --dy: 0px;
+  --dr: -45deg;
+  animation-delay: 0.1s;
+  background: #0ea5e9;
+}
+.particle:nth-child(7) {
+  --dx: -40px;
+  --dy: -100px;
+  --dr: 30deg;
+  animation-delay: 0.05s;
+}
+.particle:nth-child(8) {
+  --dx: 40px;
+  --dy: -100px;
+  --dr: -60deg;
+  animation-delay: 0.15s;
+}
+.particle:nth-child(9) {
+  --dx: -40px;
+  --dy: 100px;
+  --dr: 180deg;
+  animation-delay: 0s;
+}
+.particle:nth-child(10) {
+  --dx: 40px;
+  --dy: 100px;
+  --dr: 75deg;
+  animation-delay: 0.2s;
+}
+.particle:nth-child(11) {
+  --dx: 0px;
+  --dy: -110px;
+  --dr: 0deg;
+  animation-delay: 0.1s;
+}
+.particle:nth-child(12) {
+  --dx: 0px;
+  --dy: 110px;
+  --dr: 15deg;
+  animation-delay: 0.05s;
+}
 </style>
