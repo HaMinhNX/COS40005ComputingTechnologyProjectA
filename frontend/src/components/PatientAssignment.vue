@@ -259,7 +259,7 @@
               Bài tập lẻ
             </button>
             <button
-              @click="assignType = 'combo'"
+              @click="switchToCombo()"
               :class="['type-tab', { active: assignType === 'combo' }]"
             >
               Combo mẫu
@@ -327,6 +327,7 @@
             <div class="form-group">
               <label class="form-label">Chọn Combo</label>
               <select v-model="selectedComboId" class="form-input">
+                <option :value="null" disabled>-- Chọn combo --</option>
                 <option v-for="c in combos" :key="c.combo_id" :value="c.combo_id">
                   {{ c.name }} ({{ c.items?.length || 0 }} bài)
                 </option>
@@ -578,13 +579,21 @@ const closeModal = () => (showModal.value = false)
 const loadCombos = async () => {
   try {
     const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE}/combos?doctor_id=${doctorId.value}`, {
+    const url = doctorId.value
+      ? `${API_BASE}/combos?doctor_id=${doctorId.value}`
+      : `${API_BASE}/combos`
+    const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (res.ok) combos.value = await res.json()
   } catch (e) {
-    console.error(e)
+    console.error('Error loading combos:', e)
   }
+}
+
+const switchToCombo = () => {
+  assignType.value = 'combo'
+  if (combos.value.length === 0) loadCombos()
 }
 
 // Assignment Logic
@@ -750,7 +759,7 @@ const formatDate = (dateStr) => {
 // Lifecycle
 onMounted(async () => {
   await loadPatients()
-  if (doctorId.value) loadCombos()
+  loadCombos()
 })
 </script>
 
