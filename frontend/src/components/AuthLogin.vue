@@ -18,8 +18,8 @@
         <div class="tab-switcher" v-if="!isForgotPassword">
           <button
             @click="
-              isLogin = true
-              isForgotPassword = false
+              isLogin = true;
+              isForgotPassword = false;
             "
             :class="['tab-btn', { active: isLogin }]"
           >
@@ -27,8 +27,8 @@
           </button>
           <button
             @click="
-              isLogin = false
-              isForgotPassword = false
+              isLogin = false;
+              isForgotPassword = false;
             "
             :class="['tab-btn', { active: !isLogin }]"
           >
@@ -90,9 +90,9 @@
             <a
               href="#"
               @click.prevent="
-                isForgotPassword = true
-                isLogin = false
-                forgotPasswordStep = 1
+                isForgotPassword = true;
+                isLogin = false;
+                forgotPasswordStep = 1;
               "
               style="color: #667eea; text-decoration: none; font-size: 14px"
               >Quên mật khẩu?</a
@@ -485,8 +485,8 @@
             <a
               href="#"
               @click.prevent="
-                isForgotPassword = false
-                isLogin = true
+                isForgotPassword = false;
+                isLogin = true;
               "
               style="color: #667eea; text-decoration: none; font-size: 14px"
               >Quay lại đăng nhập</a

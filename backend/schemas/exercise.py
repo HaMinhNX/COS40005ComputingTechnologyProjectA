@@ -114,6 +114,7 @@ class ComboResponse(BaseModel):
 
 class SessionDetailCreate(BaseModel):
     """Schema for creating a session detail"""
+    session_id: UUID
     exercise_type: ExerciseType
     reps_completed: int = Field(default=0, ge=0)
     duration_seconds: int = Field(default=0, ge=0)

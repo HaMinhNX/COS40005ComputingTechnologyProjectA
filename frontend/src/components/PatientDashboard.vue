@@ -296,21 +296,7 @@
     </div>
 
     <!-- Charts Section -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
-      <!-- Heart Rate Trend -->
-      <div class="bg-white p-8 rounded-2xl border-2 border-slate-200 shadow-lg">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="font-black text-slate-900 text-xl flex items-center gap-2">
-            <Heart :size="22" class="text-red-500" />
-            Nhịp tim ước tính theo vận động
-          </h3>
-          <span class="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full"
-            >Ước tính</span
-          >
-        </div>
-        <div id="heart-rate-chart" class="h-80 w-full"></div>
-      </div>
-
+    <div class="grid grid-cols-1 gap-6 mb-10">
       <!-- Activity Progress -->
       <div class="bg-white p-8 rounded-2xl border-2 border-slate-200 shadow-lg">
         <div class="flex items-center justify-between mb-4">
@@ -611,49 +597,39 @@ function formatDate(dateStr) {
 }
 
 // Chart drawing functions
-const drawHeartRateChart = (heartRateData) => {
-  const container = d3.select('#heart-rate-chart')
-  if (container.empty() || !heartRateData) return
-  container.selectAll('*').remove()
 
-  // Format JS date strings
-  const formattedData = heartRateData.map((d) => ({
-    date: new Date(d.date).toLocaleDateString('vi-VN', { weekday: 'short' }),
-    rate: d.rate,
-  }))
+const buildWeeklyChartData = (weeklyData = [], historyData = []) => {
+  const today = new Date()
+  const sevenDays = []
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(today.getDate() - i)
+    sevenDays.push(d)
+  }
 
-  const margin = { top: 20, right: 20, bottom: 30, left: 40 }
-  const width = container.node().getBoundingClientRect().width - margin.left - margin.right
-  const height = 280 - margin.top - margin.bottom
+  const seriesMap = {}
 
-  const svg = container
-    .append('svg')
-    .attr('width', width + margin.left + margin.right)
-    .attr('height', height + margin.top + margin.bottom)
-    .append('g')
-    .attr('transform', `translate(${margin.left},${margin.top})`)
+  if (Array.isArray(weeklyData) && weeklyData.length > 0) {
+    weeklyData.forEach((item) => {
+      if (!item?.date) return
+      const key = new Date(item.date).toISOString().slice(0, 10)
+      const reps = Number(item.reps) || 0
+      seriesMap[key] = (seriesMap[key] || 0) + reps
+    })
+  } else if (Array.isArray(historyData) && historyData.length > 0) {
+    historyData.forEach((item) => {
+      const sourceDate = item?.start_time || item?.end_time
+      if (!sourceDate) return
+      const key = new Date(sourceDate).toISOString().slice(0, 10)
+      const reps = Number(item.max_reps) || 0
+      seriesMap[key] = (seriesMap[key] || 0) + reps
+    })
+  }
 
-  const x = d3.scaleBand().range([0, width]).padding(0.3)
-  const y = d3.scaleLinear().range([height, 0])
-
-  x.domain(formattedData.map((d) => d.date))
-  y.domain([0, 150]) // cap at 150 bpm
-
-  svg.append('g').attr('transform', `translate(0,${height})`).call(d3.axisBottom(x))
-  svg.append('g').call(d3.axisLeft(y))
-
-  svg
-    .selectAll('.bar')
-    .data(formattedData)
-    .enter()
-    .append('rect')
-    .attr('class', 'bar')
-    .attr('x', (d) => x(d.date))
-    .attr('width', x.bandwidth())
-    .attr('y', (d) => y(d.rate))
-    .attr('height', (d) => height - y(d.rate))
-    .attr('fill', '#ef4444')
-    .attr('rx', 6)
+  return sevenDays.map((d) => {
+    const key = d.toISOString().slice(0, 10)
+    return { date: key, reps: seriesMap[key] || 0 }
+  })
 }
 
 const drawWeeklyChart = (weeklyData) => {
@@ -770,10 +746,8 @@ async function fetchData() {
     await updateHealthData()
 
     nextTick(() => {
-      if (chartData) {
-        drawHeartRateChart(chartData.heartRateData)
-        drawWeeklyChart(chartData.weeklyData)
-      }
+      const weeklySeries = buildWeeklyChartData(chartData?.weeklyData, history.value)
+      drawWeeklyChart(weeklySeries)
     })
   } catch (e) {
     console.error('Error loading dashboard data:', e)

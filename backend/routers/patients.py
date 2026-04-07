@@ -3,13 +3,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from uuid import UUID
 from database import get_db
-from models import User, MedicalRecord, PatientNote, SessionDetail, WorkoutSession, BrainExerciseSession
+from models import User, MedicalRecord, PatientNote, SessionDetail, WorkoutSession, BrainExerciseSession, ExerciseLogSimple
 from dependencies import get_current_user, get_current_doctor
 from middleware.ownership import ResourceAccess
 from schemas import UserResponse, PatientCreate, PatientNoteCreate
 from utils import paginate
 from enums import UserRole
-from datetime import datetime
+from datetime import datetime, timedelta, time
 
 
 
@@ -122,30 +122,78 @@ async def get_patient_logs(
     patient: User = Depends(ResourceAccess.patient)
 ):
     """Get detailed exercise logs for a patient"""
-    
+
     results = db.query(
+        SessionDetail.detail_id,
         SessionDetail.exercise_type,
         SessionDetail.reps_completed.label("rep_number"),
         SessionDetail.duration_seconds.label("rep_duration_seconds"),
         WorkoutSession.start_time,
         WorkoutSession.end_time,
         SessionDetail.completed_at,
-        SessionDetail.accuracy_score
+        SessionDetail.accuracy_score,
     ).join(WorkoutSession).filter(
-        WorkoutSession.user_id == patient_id
+        WorkoutSession.user_id == patient_id,
+        SessionDetail.reps_completed > 0
     ).order_by(desc(SessionDetail.completed_at)).limit(50).all()
+
+    legacy_results = db.query(
+        ExerciseLogSimple.id,
+        ExerciseLogSimple.exercise_type,
+        ExerciseLogSimple.rep_count,
+        ExerciseLogSimple.session_duration,
+        ExerciseLogSimple.created_at,
+        ExerciseLogSimple.date,
+    ).filter(
+        ExerciseLogSimple.user_id == patient_id
+    ).order_by(desc(ExerciseLogSimple.created_at)).limit(50).all()
+
+    merged = []
+
+    for r in results:
+        completed = r.completed_at
+        merged.append({
+            "log_id": f"detail-{r.detail_id}",
+            "exercise_type": r.exercise_type,
+            "rep_number": int(r.rep_number or 0),
+            "rep_duration_seconds": int(r.rep_duration_seconds or 0),
+            "start_time": r.start_time,
+            "end_time": r.end_time,
+            "completed_at": completed,
+            "accuracy_score": float(r.accuracy_score) if r.accuracy_score else 0,
+            "_sort": completed.timestamp() if completed else 0,
+        })
+
+    for r in legacy_results:
+        duration_seconds = int(float(r.session_duration or 0))
+        end_time = r.created_at or datetime.combine(r.date, time.min)
+        start_time = end_time - timedelta(seconds=duration_seconds) if end_time else None
+        merged.append({
+            "log_id": f"legacy-{r.id}",
+            "exercise_type": r.exercise_type,
+            "rep_number": int(r.rep_count or 0),
+            "rep_duration_seconds": duration_seconds,
+            "start_time": start_time,
+            "end_time": end_time,
+            "completed_at": end_time,
+            "accuracy_score": 0,
+            "_sort": end_time.timestamp() if end_time else 0,
+        })
+
+    merged.sort(key=lambda x: x["_sort"], reverse=True)
     
     return [
         {
-            "exercise_type": r.exercise_type,
-            "rep_number": r.rep_number,
-            "rep_duration_seconds": r.rep_duration_seconds,
-            "start_time": r.start_time,
-            "end_time": r.end_time,
-            "completed_at": r.completed_at,
-            "accuracy_score": float(r.accuracy_score) if r.accuracy_score else 0
+            "log_id": r["log_id"],
+            "exercise_type": r["exercise_type"],
+            "rep_number": r["rep_number"],
+            "rep_duration_seconds": r["rep_duration_seconds"],
+            "start_time": r["start_time"],
+            "end_time": r["end_time"],
+            "completed_at": r["completed_at"],
+            "accuracy_score": r["accuracy_score"],
         }
-        for r in results
+        for r in merged[:50]
     ]
 
 @router.delete("/patients/{patient_id}")

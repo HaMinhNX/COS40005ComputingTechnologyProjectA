@@ -148,13 +148,12 @@
                 <th class="py-3 px-4">Ngày & Giờ</th>
                 <th class="py-3 px-4">Bài tập</th>
                 <th class="py-3 px-4">Số reps</th>
-                <th class="py-3 px-4">Đánh giá</th>
               </tr>
             </thead>
             <tbody>
               <tr
-                v-for="log in historyLogs"
-                :key="log.log_id"
+                v-for="(log, index) in historyLogs"
+                :key="log.log_id || `${log.completed_at || log.start_time}-${index}`"
                 class="border-b border-slate-50 hover:bg-slate-50 transition-colors"
               >
                 <td class="py-3 px-4 text-sm font-medium text-slate-900">
@@ -165,14 +164,9 @@
                 </td>
                 <td class="py-3 px-4 text-sm text-slate-600 capitalize">{{ log.exercise_type }}</td>
                 <td class="py-3 px-4 text-sm font-bold text-indigo-600">{{ log.rep_number }}</td>
-                <td class="py-3 px-4">
-                  <span class="px-2 py-1 rounded text-xs font-bold bg-emerald-100 text-emerald-700"
-                    >{{ log.form_score }}%</span
-                  >
-                </td>
               </tr>
               <tr v-if="historyLogs.length === 0">
-                <td colspan="5" class="py-8 text-center text-slate-500">Chưa có dữ liệu lịch sử</td>
+                <td colspan="4" class="py-8 text-center text-slate-500">Chưa có dữ liệu lịch sử</td>
               </tr>
             </tbody>
           </table>
@@ -345,7 +339,7 @@ const loadNotes = async () => {
 const getDoctorId = async () => {
   try {
     const token = localStorage.getItem('token')
-    const res = await fetch(`${API_BASE_URL}/doctor/doctor-id`, {
+    const res = await fetch(`${API_BASE_URL}/me/doctor-id`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (res.ok) {
@@ -430,6 +424,21 @@ watch(currentTab, (newTab) => {
   if (newTab === 'history' && !isTabDataFresh('history')) loadHistory()
   if (newTab === 'notes' && !isTabDataFresh('notes')) loadNotes()
 })
+
+watch(
+  () => props.patientId,
+  () => {
+    loadedAt.value = { medical_record: 0, history: 0, notes: 0 }
+    medicalRecord.value = {}
+    historyLogs.value = []
+    notes.value = []
+    loadPatientInfo()
+
+    if (currentTab.value === 'medical_record') loadMedicalRecord()
+    if (currentTab.value === 'history') loadHistory()
+    if (currentTab.value === 'notes') loadNotes()
+  },
+)
 
 onMounted(() => {
   loadPatientInfo()

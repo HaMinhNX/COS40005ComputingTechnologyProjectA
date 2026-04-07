@@ -276,6 +276,7 @@ const stepStartTime = ref(null)
 // Exercise State
 // Exercise State
 const currentReps = ref(0)
+const stepCompleted = ref(false)
 const feedbackText = ref('Sẵn sàng...')
 const feedbackClass = ref('fb-neutral')
 const feedbackIcon = ref(markRaw(Info))
@@ -486,7 +487,7 @@ const startSession = async () => {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ user_id: props.userId }),
+      body: JSON.stringify({}),
     })
     if (res.ok) {
       const data = await res.json()
@@ -494,17 +495,22 @@ const startSession = async () => {
       sessionStartTime.value = Date.now()
       currentStepIndex.value = 0
       sessionState.value = 'instruction'
+      console.log('[startSession] Session created:', sessionId.value)
 
       // Start real-time coaching connection
       connectWebSocket(sessionId.value)
+    } else {
+      const errText = await res.text()
+      console.error('[startSession] API error:', res.status, errText)
     }
   } catch (e) {
-    console.error(e)
+    console.error('[startSession] Network error:', e)
   }
 }
 
 const startStep = async () => {
   sessionState.value = 'exercising'
+  stepCompleted.value = false
   currentReps.value = 0
   feedbackText.value = 'Giữ tư thế chuẩn bị'
   currentActionGuidance.value = 'Giữ tư thế chuẩn bị'
@@ -530,9 +536,14 @@ const startStep = async () => {
 
 const logStep = async (data) => {
   if (!sessionId.value) return
+  const exerciseType = mapExerciseName(currentStep.value.name)
+  if (!exerciseType) {
+    console.warn('[logStep] Could not map exercise name:', currentStep.value.name)
+    return
+  }
   try {
     const token = localStorage.getItem('token')
-    await fetch(`${API_URL}/session/log`, {
+    const res = await fetch(`${API_URL}/session/log`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -540,21 +551,24 @@ const logStep = async (data) => {
       },
       body: JSON.stringify({
         session_id: sessionId.value,
-        exercise_type: mapExerciseName(currentStep.value.name),
-        reps_completed: data.reps || currentReps.value,
+        exercise_type: exerciseType,
+        reps_completed: data.reps != null ? data.reps : currentReps.value,
         duration_seconds: stepStartTime.value
           ? Math.floor((Date.now() - stepStartTime.value) / 1000)
           : 0,
-        mistakes_count: data.mistakes || 0,
-        accuracy_score: data.accuracy || 100,
       }),
     })
+    if (!res.ok) {
+      const errText = await res.text()
+      console.error('[logStep] API error:', res.status, errText)
+    }
   } catch (e) {
-    console.error(e)
+    console.error('[logStep] Network error:', e)
   }
 }
 
 const nextStep = () => {
+  stepCompleted.value = false
   if (currentStepIndex.value < planItems.value.length - 1) {
     currentStepIndex.value++
     sessionState.value = 'instruction'
@@ -563,21 +577,30 @@ const nextStep = () => {
   }
 }
 
-const skipStep = () => {
+const skipStep = async () => {
+  if (stepCompleted.value) return
+  stepCompleted.value = true
   stopCamera()
   nextStep()
 }
 
 const endSession = async () => {
+  stopCamera()
   if (sessionId.value) {
     try {
       const token = localStorage.getItem('token')
-      await fetch(`${API_URL}/session/end/${sessionId.value}`, {
+      const res = await fetch(`${API_URL}/session/end/${sessionId.value}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       })
+      if (!res.ok) {
+        const errText = await res.text()
+        console.error('[endSession] API error:', res.status, errText)
+      } else {
+        console.log('[endSession] Session ended:', sessionId.value)
+      }
     } catch (e) {
-      console.error(e)
+      console.error('[endSession] Network error:', e)
     }
   }
   sessionState.value = 'summary'
@@ -590,7 +613,9 @@ const finishSession = () => {
 
 // === BRAIN GAME HANDLER ===
 const handleBrainGameComplete = async (result) => {
-  await logStep({ reps: result.score, accuracy: (result.score / result.total) * 100 })
+  if (stepCompleted.value) return
+  stepCompleted.value = true
+  await logStep({ reps: result.score })
   nextStep()
 }
 
@@ -743,6 +768,8 @@ const processLandmarks = async (landmarks) => {
       currentReps.value = stableReps
       // Check target
       if (currentReps.value >= currentTargetReps.value) {
+        if (stepCompleted.value) return
+        stepCompleted.value = true
         // Complete Step
         stopCamera()
         setSuccess('HOÀN THÀNH BÀI TẬP! 🏆')

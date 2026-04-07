@@ -67,11 +67,9 @@
           <CheckCircle :size="24" />
         </div>
         <div class="stat-info">
-          <span class="stat-label">Điểm TB hệ thống</span>
-          <h3 class="stat-value">{{ stats.avgFormScore }}%</h3>
-          <div class="progress-mini">
-            <div class="progress-fill" :style="{ width: `${stats.avgFormScore}%` }"></div>
-          </div>
+          <span class="stat-label">Không hoạt động</span>
+          <h3 class="stat-value">{{ inactivePatientsCount }}</h3>
+          <span class="stat-trend negative"> <AlertCircle :size="14" /> Cần theo dõi sát </span>
         </div>
         <div class="stat-bg-icon"><CheckCircle :size="100" /></div>
       </div>
@@ -188,9 +186,9 @@
                 <span class="ov-stat-val">{{ patientCharts.totalSessions || 0 }}</span>
                 <span class="ov-stat-label">Buổi tập</span>
               </div>
-              <div class="ov-stat accuracy">
-                <span class="ov-stat-val">{{ patientCharts.avgAccuracy || 0 }}%</span>
-                <span class="ov-stat-label">Độ chính xác TB</span>
+              <div class="ov-stat">
+                <span class="ov-stat-val">{{ exerciseDistribution.length || 0 }}</span>
+                <span class="ov-stat-label">Bài tập khác nhau</span>
               </div>
               <div class="ov-stat">
                 <span class="ov-stat-val">{{ patientCharts.activeDays || 0 }}</span>
@@ -216,15 +214,6 @@
                   <span class="bar-val">{{ day.reps }}</span>
                 </div>
               </div>
-            </div>
-
-            <!-- Accuracy Trend Line Chart (SVG) -->
-            <div class="chart-box">
-              <h4 class="chart-title">
-                <TrendingUp :size="16" /> Xu hướng độ chính xác (10 buổi gần nhất)
-              </h4>
-              <div ref="accuracyChart" class="chart-canvas"></div>
-              <div v-if="!accuracyTrendData.length" class="empty-chart-msg">Chưa có dữ liệu</div>
             </div>
 
             <!-- Exercise Distribution -->
@@ -288,9 +277,6 @@
                 </div>
                 <div class="history-stats">
                   <span class="reps">{{ log.rep_number }} reps</span>
-                  <span class="score" v-if="log.accuracy_score"
-                    >{{ Math.round(log.accuracy_score) }}%</span
-                  >
                 </div>
               </div>
             </div>
@@ -337,8 +323,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch, nextTick } from 'vue'
-import * as d3 from 'd3'
+import { ref, onMounted, computed } from 'vue'
 import {
   Users,
   Activity,
@@ -370,8 +355,6 @@ const activeTab = ref('overview')
 const tabs = ['overview', 'history', 'notes', 'ai_chat']
 const stats = ref({
   totalPatients: 0,
-  avgFormScore: 0,
-  totalReps: 0,
 })
 const trends = ref({
   patientTrend: 0,
@@ -386,15 +369,10 @@ const patientDataCache = new Map()
 const patientCharts = ref({
   totalReps: 0,
   totalSessions: 0,
-  avgAccuracy: 0,
   activeDays: 0,
   weeklyActivity: [],
-  accuracyTrend: [],
   muscleFocus: [],
 })
-
-// Refs for charts
-const accuracyChart = ref(null)
 
 // Computed
 const currentDate = new Date().toLocaleDateString('vi-VN', {
@@ -426,6 +404,7 @@ const filteredPatients = computed(() => {
 
 const activePatientsCount = ref(0)
 const criticalPatientsCount = ref(0)
+const inactivePatientsCount = ref(0)
 
 const recentSessions = computed(() => sessions.value.slice(0, 5))
 
@@ -442,9 +421,6 @@ const weeklyActivity = computed(() => {
     heightPct: Math.round((d.reps / maxReps) * 100),
   }))
 })
-
-// Accuracy trend derived from chart data
-const accuracyTrendData = computed(() => patientCharts.value.accuracyTrend || [])
 
 // Exercise distribution with color
 const CHART_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']
@@ -538,7 +514,7 @@ const loadPatients = async () => {
       const summary = await summaryRes.json()
       activePatientsCount.value = summary.active_count
       criticalPatientsCount.value = summary.needs_attention_count
-      stats.value.avgFormScore = summary.avg_form_score
+      inactivePatientsCount.value = summary.inactive_count || 0
       trends.value.patientTrend = summary.patient_trend || 0
       trends.value.activityTrend = summary.activity_trend || 0
       trends.value.newAlerts = summary.new_alerts || 0
@@ -557,7 +533,6 @@ const loadPatientData = async (id) => {
     logs.value = cached.logs
     patientNotes.value = cached.notes
     patientCharts.value = cached.charts
-    nextTick(() => drawAccuracyChart())
     return
   }
 
@@ -576,21 +551,12 @@ const loadPatientData = async (id) => {
 
     const chartsData = payload.charts || {}
     patientCharts.value.weeklyActivity = chartsData.weekly_activity || []
-    patientCharts.value.accuracyTrend = chartsData.accuracy_trend || []
     patientCharts.value.muscleFocus = chartsData.muscle_focus || []
 
     const st = payload.overall_stats || {}
     patientCharts.value.totalReps = st.total_reps || 0
     patientCharts.value.totalSessions = st.total_sessions || 0
     patientCharts.value.activeDays = st.total_days || 0
-
-    // Calculate avg accuracy
-    if (logs.value.length) {
-      const avg = logs.value.reduce((a, b) => a + (b.accuracy_score || 0), 0) / logs.value.length
-      patientCharts.value.avgAccuracy = Math.round(avg)
-    } else {
-      patientCharts.value.avgAccuracy = 0
-    }
 
     patientDataCache.set(id, {
       timestamp: Date.now(),
@@ -600,142 +566,13 @@ const loadPatientData = async (id) => {
       charts: {
         ...patientCharts.value,
         weeklyActivity: [...patientCharts.value.weeklyActivity],
-        accuracyTrend: [...patientCharts.value.accuracyTrend],
         muscleFocus: [...patientCharts.value.muscleFocus],
       },
     })
-
-    nextTick(() => drawAccuracyChart())
   } catch (e) {
     console.error(e)
   }
 }
-
-const drawAccuracyChart = () => {
-  if (!accuracyChart.value) return
-  const data = accuracyTrendData.value
-  if (!data.length) return
-
-  const container = d3.select(accuracyChart.value)
-  container.selectAll('*').remove()
-
-  const width = accuracyChart.value.clientWidth || 300
-  const height = 160
-  const margin = { top: 16, right: 16, bottom: 28, left: 36 }
-  const innerW = width - margin.left - margin.right
-  const innerH = height - margin.top - margin.bottom
-
-  const svg = container.append('svg').attr('width', width).attr('height', height)
-
-  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`)
-
-  const x = d3
-    .scaleLinear()
-    .domain([0, data.length - 1])
-    .range([0, innerW])
-  const y = d3.scaleLinear().domain([0, 100]).range([innerH, 0])
-
-  // Grid lines
-  g.selectAll('.grid-line')
-    .data([0, 25, 50, 75, 100])
-    .enter()
-    .append('line')
-    .attr('class', 'grid-line')
-    .attr('x1', 0)
-    .attr('x2', innerW)
-    .attr('y1', (d) => y(d))
-    .attr('y2', (d) => y(d))
-    .attr('stroke', '#f1f5f9')
-    .attr('stroke-width', 1)
-
-  // Area fill
-  const area = d3
-    .area()
-    .x((d, i) => x(i))
-    .y0(innerH)
-    .y1((d) => y(d.score))
-    .curve(d3.curveCatmullRom)
-
-  const defs = svg.append('defs')
-  const areaGrad = defs
-    .append('linearGradient')
-    .attr('id', 'area-grad')
-    .attr('x1', 0)
-    .attr('x2', 0)
-    .attr('y1', 0)
-    .attr('y2', 1)
-  areaGrad
-    .append('stop')
-    .attr('offset', '0%')
-    .attr('stop-color', '#6366f1')
-    .attr('stop-opacity', 0.2)
-  areaGrad
-    .append('stop')
-    .attr('offset', '100%')
-    .attr('stop-color', '#6366f1')
-    .attr('stop-opacity', 0.05)
-
-  g.append('path').datum(data).attr('fill', 'url(#area-grad)').attr('d', area)
-
-  // Line
-  const line = d3
-    .line()
-    .x((d, i) => x(i))
-    .y((d) => y(d.score))
-    .curve(d3.curveCatmullRom)
-
-  g.append('path')
-    .datum(data)
-    .attr('fill', 'none')
-    .attr('stroke', '#6366f1')
-    .attr('stroke-width', 2.5)
-    .attr('d', line)
-
-  // Dots
-  g.selectAll('.dot')
-    .data(data)
-    .enter()
-    .append('circle')
-    .attr('cx', (d, i) => x(i))
-    .attr('cy', (d) => y(d.score))
-    .attr('r', 4)
-    .attr('fill', 'white')
-    .attr('stroke', '#6366f1')
-    .attr('stroke-width', 2)
-
-  // Y-axis labels
-  g.selectAll('.y-label')
-    .data([0, 50, 100])
-    .enter()
-    .append('text')
-    .attr('x', -8)
-    .attr('y', (d) => y(d) + 4)
-    .attr('text-anchor', 'end')
-    .attr('font-size', 10)
-    .attr('fill', '#94a3b8')
-    .text((d) => `${d}%`)
-
-  // X-axis date labels (every 2nd point)
-  data.forEach((d, i) => {
-    if (i % 2 === 0 || i === data.length - 1) {
-      const dateStr = new Date(d.date).toLocaleDateString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-      })
-      g.append('text')
-        .attr('x', x(i))
-        .attr('y', innerH + 18)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', 10)
-        .attr('fill', '#94a3b8')
-        .text(dateStr)
-    }
-  })
-}
-
-watch(activeTab, (newTab) => {
-  if (newTab === 'overview') nextTick(() => drawAccuracyChart())
-})
 </script>
 
 <style scoped>
@@ -891,20 +728,6 @@ watch(activeTab, (newTab) => {
   transform: rotate(-15deg);
   z-index: 1;
   color: currentColor;
-}
-
-.progress-mini {
-  height: 6px;
-  background: #f1f5f9;
-  border-radius: 10px;
-  overflow: hidden;
-  margin-top: 8px;
-}
-
-.progress-mini .progress-fill {
-  height: 100%;
-  background: #8b5cf6;
-  border-radius: 10px;
 }
 
 /* Main Grid */
@@ -1254,10 +1077,6 @@ watch(activeTab, (newTab) => {
   color: #1e293b;
 }
 
-.ov-stat.accuracy .ov-stat-val {
-  color: #6366f1;
-}
-
 .ov-stat-label {
   font-size: 11px;
   color: #94a3b8;
@@ -1329,19 +1148,6 @@ watch(activeTab, (newTab) => {
   font-size: 9px;
   color: #6366f1;
   font-weight: 700;
-}
-
-/* Accuracy chart canvas */
-.chart-canvas {
-  width: 100%;
-  min-height: 160px;
-}
-
-.empty-chart-msg {
-  text-align: center;
-  color: #94a3b8;
-  font-size: 13px;
-  padding: 20px;
 }
 
 /* Exercise distribution */
@@ -1507,15 +1313,6 @@ watch(activeTab, (newTab) => {
   font-size: 12px;
   font-weight: 700;
   color: #6366f1;
-}
-
-.score {
-  font-size: 11px;
-  font-weight: 700;
-  color: #10b981;
-  background: #dcfce7;
-  padding: 2px 6px;
-  border-radius: 8px;
 }
 
 .note-item {
