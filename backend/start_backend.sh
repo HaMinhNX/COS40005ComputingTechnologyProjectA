@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🚀 Starting Backend (Medic1 Rehabilitation API)..."
+echo "🚀 Starting Backend (HaminG Rehabilitation API)..."
 echo ""
 
 # Get the directory where the script is located

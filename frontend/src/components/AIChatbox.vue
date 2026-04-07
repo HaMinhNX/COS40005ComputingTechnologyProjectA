@@ -10,7 +10,7 @@
           <div class="status-pulse"></div>
         </div>
         <div class="header-text">
-          <h2 v-if="!selectedPatientId">MEDIC1 Intelligence</h2>
+          <h2 v-if="!selectedPatientId">HaminG Intelligence</h2>
           <div v-else class="active-patient-profile">
             <div class="patient-info">
               <span class="patient-label">Đang phân tích</span>
@@ -24,7 +24,7 @@
           <span class="status-badge">Gemini 3 Flash • Real-time Analysis</span>
         </div>
       </div>
-      
+
       <div class="header-actions">
         <button @click="clearChat" class="icon-button trash" title="Xóa hội thoại">
           <Trash2 :size="18" />
@@ -35,14 +35,18 @@
     <!-- Chat Messages & Selection Area -->
     <div class="chat-main-stage">
       <!-- Chat History Sidebar (New) -->
-      <aside v-if="selectedPatientId" class="chat-history-sidebar" :class="{ 'collapsed': isHistoryCollapsed }">
+      <aside
+        v-if="selectedPatientId"
+        class="chat-history-sidebar"
+        :class="{ collapsed: isHistoryCollapsed }"
+      >
         <div class="sidebar-header">
           <button @click="isHistoryCollapsed = !isHistoryCollapsed" class="collapse-toggle">
             <LayoutPanelLeft :size="18" />
           </button>
           <span v-if="!isHistoryCollapsed" class="sidebar-title">Lịch sử hội thoại</span>
         </div>
-        
+
         <div v-if="!isHistoryCollapsed" class="history-list-mini custom-scrollbar">
           <div v-for="h in mockHistory" :key="h.id" class="history-item-brief">
             <MessageSquare :size="14" />
@@ -52,10 +56,12 @@
         </div>
       </aside>
 
-      <div ref="messageContainer" 
-           class="chat-viewport custom-scrollbar" 
-           :class="{ 'sidebar-open': !isHistoryCollapsed && selectedPatientId }"
-           @scroll="handleScroll">
+      <div
+        ref="messageContainer"
+        class="chat-viewport custom-scrollbar"
+        :class="{ 'sidebar-open': !isHistoryCollapsed && selectedPatientId }"
+        @scroll="handleScroll"
+      >
         <!-- Patient Selector Grid (Visible when no patient selected) -->
         <div v-if="!selectedPatientId && userRole === 'doctor'" class="patient-selection-stage">
           <div class="selection-content">
@@ -64,13 +70,19 @@
                 <Users :size="32" />
               </div>
               <h3>Chọn bệnh nhân để phân tích</h3>
-              <p>Chọn một bệnh nhân từ danh sách để bắt đầu phân tích dữ liệu y tế và hiệu suất tập luyện.</p>
+              <p>
+                Chọn một bệnh nhân từ danh sách để bắt đầu phân tích dữ liệu y tế và hiệu suất tập
+                luyện.
+              </p>
             </div>
-            
+
             <div class="patient-grid">
-              <div v-for="p in patients" :key="p.patient_id" 
-                   @click="selectPatient(p)"
-                   class="patient-card-premium">
+              <div
+                v-for="p in patients"
+                :key="p.patient_id"
+                @click="selectPatient(p)"
+                class="patient-card-premium"
+              >
                 <div class="card-avatar">
                   {{ p.full_name.charAt(0) }}
                 </div>
@@ -93,12 +105,15 @@
                 <Bot :size="48" />
               </div>
               <h3>Tôi có thể giúp gì cho {{ userRole === 'doctor' ? 'ca bệnh này' : 'bạn' }}?</h3>
-              <p>Hỏi về bệnh nhân, phân tích chỉ số sức khỏe, hoặc yêu cầu tóm tắt quá trình phục hồi.</p>
+              <p>
+                Hỏi về bệnh nhân, phân tích chỉ số sức khỏe, hoặc yêu cầu tóm tắt quá trình phục
+                hồi.
+              </p>
             </div>
-            
+
             <div class="suggestions-container">
-              <button 
-                v-for="sug in suggestedPrompts" 
+              <button
+                v-for="sug in suggestedPrompts"
                 :key="sug"
                 @click="useSuggestion(sug)"
                 class="suggestion-card"
@@ -111,11 +126,16 @@
 
           <!-- Message List -->
           <div class="messages-list">
-            <div v-for="(msg, idx) in messages" :key="idx" 
-                 :class="['message-row', msg.role === 'user' ? 'user' : 'assistant']">
-              
-              <div class="message-bubble" :class="{ 'streaming': msg.isStreaming }">
-                <div class="message-content markdown-body" v-html="renderMarkdown(msg.displayContent || msg.content)"></div>
+            <div
+              v-for="(msg, idx) in messages"
+              :key="idx"
+              :class="['message-row', msg.role === 'user' ? 'user' : 'assistant']"
+            >
+              <div class="message-bubble" :class="{ streaming: msg.isStreaming }">
+                <div
+                  class="message-content markdown-body"
+                  v-html="renderMarkdown(msg.displayContent || msg.content)"
+                ></div>
                 <div class="message-meta">
                   <span class="time">{{ msg.timestamp }}</span>
                   <span v-if="msg.isStreaming" class="streaming-indicator">Đang trả lời...</span>
@@ -126,9 +146,7 @@
             <!-- Thinking Indicator -->
             <div v-if="isStreaming && !currentStreamingMessage" class="message-row assistant">
               <div class="message-bubble thinking-bubble">
-                <div class="typing-indicator">
-                  <span></span><span></span><span></span>
-                </div>
+                <div class="typing-indicator"><span></span><span></span><span></span></div>
               </div>
             </div>
           </div>
@@ -137,7 +155,7 @@
     </div>
 
     <!-- Input Area -->
-    <div class="chat-input-area" :class="{ 'disabled': !selectedPatientId }">
+    <div class="chat-input-area" :class="{ disabled: !selectedPatientId }">
       <div class="input-container-inner">
         <div class="input-wrapper">
           <textarea
@@ -149,7 +167,7 @@
             ref="inputRef"
             @input="adjustTextarea"
           ></textarea>
-          <button 
+          <button
             @click="sendMessage"
             :disabled="!inputMessage.trim() || isStreaming || !selectedPatientId"
             class="send-button-premium"
@@ -168,12 +186,23 @@
 
 <script setup>
 import { ref, onMounted, nextTick, computed } from 'vue'
-import { Sparkles, Send, Bot, Trash2, Users, ChevronRight, ArrowUpRight, AlertCircle, LayoutPanelLeft, MessageSquare } from 'lucide-vue-next'
+import {
+  Sparkles,
+  Send,
+  Bot,
+  Trash2,
+  Users,
+  ChevronRight,
+  ArrowUpRight,
+  AlertCircle,
+  LayoutPanelLeft,
+  MessageSquare,
+} from 'lucide-vue-next'
 import { API_BASE_URL } from '../config'
 import { marked } from 'marked'
 
 const props = defineProps({
-  initialPatientId: { type: String, default: null }
+  initialPatientId: { type: String, default: null },
 })
 
 const messages = ref([])
@@ -192,13 +221,13 @@ const isHistoryCollapsed = ref(true)
 const mockHistory = ref([
   { id: 1, title: 'Tư vấn đau vai gáy' },
   { id: 2, title: 'Phân tích tập squat' },
-  { id: 3, title: 'Báo cáo tuần 12' }
+  { id: 3, title: 'Báo cáo tuần 12' },
 ])
 
 // Markdown configuration
 marked.setOptions({
   breaks: true,
-  gfm: true
+  gfm: true,
 })
 
 const renderMarkdown = (content) => {
@@ -207,7 +236,7 @@ const renderMarkdown = (content) => {
 }
 
 const currentPatientName = computed(() => {
-  const p = patients.value.find(p => p.patient_id === selectedPatientId.value)
+  const p = patients.value.find((p) => p.patient_id === selectedPatientId.value)
   return p ? p.full_name : 'Bệnh nhân'
 })
 
@@ -231,14 +260,14 @@ const suggestedPrompts = computed(() => {
       'Tóm tắt tình trạng bệnh nhân này',
       'Phân tích hiệu suất tập luyện gần đây',
       'Đánh giá tiến độ phục hồi',
-      'Cảnh báo các chỉ số bất thường'
+      'Cảnh báo các chỉ số bất thường',
     ]
   } else {
     return [
       'Tóm tắt tuần tập luyện của tôi',
       'Độ chính xác của tôi thế nào?',
       'Tôi cần cải thiện bài tập nào?',
-      'Phân tích xu hướng sức khỏe'
+      'Phân tích xu hướng sức khỏe',
     ]
   }
 })
@@ -263,7 +292,7 @@ const fetchPatients = async () => {
   try {
     const token = localStorage.getItem('token')
     const res = await fetch(`${API_BASE_URL}/patients-with-status`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
     })
     if (res.ok) {
       patients.value = await res.json()
@@ -284,7 +313,6 @@ const adjustTextarea = () => {
     inputRef.value.style.height = inputRef.value.scrollHeight + 'px'
   }
 }
-
 
 const clearChat = () => {
   messages.value = []
@@ -309,7 +337,7 @@ const scrollToEnd = (force = false) => {
     if (messageContainer.value && (isAtBottom.value || force)) {
       messageContainer.value.scrollTo({
         top: messageContainer.value.scrollHeight,
-        behavior: force ? 'smooth' : 'auto'
+        behavior: force ? 'smooth' : 'auto',
       })
     }
   })
@@ -324,35 +352,37 @@ const sendMessage = async () => {
   const userMsg = inputMessage.value
   inputMessage.value = ''
   if (inputRef.value) inputRef.value.style.height = 'auto'
-  
+
   messages.value.push({
     role: 'user',
     content: userMsg,
-    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
   })
-  
+
   scrollToEnd()
   isStreaming.value = true
-  
+
   try {
     const token = localStorage.getItem('token')
-    
+
     const response = await fetch(`${API_BASE_URL}/ai/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         patient_id: selectedPatientId.value,
-        message: userMsg
-      })
+        message: userMsg,
+      }),
     })
 
     if (!response.ok) {
       if (response.status === 401) {
         console.warn('DEBUG: 401 Unauthorized detected')
-        throw new Error('Phiên làm việc hết hạn hoặc không hợp lệ. Vui lòng đăng xuất và đăng nhập lại.')
+        throw new Error(
+          'Phiên làm việc hết hạn hoặc không hợp lệ. Vui lòng đăng xuất và đăng nhập lại.',
+        )
       }
       const errorData = await response.json().catch(() => ({}))
       throw new Error(errorData.detail || 'Yêu cầu thất bại')
@@ -360,15 +390,15 @@ const sendMessage = async () => {
 
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
-    
+
     messages.value.push({
       role: 'assistant',
       content: '',
       displayContent: '', // For the typing effect
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isStreaming: true
+      isStreaming: true,
     })
-    
+
     // Get the reactive proxy from the array to ensure the UI updates
     let assistantMsg = messages.value[messages.value.length - 1]
     currentStreamingMessage.value = assistantMsg
@@ -377,14 +407,14 @@ const sendMessage = async () => {
     while (true) {
       const { value, done } = await reader.read()
       if (done) break
-      
+
       const chunk = decoder.decode(value, { stream: true })
       buffer += chunk
-      
+
       const lines = buffer.split('\n')
       // Keep the last partial line in the buffer
       buffer = lines.pop()
-      
+
       for (const line of lines) {
         if (line.trim().startsWith('data: ')) {
           const data = line.trim().slice(6)
@@ -404,11 +434,10 @@ const sendMessage = async () => {
         }
       }
     }
-    
+
     // Ensure everything is displayed in the end
     assistantMsg.isStreaming = false
     assistantMsg.displayContent = assistantMsg.content
-    
   } catch (err) {
     if (err.name !== 'AbortError') {
       console.error('AI Stream Error:', err)
@@ -416,7 +445,7 @@ const sendMessage = async () => {
         role: 'assistant',
         content: `Lỗi: ${err.message}`,
         displayContent: `Lỗi: ${err.message}`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       })
     }
   } finally {
@@ -436,7 +465,7 @@ const sendMessage = async () => {
   border-radius: 28px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 25px 80px -20px rgba(0,0,0,0.1);
+  box-shadow: 0 25px 80px -20px rgba(0, 0, 0, 0.1);
 }
 
 .glass-morphism {
@@ -448,7 +477,7 @@ const sendMessage = async () => {
 /* Header Styles */
 .chat-header {
   padding: 24px 32px;
-  border-bottom: 1px solid rgba(0,0,0,0.04);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -603,7 +632,7 @@ const sendMessage = async () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  border-bottom: 1px solid rgba(0,0,0,0.02);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.02);
 }
 
 .collapse-toggle {
@@ -654,7 +683,7 @@ const sendMessage = async () => {
 .history-item-brief:hover {
   background: white;
   color: #6366f1;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
 }
 
 .history-text {
@@ -744,7 +773,7 @@ const sendMessage = async () => {
   gap: 16px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
 }
 
 .patient-card-premium:hover {
@@ -783,9 +812,15 @@ const sendMessage = async () => {
   font-weight: 700;
 }
 
-.status-active { color: #22c55e; }
-.status-inactive { color: #ef4444; }
-.status-warning { color: #f59e0b; }
+.status-active {
+  color: #22c55e;
+}
+.status-inactive {
+  color: #ef4444;
+}
+.status-warning {
+  color: #f59e0b;
+}
 
 .patient-card-premium .arrow {
   color: #cbd5e1;
@@ -822,7 +857,7 @@ const sendMessage = async () => {
   justify-content: center;
   margin: 0 auto 32px;
   color: #6366f1;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
   border: 1px solid #f1f5f9;
 }
 
@@ -858,7 +893,7 @@ const sendMessage = async () => {
   gap: 12px;
   text-align: left;
   transition: all 0.2s;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.02);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.02);
 }
 
 .suggestion-card:hover {
@@ -914,7 +949,7 @@ const sendMessage = async () => {
   color: #334155;
   border: 1px solid #f1f5f9;
   border-bottom-left-radius: 4px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.03);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.03);
 }
 
 .message-meta {
@@ -941,7 +976,7 @@ const sendMessage = async () => {
 }
 
 .streaming-indicator::after {
-  content: "";
+  content: '';
   width: 4px;
   height: 4px;
   background: #6366f1;
@@ -950,7 +985,9 @@ const sendMessage = async () => {
 }
 
 /* Markdown Styling */
-.markdown-body :deep(h1), .markdown-body :deep(h2), .markdown-body :deep(h3) {
+.markdown-body :deep(h1),
+.markdown-body :deep(h2),
+.markdown-body :deep(h3) {
   margin-top: 16px;
   margin-bottom: 8px;
   font-weight: 800;
@@ -961,7 +998,8 @@ const sendMessage = async () => {
   margin-bottom: 12px;
 }
 
-.markdown-body :deep(ul), .markdown-body :deep(ol) {
+.markdown-body :deep(ul),
+.markdown-body :deep(ol) {
   margin-bottom: 12px;
   padding-left: 20px;
 }
@@ -1089,7 +1127,9 @@ textarea {
   letter-spacing: 0.05em;
 }
 
-.helper-text.warning { color: #f59e0b; }
+.helper-text.warning {
+  color: #f59e0b;
+}
 
 /* Indicators and animations */
 .typing-indicator {
@@ -1106,28 +1146,62 @@ textarea {
   animation: typing 1s infinite alternate;
 }
 
-.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
 
 @keyframes typing {
-  from { opacity: 0.3; transform: scale(0.8); }
-  to { opacity: 1; transform: scale(1.1); }
+  from {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.1);
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes pulse {
-  0% { transform: scale(0.8); opacity: 0.5; }
-  50% { transform: scale(1.2); opacity: 1; }
-  100% { transform: scale(0.8); opacity: 0.5; }
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
 }
 
 /* Custom Scrollbar */
-.custom-scrollbar::-webkit-scrollbar { width: 6px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
 </style>

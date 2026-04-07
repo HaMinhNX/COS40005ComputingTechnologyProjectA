@@ -1,4 +1,4 @@
-# Medic1 — Technical Documentation
+# HaminG — Technical Documentation
 
 > This document is intended for developers and contributors. It covers the internal architecture, data flows, component design, and development patterns used throughout the codebase.
 
@@ -65,13 +65,16 @@
 ### Configuration
 
 **Frontend** (`frontend/src/config.js`):
+
 ```js
 // In production (Vercel), VITE_API_BASE_URL = "/api" (set in vercel.json env)
 // In development, falls back to http://localhost:8001/api
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001/api'
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8001/api";
 ```
 
 **Backend** (`backend/.env`):
+
 ```
 DATABASE_URL=postgresql://...
 SECRET_KEY=...
@@ -114,20 +117,23 @@ Client                          Server
 ### Token Storage
 
 Tokens are stored in `localStorage` on the client:
+
 ```js
-localStorage.setItem('token', data.access_token)
-localStorage.setItem('user', JSON.stringify({ user_id, role, full_name }))
+localStorage.setItem("token", data.access_token);
+localStorage.setItem("user", JSON.stringify({ user_id, role, full_name }));
 ```
 
 Every API call reads it:
+
 ```js
-const token = localStorage.getItem('token')
-fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
+const token = localStorage.getItem("token");
+fetch(url, { headers: { Authorization: `Bearer ${token}` } });
 ```
 
 ### Password Hashing
 
 Uses `passlib` with bcrypt:
+
 ```python
 # backend/auth.py
 from passlib.context import CryptContext
@@ -171,6 +177,7 @@ backend/
 ### Router Pattern
 
 Each router follows the same pattern:
+
 ```python
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -193,6 +200,7 @@ async def my_handler(
 All request bodies are Pydantic models. Validation errors return `HTTP 422` with a `detail` array that the frontend's `getErrorMessage()` translates to Vietnamese.
 
 **Password validation** is centralized in `schemas/user.py`:
+
 ```python
 def validate_password_strength(v: str) -> str:
     if len(v) < 8:           raise ValueError('...')
@@ -244,6 +252,7 @@ index.vue (app shell)
 ### Vue 3 Patterns Used
 
 **Composition API (script setup):**
+
 ```vue
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
@@ -255,6 +264,7 @@ onMounted(() => loadData())
 
 **D3.js Integration (charts):**
 D3 manipulates SVG elements via `ref()` on a container `<div>`. When `nextTick()` resolves, the container has been mounted and D3 can safely measure its dimensions:
+
 ```js
 const chartEl = ref(null)
 nextTick(() => {
@@ -268,13 +278,13 @@ nextTick(() => {
 ```js
 // router.js
 router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('token')
-  const user = JSON.parse(localStorage.getItem('user') || '{}')
-  
-  if (to.meta.requiresAuth && !token) return next('/')
-  if (to.meta.role && user.role !== to.meta.role) return next('/')
-  next()
-})
+  const token = localStorage.getItem("token");
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+  if (to.meta.requiresAuth && !token) return next("/");
+  if (to.meta.role && user.role !== to.meta.role) return next("/");
+  next();
+});
 ```
 
 ### State Management
@@ -286,49 +296,53 @@ No Vuex/Pinia — state is managed locally within each component using `ref()` a
 ## 5. Database Models Reference
 
 ### `users`
-| Column | Type | Notes |
-|--------|------|-------|
-| `user_id` | UUID | Primary key |
-| `username` | String(50) | Unique |
-| `email` | String(100) | Unique, indexed |
-| `password_hash` | String(255) | bcrypt hash |
-| `full_name` | String(100) | |
-| `role` | String(20) | `'doctor'` or `'patient'` |
-| `status` | String(20) | `active / needs_attention / inactive` |
-| `last_active_at` | DateTime TZ | Updated on workout |
-| `created_at` | DateTime TZ | Auto |
+
+| Column           | Type        | Notes                                 |
+| ---------------- | ----------- | ------------------------------------- |
+| `user_id`        | UUID        | Primary key                           |
+| `username`       | String(50)  | Unique                                |
+| `email`          | String(100) | Unique, indexed                       |
+| `password_hash`  | String(255) | bcrypt hash                           |
+| `full_name`      | String(100) |                                       |
+| `role`           | String(20)  | `'doctor'` or `'patient'`             |
+| `status`         | String(20)  | `active / needs_attention / inactive` |
+| `last_active_at` | DateTime TZ | Updated on workout                    |
+| `created_at`     | DateTime TZ | Auto                                  |
 
 ### `workout_sessions`
-| Column | Type | Notes |
-|--------|------|-------|
-| `session_id` | UUID | Primary key |
-| `user_id` | UUID FK | → users |
-| `start_time` | DateTime TZ | Auto |
-| `end_time` | DateTime TZ | Set on completion |
-| `status` | String(20) | `in_progress / completed` |
+
+| Column       | Type        | Notes                     |
+| ------------ | ----------- | ------------------------- |
+| `session_id` | UUID        | Primary key               |
+| `user_id`    | UUID FK     | → users                   |
+| `start_time` | DateTime TZ | Auto                      |
+| `end_time`   | DateTime TZ | Set on completion         |
+| `status`     | String(20)  | `in_progress / completed` |
 
 ### `session_details`
+
 One row per exercise within a session:
 
-| Column | Type | Notes |
-|--------|------|-------|
-| `detail_id` | Integer PK | |
-| `session_id` | UUID FK | → workout_sessions |
-| `exercise_type` | String(50) | e.g., `'squat'`, `'arm_raise'` |
-| `reps_completed` | Integer | |
-| `duration_seconds` | Integer | |
-| `accuracy_score` | Numeric(5,2) | 0–100 |
-| `completed_at` | DateTime TZ | Auto |
+| Column             | Type         | Notes                          |
+| ------------------ | ------------ | ------------------------------ |
+| `detail_id`        | Integer PK   |                                |
+| `session_id`       | UUID FK      | → workout_sessions             |
+| `exercise_type`    | String(50)   | e.g., `'squat'`, `'arm_raise'` |
+| `reps_completed`   | Integer      |                                |
+| `duration_seconds` | Integer      |                                |
+| `accuracy_score`   | Numeric(5,2) | 0–100                          |
+| `completed_at`     | DateTime TZ  | Auto                           |
 
 ### `otp_verifications`
+
 Temporary records, deleted after use:
 
-| Column | Type | Notes |
-|--------|------|-------|
-| `email` | String(100) | Unique |
-| `otp_code` | String(6) | Random 6-digit code |
-| `expires_at` | DateTime TZ | 15 minutes from creation |
-| `user_data` | Text | JSON: signup data or `{"reason": "forgot_password"}` |
+| Column       | Type        | Notes                                                |
+| ------------ | ----------- | ---------------------------------------------------- |
+| `email`      | String(100) | Unique                                               |
+| `otp_code`   | String(6)   | Random 6-digit code                                  |
+| `expires_at` | DateTime TZ | 15 minutes from creation                             |
+| `user_data`  | Text        | JSON: signup data or `{"reason": "forgot_password"}` |
 
 ---
 
@@ -336,14 +350,14 @@ Temporary records, deleted after use:
 
 Enforced on both frontend and backend:
 
-| # | Rule | Regex / Check |
-|---|------|---------------|
-| 1 | Min 8 characters | `len(v) >= 8` |
-| 2 | Max 40 characters | `len(v) <= 40` |
-| 3 | Uppercase letter | `/[A-Z]/` |
-| 4 | Lowercase letter | `/[a-z]/` |
-| 5 | Digit | `/[0-9]/` |
-| 6 | Special character | `/[!@#$%^&*()\-_=+\[\]{};':"\\|,.<>/?`~]/` |
+| #   | Rule              | Regex / Check                    |
+| --- | ----------------- | -------------------------------- | ----------- |
+| 1   | Min 8 characters  | `len(v) >= 8`                    |
+| 2   | Max 40 characters | `len(v) <= 40`                   |
+| 3   | Uppercase letter  | `/[A-Z]/`                        |
+| 4   | Lowercase letter  | `/[a-z]/`                        |
+| 5   | Digit             | `/[0-9]/`                        |
+| 6   | Special character | `/[!@#$%^&\*()\-\_=+\[\]{};':"\\ | ,.<>/?`~]/` |
 
 **Frontend** — `Login.vue` checks in real-time via `checkPasswordStrength()` and displays a panel of 6 rules that dim (grey, opacity 0.6) when unmet and light up green with a `✓` when met. The submit button is `disabled` until all 6 rules pass AND both password fields match.
 
@@ -354,47 +368,56 @@ Enforced on both frontend and backend:
 ## 7. Doctor Dashboard
 
 ### Patient List
+
 - Fetches from `GET /api/patients-with-status`
 - Displays a **numbered list** (`#1`, `#2`, ...) so doctors can see total count at a glance
 - Search filters by name or email (client-side)
 - Status badge: `Hoạt động` (green), `Cần chú ý` (orange), `Không hoạt động` (grey)
 
 ### Patient Detail Panel (Overview Tab)
+
 When a doctor clicks a patient, the right panel loads data from **3 APIs in parallel**:
+
 ```js
 Promise.all([
   fetch(`/api/patient-sessions/${id}`),
   fetch(`/api/patient-logs/${id}`),
   fetch(`/api/patient-notes/${id}`),
-  fetch(`/api/patient/charts/${id}`),      // ← weekly activity + accuracy + exercise dist
-  fetch(`/api/overall-stats?user_id=${id}`) // ← total reps, sessions, days
-])
+  fetch(`/api/patient/charts/${id}`), // ← weekly activity + accuracy + exercise dist
+  fetch(`/api/overall-stats?user_id=${id}`), // ← total reps, sessions, days
+]);
 ```
 
 **4 Quick Stats Cards:**
+
 - Total Reps (from `overall-stats`)
 - Total Sessions (from `overall-stats`)
 - Avg Accuracy % (calculated from logs)
 - Active Days (from `overall-stats`)
 
 **Weekly Activity Bar Chart:**
+
 - Data: `GET /api/patient/charts/{id}` → `weekly_activity: [{date, reps}]`
 - 7 bars, one per day, height proportional to reps
 - Labels: day abbreviations (CN, T2, T3...)
 
 **Accuracy Trend Line Chart (D3.js):**
+
 - Data: `GET /api/patient/charts/{id}` → `accuracy_trend: [{date, score}]`
 - SVG line chart with gradient area fill
 - Y-axis: 0–100%, X-axis: dates
 - Grid lines at 0, 25, 50, 75, 100
 
 **Exercise Distribution:**
+
 - Data: `GET /api/patient/charts/{id}` → `muscle_focus: [{exercise_type, count}]`
 - Horizontal progress bars, each a different colour
 - Shows exercise name, count, and percentage
 
 ### Dashboard Stats (Top Row)
+
 Fetched from `GET /api/dashboard/summary`:
+
 - **Total patients** — DB count of all users with `role='patient'`
 - **Active** — patients with workout in last 7 days
 - **Needs attention** — patients with workout 3–7 days ago but not recent
@@ -406,13 +429,14 @@ Fetched from `GET /api/dashboard/summary`:
 
 `PatientDashboard.vue` uses the patient's own `user_id` (from localStorage) to fetch:
 
-| Endpoint | Data shown |
-|----------|-----------|
+| Endpoint                                    | Data shown                                |
+| ------------------------------------------- | ----------------------------------------- |
 | `GET /api/patient/health-metrics/{user_id}` | Heart rate, calories, SpO2, sleep quality |
-| `GET /api/patient/health-charts/{user_id}` | 7-day HR trend, weekly rep chart |
-| `GET /api/overall-stats?user_id={id}` | Total reps, sessions, days |
+| `GET /api/patient/health-charts/{user_id}`  | 7-day HR trend, weekly rep chart          |
+| `GET /api/overall-stats?user_id={id}`       | Total reps, sessions, days                |
 
 **Health metrics are logically derived** from real workout data (not mock):
+
 - Calories = base BMR + (reps × 5) + (duration × 0.1)
 - Resting HR = base − (days_active × 0.5), floor 50
 - SpO2 = 96–99, improves with overall fitness
@@ -423,16 +447,19 @@ Fetched from `GET /api/dashboard/summary`:
 ## 9. Exercise System
 
 ### Physical Exercise (`PatientWorkout.vue`)
+
 1. Patient selects an exercise from their assignments
 2. Camera opens, MediaPipe pose detection runs in the browser
 3. `exercise_logic.py` defines rep counting and form scoring logic per exercise type
 4. On completion, `POST /api/session-details` saves the results
 
 ### Brain Exercise (`BrainExercise.vue`)
+
 - Multiple cognitive mini-games (memory, arithmetic, pattern recognition)
 - Results saved to `brain_exercise_sessions` and `brain_exercise_logs`
 
 ### Exercise Assignment Flow
+
 1. Doctor creates a combo (group of exercises) or picks individual exercises
 2. Doctor assigns to a patient via `POST /api/assignments`
 3. Patient sees assignments in their workout tab
@@ -454,6 +481,7 @@ Fetched from `GET /api/dashboard/summary`:
 ## 11. Email & OTP System
 
 ### Signup Flow
+
 ```
 1. POST /api/signup/request-otp
    → Validates all user data (including password strength)
@@ -471,6 +499,7 @@ Fetched from `GET /api/dashboard/summary`:
 ```
 
 ### Forgot Password Flow
+
 ```
 1. POST /api/forgot-password/request-otp
    → Checks user exists with that email
@@ -489,6 +518,7 @@ Fetched from `GET /api/dashboard/summary`:
 ```
 
 ### SMTP Configuration
+
 Uses `smtplib.SMTP_SSL('smtp.gmail.com', 465)` with Gmail App Password. If `SMTP_EMAIL` or `SMTP_PASSWORD` env vars are missing, it prints the OTP to the server log (useful for local development).
 
 ---
@@ -508,7 +538,9 @@ Uses `smtplib.SMTP_SSL('smtp.gmail.com', 465)` with Gmail App Password. If `SMTP
 ```
 
 ### `api/index.py`
+
 This file is the serverless entry point. It imports the FastAPI app:
+
 ```python
 from backend.main import app  # or however it's structured
 ```
@@ -530,6 +562,7 @@ VITE_API_BASE_URL    /api
 ### Database for Production
 
 Use a serverless-compatible PostgreSQL:
+
 - **[Neon](https://neon.tech)** (recommended, free tier available)
 - **[Supabase](https://supabase.com)** (also has free tier)
 
@@ -572,6 +605,7 @@ app.dependency_overrides[get_db] = override_get_db  # inject test DB
 ### Adding New Tests
 
 Follow the existing pattern:
+
 ```python
 def test_my_new_feature():
     response = client.post("/api/my-endpoint", json={...})
@@ -584,7 +618,9 @@ def test_my_new_feature():
 ## 14. Common Pitfalls & Known Issues
 
 ### Datetime Timezone Awareness
+
 SQLite returns timezone-naive datetimes while PostgreSQL returns timezone-aware ones. The codebase handles this:
+
 ```python
 expires = verify_record.expires_at
 if expires.tzinfo is None:
@@ -592,16 +628,21 @@ if expires.tzinfo is None:
 ```
 
 ### Vercel Filesystem is Read-Only
+
 You **cannot** write files in Vercel serverless functions. All previous debug logging to files has been removed. Use `print()` or `logging.info()` which go to Vercel's log viewer.
 
 ### CORS
+
 The backend only allows requests from specific origins (see `main.py`). If you add a new domain, add it to the `origins` list.
 
 ### Google OAuth in Production
+
 `GOOGLE_CLIENT_ID` must be set in Vercel env vars. The OAuth redirect must be registered in Google Cloud Console for your production domain.
 
 ### JWT Token Expiry
+
 Default token expiry is set in `auth.py`. Expired tokens return 401. The frontend does not currently auto-refresh tokens — users must log in again.
 
 ### Password Validator Duplicate Bug (Fixed)
+
 The old `schemas/user.py` had two `@field_validator('password')` methods in `ResetPassword` (one was named incorrectly). Python silently used only the last one. This is fixed — all schemas now call the shared `validate_password_strength()` function.

@@ -1,5 +1,5 @@
 Vercel deployment completed successfully.
 
-**Inspect URL**: https://vercel.com/conniebwines-projects/medic1-le-minh/GSZrjKA3ZLtjZ4AvvkxhYbBfnXNF
-**Production URL**: https://medic1-le-minh.vercel.app
-**Specific Deployment URL**: https://medic1-le-minh-7t4l835m8-conniebwines-projects.vercel.app
+**Inspect URL**: https://vercel.com/conniebwines-projects/haming/GSZrjKA3ZLtjZ4AvvkxhYbBfnXNF
+**Production URL**: https://haming.vercel.app
+**Specific Deployment URL**: https://haming-7t4l835m8-conniebwines-projects.vercel.app

@@ -84,11 +84,11 @@ def send_otp_email(recipient: str, otp_code: str):
         return
 
     msg = MIMEMultipart()
-    msg['From'] = f"Medic1 <{sender}>"
+    msg['From'] = f"HaminG <{sender}>"
     msg['To'] = recipient
-    msg['Subject'] = "Mã xác nhận đăng ký Medic1"
+    msg['Subject'] = "Mã xác nhận đăng ký HaminG"
 
-    body = f"Chào bạn,\n\nMã xác nhận (OTP) của bạn là: {otp_code}\nMã này sẽ hết hạn trong 15 phút.\n\nTrân trọng,\nĐội ngũ Medic1"
+    body = f"Chào bạn,\n\nMã xác nhận (OTP) của bạn là: {otp_code}\nMã này sẽ hết hạn trong 15 phút.\n\nTrân trọng,\nĐội ngũ HaminG"
     msg.attach(MIMEText(body, 'plain'))
     
     try:
@@ -113,11 +113,11 @@ def send_forgot_password_email(recipient: str, otp_code: str):
         return
 
     msg = MIMEMultipart()
-    msg['From'] = f"Medic1 <{sender}>"
+    msg['From'] = f"HaminG <{sender}>"
     msg['To'] = recipient
-    msg['Subject'] = "Mã xác nhận quên mật khẩu Medic1"
+    msg['Subject'] = "Mã xác nhận quên mật khẩu HaminG"
 
-    body = f"Chào bạn,\n\nMã xác nhận (OTP) để đặt lại mật khẩu của bạn là: {otp_code}\nMã này sẽ hết hạn trong 15 phút.\nNếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.\n\nTrân trọng,\nĐội ngũ Medic1"
+    body = f"Chào bạn,\n\nMã xác nhận (OTP) để đặt lại mật khẩu của bạn là: {otp_code}\nMã này sẽ hết hạn trong 15 phút.\nNếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.\n\nTrân trọng,\nĐội ngũ HaminG"
     msg.attach(MIMEText(body, 'plain'))
     
     try:

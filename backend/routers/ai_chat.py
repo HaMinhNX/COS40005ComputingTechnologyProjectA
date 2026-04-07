@@ -118,7 +118,7 @@ async def ai_chat(
     
     # System Prompt (translated to Vietnamese for consistency)
     system_prompt = f"""
-    Bạn là một trợ lý y tế AI cao cấp tích hợp trong nền tảng MEDIC1, có khả năng phân tích dữ liệu chuyên sâu tương tự như các mô hình ngôn ngữ tiên tiến nhất năm 2026.
+    Bạn là một trợ lý y tế AI cao cấp tích hợp trong nền tảng HaminG, có khả năng phân tích dữ liệu chuyên sâu tương tự như các mô hình ngôn ngữ tiên tiến nhất năm 2026.
     
     Bạn đang hỗ trợ một {current_user.role} trong việc quản lý và theo dõi bệnh nhân: {patient.full_name}.
     
