@@ -7,6 +7,7 @@ import json
 from dotenv import load_dotenv
 from typing import AsyncGenerator
 from uuid import UUID
+from datetime import datetime, timedelta
 
 from database import get_db
 from models import User, MedicalRecord, WorkoutSession, PatientNote
@@ -35,30 +36,34 @@ def get_patient_context(db: Session, patient_id: UUID) -> str:
     # NEW: Fetch health metrics (simulated or from a metrics table if exists)
     # For now, we'll use historical data from WorkoutSession to build a performance summary
     total_reps = 0
-    accuracies = []
+    completed_sessions = 0
+    sessions_last_7_days = 0
+    active_days = set()
     session_details_list = []
+    today = datetime.utcnow().date()
     
     for s in sessions:
         # Sum reps and collect exercises from details
         session_reps = sum(d.reps_completed for d in s.details if d.reps_completed)
         total_reps += session_reps
+
+        if s.start_time:
+            session_date = s.start_time.date()
+            active_days.add(session_date)
+            if session_date >= today - timedelta(days=7):
+                sessions_last_7_days += 1
+
+        if (s.status or '').lower() == 'completed':
+            completed_sessions += 1
         
         exercises = list(set(d.exercise_type for d in s.details if d.exercise_type))
         exercise_str = ", ".join(exercises) if exercises else "Unknown"
         
-        # Calculate session accuracy if details exist
-        session_acc = 0
-        if s.details:
-            valid_details = [d for d in s.details if d.accuracy_score is not None]
-            if valid_details:
-                session_acc = sum(float(d.accuracy_score) for d in valid_details) / len(valid_details)
-                accuracies.append(session_acc)
-        
         session_details_list.append(
-            f"  + [{s.start_time.strftime('%Y-%m-%d %H:%M')}] {exercise_str}: {session_reps} reps, Accuracy: {session_acc:.1f}%"
+            f"  + [{s.start_time.strftime('%Y-%m-%d %H:%M')}] {exercise_str}: {session_reps} reps, Trạng thái: {s.status or 'unknown'}"
         )
 
-    avg_accuracy = sum(accuracies) / len(accuracies) if accuracies else 0
+    avg_reps_per_session = total_reps / len(sessions) if sessions else 0
 
     context = f"DỮ LIỆU BỆNH NHÂN (ID: {patient_id}):\n"
     if record:
@@ -76,8 +81,12 @@ def get_patient_context(db: Session, patient_id: UUID) -> str:
         context += f"- Tiền sử bệnh: {getattr(record, 'medical_history', 'Không có dữ liệu')}\n"
     
     context += "\n--- THỐNG KÊ TẬP LUYỆN (10 buổi gần nhất) ---\n"
+    context += f"- Tổng số buổi ghi nhận: {len(sessions)}\n"
+    context += f"- Số buổi hoàn thành: {completed_sessions}\n"
+    context += f"- Số buổi trong 7 ngày gần nhất: {sessions_last_7_days}\n"
+    context += f"- Số ngày có hoạt động: {len(active_days)}\n"
     context += f"- Tổng số Reps hoàn thành: {total_reps}\n"
-    context += f"- Độ chính xác trung bình: {'%.1f' % float(avg_accuracy)}%\n"
+    context += f"- Reps trung bình mỗi buổi: {avg_reps_per_session:.1f}\n"
     
     if session_details_list:
         context += "- Chi tiết các buổi tập:\n"
@@ -123,12 +132,12 @@ async def ai_chat(
     Bạn đang hỗ trợ một {current_user.role} trong việc quản lý và theo dõi bệnh nhân: {patient.full_name}.
     
     NHIỆM VỤ CỦA BẠN:
-    1. Phân tích dữ liệu: Dựa trên ngữ cảnh được cung cấp, hãy đưa ra các nhận xét về tiến độ phục hồi, xu hướng nhịp tim/độ chính xác, và các cảnh báo nếu có.
+    1. Phân tích dữ liệu: Dựa trên ngữ cảnh được cung cấp, hãy đưa ra các nhận xét về tiến độ phục hồi, xu hướng tập luyện, mức độ tuân thủ và các cảnh báo nếu có.
     2. Tóm tắt: Cung cấp bản tóm tắt nhanh về tình trạng sức khỏe nếu được yêu cầu.
     3. Thống kê: Trình bày các con số cụ thể về hiệu suất tập luyện một cách trực quan (sử dụng bảng markdown nếu cần).
     4. Trả lời câu hỏi: Giải đáp mọi thắc mắc về bệnh nhân này dựa trên dữ liệu thật.
     
-    5. ACTION PROTOCOL (MỚI): Nếu bạn nhận thấy bệnh nhân gặp khó khăn (độ chính xác thấp < 50% hoặc bỏ lỡ nhiều buổi tập), bạn CÓ QUYỀN đề xuất các hành động cụ thể như:
+    5. ACTION PROTOCOL (MỚI): Nếu bạn nhận thấy bệnh nhân gặp khó khăn (bỏ lỡ nhiều buổi tập, gián đoạn tập luyện nhiều ngày, hoặc khối lượng tập giảm rõ rệt), bạn CÓ QUYỀN đề xuất các hành động cụ thể như:
        - "Đề xuất bài tập phục hồi nhẹ hơn"
        - "Nhắc nhở lịch hẹn với bác sĩ"
        - "Gợi ý tăng thời gian nghỉ ngơi"

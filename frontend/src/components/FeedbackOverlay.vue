@@ -17,32 +17,35 @@
 
 <script setup>
 import { computed, markRaw } from 'vue';
-import { Trophy, Star, CheckCircle2 } from 'lucide-vue-next';
+import { Trophy, Star, CheckCircle2, AlertCircle } from 'lucide-vue-next';
 
 const props = defineProps({
   show: Boolean,
   tier: {
     type: String,
     default: 'normal', // 'excellent', 'good', 'normal'
-    validator: (v) => ['excellent', 'good', 'normal'].includes(v)
+    validator: (v) => ['excellent', 'good', 'normal', 'incorrect'].includes(v)
   }
 });
 
 const tierClass = computed(() => `tier-${props.tier}`);
 
 const icon = computed(() => {
+  if (props.tier === 'incorrect') return markRaw(AlertCircle);
   if (props.tier === 'excellent') return markRaw(Trophy);
   if (props.tier === 'good') return markRaw(Star);
   return markRaw(CheckCircle2);
 });
 
 const title = computed(() => {
+  if (props.tier === 'incorrect') return 'CHƯA ĐÚNG!';
   if (props.tier === 'excellent') return 'XUẤT SẮC!';
   if (props.tier === 'good') return 'RẤT TỐT!';
   return 'CHÍNH XÁC!';
 });
 
 const message = computed(() => {
+  if (props.tier === 'incorrect') return 'Thử lại lần nữa nhé!';
   if (props.tier === 'excellent') return 'Bạn thật tuyệt vời! 🌟';
   if (props.tier === 'good') return 'Tiếp tục phát huy nhé! 👏';
   return 'Làm tốt lắm! 💪';
@@ -125,6 +128,14 @@ const message = computed(() => {
 .tier-normal .feedback-content {
   border-color: #3B82F6;
   background: linear-gradient(135deg, #EFF6FF 0%, #FFFFFF 100%);
+}
+
+.tier-incorrect {
+  color: #DC2626;
+}
+.tier-incorrect .feedback-content {
+  border-color: #DC2626;
+  background: linear-gradient(135deg, #FFF1F2 0%, #FFFFFF 100%);
 }
 
 /* Animations */

@@ -21,7 +21,7 @@
               Thay đổi
             </button>
           </div>
-          <span class="status-badge">Gemini 3 Flash • Real-time Analysis</span>
+          <span class="status-badge">HaminG AI • Real-time Analysis</span>
         </div>
       </div>
 
@@ -265,7 +265,7 @@ const suggestedPrompts = computed(() => {
   } else {
     return [
       'Tóm tắt tuần tập luyện của tôi',
-      'Độ chính xác của tôi thế nào?',
+      'Mức độ duy trì tập luyện của tôi thế nào?',
       'Tôi cần cải thiện bài tập nào?',
       'Phân tích xu hướng sức khỏe',
     ]

@@ -81,4 +81,21 @@ router.beforeEach((to, from, next) => {
   next()
 })
 
+router.onError((error) => {
+  const message = String(error?.message || '')
+  const isChunkLoadError =
+    message.includes('Failed to fetch dynamically imported module') ||
+    message.includes('Importing a module script failed') ||
+    message.includes('Loading CSS chunk')
+
+  if (!isChunkLoadError) return
+
+  const onceKey = 'router-chunk-reloaded'
+  if (sessionStorage.getItem(onceKey) === '1') return
+
+  console.warn('Router chunk load failed, reloading to refresh stale assets', error)
+  sessionStorage.setItem(onceKey, '1')
+  window.location.reload()
+})
+
 export default router
