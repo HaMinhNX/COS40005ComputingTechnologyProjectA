@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Form, UploadFile, File
 from sqlalchemy.orm import Session
 from database import get_db
 from models import User
@@ -18,12 +18,68 @@ import json
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, field_validator
 from models import OTPVerification
+from enums import DoctorApprovalStatus, UserRole
+from models import DoctorVerification
 
 
 router = APIRouter(
     prefix="/api",
     tags=["auth"]
 )
+
+
+def upload_certificate_to_cloudinary(file: UploadFile) -> tuple[str, str]:
+    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
+    api_key = os.getenv("CLOUDINARY_API_KEY")
+    api_secret = os.getenv("CLOUDINARY_API_SECRET")
+    if not cloud_name or not api_key or not api_secret:
+        raise HTTPException(status_code=500, detail="Cloudinary configuration is missing")
+
+    file_bytes = file.file.read()
+    if not file_bytes:
+        raise HTTPException(status_code=400, detail="Uploaded certificate file is empty")
+
+    try:
+        import cloudinary
+        import cloudinary.uploader
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Cloudinary package not installed: {exc}") from exc
+
+    cloudinary.config(
+        cloud_name=cloud_name,
+        api_key=api_key,
+        api_secret=api_secret,
+        secure=True
+    )
+
+    content_type = (file.content_type or "").lower()
+    resource_type = "raw" if content_type == "application/pdf" else "image"
+    original_name = (file.filename or "").strip().lower()
+    extension = ""
+    if "." in original_name:
+        extension = original_name.rsplit(".", 1)[-1]
+    if not extension:
+        extension = "pdf" if content_type == "application/pdf" else "png"
+    # Keep extension in public_id so downloaded file has a proper suffix.
+    public_id = f"doctor_{uuid.uuid4()}.{extension}"
+
+    try:
+        upload_result = cloudinary.uploader.upload(
+            file_bytes,
+            resource_type=resource_type,
+            folder="doctor-certificates",
+            public_id=public_id,
+            overwrite=False
+        )
+        secure_url = upload_result.get("secure_url")
+        public_id = upload_result.get("public_id")
+        if not secure_url or not public_id:
+            raise HTTPException(status_code=500, detail="Failed to upload certificate")
+        return secure_url, public_id
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to upload certificate: {exc}") from exc
 
 @router.post("/login", response_model=UserWithToken)
 async def login(data: UserLogin, db: Session = Depends(get_db)):
@@ -39,6 +95,12 @@ async def login(data: UserLogin, db: Session = Depends(get_db)):
         result = verify_password(password, user.password_hash)
         print(f"DEBUG LOGIN: verify_password result={result}")
         if result:
+            if user.role == UserRole.DOCTOR.value:
+                if user.approval_status == DoctorApprovalStatus.PENDING.value:
+                    raise HTTPException(status_code=403, detail="Doctor account is pending admin approval")
+                if user.approval_status == DoctorApprovalStatus.REJECTED.value:
+                    raise HTTPException(status_code=403, detail="Doctor account was rejected by admin")
+
             # Create real JWT token
             access_token = create_access_token(data={"sub": str(user.user_id), "role": user.role})
             print(f"DEBUG LOGIN: Created token for user_id={user.user_id}")
@@ -58,6 +120,62 @@ async def login(data: UserLogin, db: Session = Depends(get_db)):
         print(f"DEBUG LOGIN: User NOT found for email={username}")
     
     raise HTTPException(status_code=401, detail="Tên đăng nhập hoặc mật khẩu không đúng")
+
+
+@router.post("/signup/doctor-with-certificate")
+async def signup_doctor_with_certificate(
+    username: str = Form(...),
+    password: str = Form(...),
+    email: str = Form(...),
+    full_name: str = Form(...),
+    certificate: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    from schemas.user import validate_password_strength
+
+    validate_password_strength(password)
+
+    if db.query(User).filter(User.username == username).first():
+        raise HTTPException(status_code=400, detail="Tên đăng nhập đã tồn tại")
+    if db.query(User).filter(User.email == email).first():
+        raise HTTPException(status_code=400, detail="Email đã được sử dụng")
+
+    allowed_content_types = {"image/jpeg", "image/png", "application/pdf"}
+    if certificate.content_type not in allowed_content_types:
+        raise HTTPException(status_code=400, detail="Certificate file must be JPG, PNG, or PDF")
+
+    certificate_url, public_id = upload_certificate_to_cloudinary(certificate)
+    hashed_password = get_password_hash(password)
+
+    try:
+        new_doctor = User(
+            username=username,
+            password_hash=hashed_password,
+            full_name=full_name,
+            email=email,
+            role=UserRole.DOCTOR.value,
+            approval_status=DoctorApprovalStatus.PENDING.value
+        )
+        db.add(new_doctor)
+        db.flush()
+
+        verification = DoctorVerification(
+            doctor_id=new_doctor.user_id,
+            certificate_url=certificate_url,
+            certificate_public_id=public_id
+        )
+        db.add(verification)
+        db.commit()
+        db.refresh(new_doctor)
+
+        return {
+            "message": "Doctor registration submitted and waiting for admin approval",
+            "doctor_id": str(new_doctor.user_id),
+            "approval_status": new_doctor.approval_status
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Lỗi tạo tài khoản bác sĩ: {str(e)}")
 
 class OTPRequestSchema(BaseModel):
     username: str

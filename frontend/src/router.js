@@ -5,6 +5,7 @@ const LoginPage = () => import('./components/AuthLogin.vue')
 const PatientTabs = () => import('./components/PatientTabs.vue')
 const PatientManagementPage = () => import('./components/MainLayout.vue')
 const Dashboard = () => import('./components/DoctorDashboard.vue')
+const AdminDashboard = () => import('./components/AdminDashboard.vue')
 
 const routes = [
   { path: '/', redirect: '/login' },
@@ -26,6 +27,12 @@ const routes = [
     name: 'dashboard',
     component: Dashboard,
     meta: { requiresAuth: true },
+  },
+  {
+    path: '/admin',
+    name: 'admin',
+    component: AdminDashboard,
+    meta: { requiresAuth: true, roles: ['admin'] },
   },
   // Catch all - redirect to login
   { path: '/:pathMatch(.*)*', redirect: '/login' },
@@ -61,6 +68,8 @@ router.beforeEach((to, from, next) => {
     console.log(`Router: Already authenticated as ${user.role}, redirecting to dashboard`)
     if (user.role === 'doctor') {
       return next({ name: 'doctor' })
+    } else if (user.role === 'admin') {
+      return next({ name: 'admin' })
     } else {
       return next({ name: 'patient' })
     }
@@ -72,6 +81,8 @@ router.beforeEach((to, from, next) => {
       console.warn(`Router: Role mismatch. User role ${user.role} not in ${to.meta.roles}`)
       if (user.role === 'doctor') {
         return next({ name: 'doctor' })
+      } else if (user.role === 'admin') {
+        return next({ name: 'admin' })
       } else {
         return next({ name: 'patient' })
       }

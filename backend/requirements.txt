@@ -14,5 +14,6 @@ google-generativeai>=0.3.0
 anyio
 httpx
 python-multipart
+cloudinary==1.44.1
 # Add any specialized requirements only if necessary
 # opencv-python-headless # Optional if you don't use it in serverless

@@ -6,7 +6,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional
 from datetime import datetime
 from uuid import UUID
-from enums import UserRole
+from enums import UserRole, DoctorApprovalStatus
 import re
 
 SPECIAL_CHAR_REGEX = re.compile(r'[!@#$%^&*()\-_=+\[\]{};\':"\\|,.<>/?`~]')
@@ -111,6 +111,7 @@ class UserResponse(BaseModel):
     email: str
     full_name: Optional[str]
     role: UserRole
+    approval_status: Optional[DoctorApprovalStatus] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

@@ -4,7 +4,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
 from database import Base
-from enums import ScheduleStatus, AssignmentStatus, SessionStatus, WeekPlanStatus, NotificationType, PatientStatus
+from enums import ScheduleStatus, AssignmentStatus, SessionStatus, WeekPlanStatus, NotificationType, PatientStatus, DoctorApprovalStatus
 
 
 class User(Base):
@@ -16,6 +16,7 @@ class User(Base):
     email = Column(String(100), nullable=False, unique=True, index=True)
     full_name = Column(String(100))
     role = Column(String(20)) # UserRole
+    approval_status = Column(String(20), default=DoctorApprovalStatus.APPROVED.value, index=True)
     
     # Activity tracking fields
     last_active_at = Column(DateTime(timezone=True), nullable=True)
@@ -39,6 +40,17 @@ class User(Base):
     week_plans_as_patient = relationship("WeekPlan", foreign_keys="[WeekPlan.patient_id]", back_populates="patient")
     week_plans_as_doctor = relationship("WeekPlan", foreign_keys="[WeekPlan.doctor_id]", back_populates="doctor")
     notifications = relationship("Notification", back_populates="user")
+    doctor_verification = relationship(
+        "DoctorVerification",
+        uselist=False,
+        foreign_keys="[DoctorVerification.doctor_id]",
+        back_populates="doctor"
+    )
+    reviewed_doctor_verifications = relationship(
+        "DoctorVerification",
+        foreign_keys="[DoctorVerification.reviewed_by]",
+        back_populates="reviewer"
+    )
     
 class ExerciseLogSimple(Base):
     __tablename__ = "exercise_logs_simple"
@@ -260,6 +272,22 @@ class OTPVerification(Base):
     otp_code = Column(String(6), nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=False)
     user_data = Column(Text, nullable=False) # JSON encoded string
+
+
+class DoctorVerification(Base):
+    __tablename__ = "doctor_verifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    doctor_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False, unique=True, index=True)
+    certificate_url = Column(Text, nullable=False)
+    certificate_public_id = Column(String(255), nullable=True)
+    submitted_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    reviewed_by = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=True, index=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    rejection_reason = Column(Text, nullable=True)
+
+    doctor = relationship("User", foreign_keys=[doctor_id], back_populates="doctor_verification")
+    reviewer = relationship("User", foreign_keys=[reviewed_by], back_populates="reviewed_doctor_verifications")
 
 
 class WearableHealthData(Base):

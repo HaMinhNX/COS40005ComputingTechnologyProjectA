@@ -4,6 +4,7 @@ from sqlalchemy import func
 from datetime import datetime, timedelta
 from database import get_db
 from models import User, WorkoutSession, SessionDetail
+from enums import DoctorApprovalStatus
 
 router = APIRouter(
     prefix="/api",
@@ -13,7 +14,10 @@ router = APIRouter(
 @router.get("/doctors")
 async def get_all_doctors(db: Session = Depends(get_db)):
     """Get all doctors for messaging and collaboration"""
-    doctors = db.query(User).filter(User.role == 'doctor').all()
+    doctors = db.query(User).filter(
+        User.role == 'doctor',
+        User.approval_status == DoctorApprovalStatus.APPROVED.value
+    ).all()
     return [
         {
             "user_id": str(doctor.user_id),

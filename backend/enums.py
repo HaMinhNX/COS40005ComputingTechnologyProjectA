@@ -6,8 +6,16 @@ from enum import Enum
 
 class UserRole(str, Enum):
     """User roles in the system"""
+    ADMIN = "admin"
     DOCTOR = "doctor"
     PATIENT = "patient"
+
+
+class DoctorApprovalStatus(str, Enum):
+    """Doctor verification status"""
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
 
 
 class ExerciseType(str, Enum):

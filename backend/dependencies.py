@@ -133,6 +133,20 @@ def get_current_patient(
     return current_user
 
 
+def get_current_admin(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    """
+    Dependency to ensure the current user is an admin.
+    """
+    if current_user.role != UserRole.ADMIN.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This endpoint requires admin privileges"
+        )
+    return current_user
+
+
 def verify_patient_access(
     patient_id: UUID,
     current_user: User = Depends(get_current_user),

@@ -236,8 +236,28 @@
               </div>
             </div>
 
+            <div v-if="signupForm.role === 'doctor'" class="form-group doctor-certificate-group">
+              <label class="form-label">Chứng chỉ bác sĩ (JPG/PNG/PDF)</label>
+              <div class="certificate-upload">
+                <label class="certificate-upload-btn" for="doctor-certificate-input">
+                  Chọn tệp
+                </label>
+                <input
+                  id="doctor-certificate-input"
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.pdf"
+                  class="certificate-hidden-input"
+                  @change="onCertificateChange"
+                />
+                <span class="certificate-file-name">
+                  {{ selectedCertificate ? selectedCertificate.name : 'Chưa chọn tệp nào' }}
+                </span>
+              </div>
+              <p class="certificate-hint">Dung lượng khuyến nghị dưới 5MB.</p>
+            </div>
+
             <button type="button" @click="onRequestOTP" class="btn-submit" :disabled="loading || !isSignupPasswordValid || signupForm.password !== signupForm.confirmPassword">
-              <span v-if="!loading" class="btn-text">Đăng ký &amp; Nhận mã OTP</span>
+              <span v-if="!loading" class="btn-text">{{ signupForm.role === 'doctor' ? 'Đăng ký bác sĩ' : 'Đăng ký &amp; Nhận mã OTP' }}</span>
               <span v-else class="btn-text">Đang xử lý...</span>
               <ArrowRight class="btn-icon" :size="20" />
             </button>
@@ -474,6 +494,7 @@ const showConfirmPassword = ref(false)
 const loading = ref(false)
 const message = ref({ text: '', type: '' })
 const otpCode = ref('')
+const selectedCertificate = ref(null)
 
 const loginForm = ref({
   username: '',
@@ -629,6 +650,8 @@ const onLogin = async () => {
     setTimeout(() => {
       if (data.role === 'doctor') {
         router.push('/doctor')
+      } else if (data.role === 'admin') {
+        router.push('/admin')
       } else {
         router.push('/patient')
       }
@@ -660,6 +683,33 @@ const onRequestOTP = async () => {
   message.value = { text: '', type: '' }
 
   try {
+    if (signupForm.value.role === 'doctor') {
+      if (!selectedCertificate.value) {
+        throw new Error('Vui lòng tải lên chứng chỉ bác sĩ')
+      }
+
+      const formData = new FormData()
+      formData.append('username', signupForm.value.username)
+      formData.append('password', signupForm.value.password)
+      formData.append('email', signupForm.value.email)
+      formData.append('full_name', signupForm.value.full_name)
+      formData.append('certificate', selectedCertificate.value)
+
+      const res = await fetch(`${API_BASE_URL}/signup/doctor-with-certificate`, {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(getErrorMessage(data))
+      }
+      showMessage(
+        data.message || 'Đăng ký bác sĩ thành công. Vui lòng chờ admin phê duyệt tài khoản.',
+        'success',
+      )
+      return
+    }
+
     const payload = { ...signupForm.value }
     delete payload.confirmPassword
     const res = await fetch(`${API_BASE_URL}/signup/request-otp`, {
@@ -681,6 +731,11 @@ const onRequestOTP = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const onCertificateChange = (event) => {
+  const file = event.target.files?.[0] || null
+  selectedCertificate.value = file
 }
 
 const onForgotPasswordSubmit = async () => {
@@ -833,6 +888,8 @@ const onSignup = async () => {
     setTimeout(() => {
       if (data.role === 'doctor') {
         router.push('/doctor')
+      } else if (data.role === 'admin') {
+        router.push('/admin')
       } else {
         router.push('/patient')
       }
@@ -963,6 +1020,11 @@ const onSignup = async () => {
   gap: 0.5rem;
 }
 
+.doctor-certificate-group {
+  margin-top: 0.4rem;
+  margin-bottom: 0.9rem;
+}
+
 .form-label {
   font-size: 0.875rem;
   font-weight: 700;
@@ -1008,6 +1070,60 @@ const onSignup = async () => {
 .form-input.with-icon,
 .form-select.with-icon {
   padding-left: 3rem;
+}
+
+.certificate-upload {
+  width: 100%;
+  min-height: 56px;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #fff;
+  transition: all 0.2s ease;
+}
+
+.certificate-upload:focus-within {
+  border-color: #667eea;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+.certificate-hidden-input {
+  display: none;
+}
+
+.certificate-upload-btn {
+  background: #eef2ff;
+  color: #4338ca;
+  border: 1px solid #c7d2fe;
+  border-radius: 0.65rem;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.certificate-upload-btn:hover {
+  background: #e0e7ff;
+}
+
+.certificate-file-name {
+  color: #475569;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.certificate-hint {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.25rem;
+  margin-bottom: 0;
 }
 
 .form-input:focus,
@@ -1108,7 +1224,7 @@ const onSignup = async () => {
 }
 
 .btn-submit {
-  margin-top: 1rem;
+  margin-top: 1.25rem;
   padding: 1rem;
   background: #6366f1;
   color: white;
