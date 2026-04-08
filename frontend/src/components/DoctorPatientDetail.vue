@@ -235,6 +235,22 @@
           </div>
         </div>
       </div>
+
+      <!-- 5. AI SUGGESTION TAB -->
+      <div v-else-if="currentTab === 'ai_suggestion'" class="space-y-4">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h3 class="text-xl font-bold text-slate-800">Gợi ý bài tập từ AI</h3>
+            <p class="text-sm text-slate-500 mt-1">
+              AI sẽ phân tích hồ sơ bệnh án, lịch sử tập và ghi chú để đề xuất bài tập từ danh sách
+              bài tập hiện có của hệ thống.
+            </p>
+          </div>
+        </div>
+        <div class="h-[620px]">
+          <AIChatbox :initialPatientId="patientId" />
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -243,10 +259,11 @@
 import { ref, onMounted, watch } from 'vue'
 import { ArrowLeft, FileText, MessageSquare, Plus } from 'lucide-vue-next'
 import PatientDashboard from './PatientDashboard.vue'
+import AIChatbox from './AIChatbox.vue'
 import { API_BASE_URL } from '../config'
 
 const props = defineProps(['patientId'])
-defineEmits(['back'])
+const emit = defineEmits(['back', 'open-messages'])
 
 const currentTab = ref('overview')
 const tabs = [
@@ -254,6 +271,7 @@ const tabs = [
   { id: 'medical_record', label: 'Hồ sơ bệnh án' },
   { id: 'history', label: 'Lịch sử' },
   { id: 'notes', label: 'Ghi chú' },
+  { id: 'ai_suggestion', label: 'Gợi ý AI' },
 ]
 
 const patient = ref(null)
@@ -399,9 +417,10 @@ const saveNote = async () => {
 }
 
 const navigateToMessages = () => {
-  // Emit event to parent to switch to messages view, or use router
-  // Since we don't have router setup in this snippet, we'll alert or try to emit
-  alert('Chức năng nhắn tin đang được phát triển (Navigate to /messages)')
+  emit('open-messages', {
+    patientId: props.patientId,
+    patientName: patient.value?.full_name || '',
+  })
 }
 
 const formatDate = (dateStr) => {

@@ -13,6 +13,7 @@ from database import get_db
 from models import User, MedicalRecord, WorkoutSession, PatientNote
 from dependencies import get_current_user, verify_patient_access
 from schemas.communication import AIChatRequest
+from enums import ExerciseType
 
 router = APIRouter(
     prefix="/api/ai",
@@ -24,6 +25,23 @@ load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
+
+
+def build_supported_exercise_guidance() -> tuple[str, str]:
+    """Return supported exercise list in both compact and human-readable formats."""
+    supported_values = [exercise.value for exercise in ExerciseType]
+    supported_line = ", ".join(supported_values)
+
+    exercise_labels = {
+        ExerciseType.BICEP_CURL.value: "Bicep Curl (gập tay)",
+        ExerciseType.SHOULDER_FLEXION.value: "Shoulder Flexion (nâng tay trước)",
+        ExerciseType.SQUAT.value: "Squat (ngồi xổm)",
+        ExerciseType.KNEE_RAISE.value: "Knee Raise (nâng gối)",
+    }
+    readable_line = "\n".join(
+        [f"- {value}: {exercise_labels.get(value, value)}" for value in supported_values]
+    )
+    return supported_line, readable_line
 
 def get_patient_context(db: Session, patient_id: UUID) -> str:
     # Fetch medical record
@@ -124,6 +142,7 @@ async def ai_chat(
     
     # Build context
     context = get_patient_context(db, target_patient_id)
+    supported_exercises, supported_exercises_readable = build_supported_exercise_guidance()
     
     # System Prompt (translated to Vietnamese for consistency)
     system_prompt = f"""
@@ -142,6 +161,17 @@ async def ai_chat(
        - "Nhắc nhở lịch hẹn với bác sĩ"
        - "Gợi ý tăng thời gian nghỉ ngơi"
        Khi đề xuất, hãy giải thích lý do dựa trên dữ liệu.
+
+     6. GỢI Ý BÀI TẬP (ÁP DỤNG KHI NGƯỜI DÙNG LÀ BÁC SĨ):
+         - Chỉ được đề xuất bài tập từ danh sách được hệ thống hỗ trợ.
+         - Không tự tạo bài tập mới ngoài danh sách này.
+         - Nếu bác sĩ yêu cầu "đề xuất bài tập" hoặc "đề xuất assignment", hãy xuất phần "Đề xuất assignment" theo bảng markdown gồm các cột:
+            | exercise_type | target_reps | frequency | lý do |
+         - exercise_type bắt buộc phải nằm trong danh sách: {supported_exercises}
+         - Nếu dữ liệu chưa đủ để đề xuất chắc chắn, hãy nêu rõ thiếu dữ liệu gì và đưa ra đề xuất tạm thời ở mức an toàn.
+
+     DANH SÁCH BÀI TẬP ĐƯỢC HỖ TRỢ:
+     {supported_exercises_readable}
     
     DỮ LIỆU NGỮ CẢNH:
     {context}
@@ -152,6 +182,7 @@ async def ai_chat(
     - Định dạng: Sử dụng Markdown (bold, tables, lists) để thông tin dễ đọc.
     - Bảo mật: Tuyệt đối không tiết lộ thông tin của bệnh nhân khác. Nếu không có dữ liệu cho câu hỏi cụ thể, hãy thành thật trả lời là không có dữ liệu.
     - Giới hạn: Chỉ trả lời các vấn đề liên quan đến y tế và phục hồi chức năng của bệnh nhân này.
+    - Ràng buộc bài tập: Không đề xuất bài tập ngoài danh sách được hỗ trợ bởi hệ thống.
     - Action Integration: Luôn kết thúc bằng một câu hỏi gợi mở hoặc một "Hành động đề xuất" nếu thấy cần thiết để thúc đẩy sự phục hồi.
     """
     

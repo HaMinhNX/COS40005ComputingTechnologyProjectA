@@ -76,9 +76,21 @@
               </p>
             </div>
 
+            <div class="patient-search-row">
+              <div class="patient-search-box">
+                <Search :size="16" class="search-icon" />
+                <input
+                  v-model="patientSearch"
+                  type="text"
+                  placeholder="Tìm bệnh nhân theo tên hoặc email..."
+                />
+              </div>
+              <span class="patient-count">{{ filteredPatients.length }} bệnh nhân</span>
+            </div>
+
             <div class="patient-grid">
               <div
-                v-for="p in patients"
+                v-for="p in filteredPatients"
                 :key="p.patient_id"
                 @click="selectPatient(p)"
                 class="patient-card-premium"
@@ -92,6 +104,10 @@
                 </div>
                 <ChevronRight :size="18" class="arrow" />
               </div>
+            </div>
+
+            <div v-if="filteredPatients.length === 0" class="patient-empty">
+              Không tìm thấy bệnh nhân phù hợp.
             </div>
           </div>
         </div>
@@ -192,6 +208,7 @@ import {
   Bot,
   Trash2,
   Users,
+  Search,
   ChevronRight,
   ArrowUpRight,
   AlertCircle,
@@ -211,6 +228,7 @@ const isStreaming = ref(false)
 const messageContainer = ref(null)
 const selectedPatientId = ref(props.initialPatientId)
 const patients = ref([])
+const patientSearch = ref('')
 const userRole = ref('')
 const currentUser = ref(null)
 const currentStreamingMessage = ref(null)
@@ -240,6 +258,25 @@ const currentPatientName = computed(() => {
   return p ? p.full_name : 'Bệnh nhân'
 })
 
+const removeVietnameseTones = (str) => {
+  return String(str || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+}
+
+const filteredPatients = computed(() => {
+  const query = removeVietnameseTones(patientSearch.value).toLowerCase().trim()
+  if (!query) return patients.value
+
+  return patients.value.filter((p) => {
+    const name = removeVietnameseTones(p.full_name).toLowerCase()
+    const email = String(p.email || '').toLowerCase()
+    return name.includes(query) || email.includes(query)
+  })
+})
+
 const getStatusClass = (p) => {
   const s = p.status?.toLowerCase() || ''
   if (s === 'active') return 'status-active'
@@ -257,6 +294,7 @@ const getStatusLabel = (p) => {
 const suggestedPrompts = computed(() => {
   if (userRole.value === 'doctor') {
     return [
+      'Đề xuất bài tập từ danh sách hiện có cho bệnh nhân này',
       'Tóm tắt tình trạng bệnh nhân này',
       'Phân tích hiệu suất tập luyện gần đây',
       'Đánh giá tiến độ phục hồi',
@@ -715,7 +753,7 @@ const sendMessage = async () => {
 .patient-selection-stage {
   min-height: 100%;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 40px;
   background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.05), transparent);
@@ -724,6 +762,7 @@ const sendMessage = async () => {
 .selection-content {
   width: 100%;
   max-width: 900px;
+  margin: 0 auto;
 }
 
 .selection-header {
@@ -757,10 +796,62 @@ const sendMessage = async () => {
   margin: 0 auto;
 }
 
+.patient-search-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.patient-search-box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.patient-search-box:focus-within {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.patient-search-box .search-icon {
+  color: #94a3b8;
+}
+
+.patient-search-box input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #1e293b;
+  background: transparent;
+}
+
+.patient-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  white-space: nowrap;
+}
+
 .patient-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 20px;
+}
+
+.patient-empty {
+  margin-top: 16px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .patient-card-premium {

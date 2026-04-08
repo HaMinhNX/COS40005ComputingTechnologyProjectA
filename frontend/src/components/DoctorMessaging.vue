@@ -247,11 +247,18 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { Search, MessageCircle, MoreVertical, Paperclip, Send } from 'lucide-vue-next'
 
 import { API_BASE_URL } from '../config'
 const API_BASE = API_BASE_URL
+
+const props = defineProps({
+  initialPatientId: {
+    type: String,
+    default: null,
+  },
+})
 
 const doctors = ref([])
 const patients = ref([])
@@ -461,6 +468,22 @@ function selectUser(user) {
   loadMessages()
 }
 
+function trySelectInitialPatient() {
+  if (!props.initialPatientId || patients.value.length === 0) return
+
+  const targetId = String(props.initialPatientId)
+  const matchedPatient = patients.value.find((p) => String(p.patient_id) === targetId)
+  if (!matchedPatient) return
+
+  const currentSelectedId = selectedUser.value?.patient_id
+    ? String(selectedUser.value.patient_id)
+    : null
+  if (currentSelectedId === targetId) return
+
+  activeTab.value = 'patients'
+  selectUser(matchedPatient)
+}
+
 function scrollToBottom() {
   nextTick(() => {
     if (msgList.value) {
@@ -478,6 +501,7 @@ onMounted(async () => {
       currentUserId.value = user.user_id
       await loadDoctors()
       await loadPatients()
+      trySelectInitialPatient()
     } else {
       console.error('No user data in localStorage')
     }
@@ -490,6 +514,20 @@ onMounted(async () => {
     if (selectedUser.value) loadMessages()
   }, 3000)
 })
+
+watch(
+  () => props.initialPatientId,
+  () => {
+    trySelectInitialPatient()
+  },
+)
+
+watch(
+  () => patients.value.length,
+  () => {
+    trySelectInitialPatient()
+  },
+)
 
 onUnmounted(() => {
   if (pollIntervalId) {
