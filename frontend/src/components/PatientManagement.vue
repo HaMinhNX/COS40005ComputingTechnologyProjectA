@@ -225,22 +225,21 @@
   </div>
 
   <!-- Patient Detail View -->
-  <DoctorPatientDetail v-else :patientId="selectedPatient" @back="selectedPatient = null" />
+  <DoctorPatientDetail
+    v-else
+    :patientId="selectedPatient"
+    @back="selectedPatient = null"
+    @open-messages="openMessagesFromDetail"
+  />
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import {
-  Search,
-  Plus,
-  X,
-  Dumbbell,
-  Activity,
-  Clock,
-  Trash2,
-} from 'lucide-vue-next'
+import { Search, Plus, X, Dumbbell, Activity, Clock, Trash2 } from 'lucide-vue-next'
 import DoctorPatientDetail from './DoctorPatientDetail.vue'
 import { API_BASE_URL } from '../config'
+
+const emit = defineEmits(['open-messages'])
 
 const searchQuery = ref('')
 const filterStatus = ref('All')
@@ -360,6 +359,11 @@ async function addNewPatient() {
 
 function viewPatientDetail(patient) {
   selectedPatient.value = patient.patient_id
+}
+
+function openMessagesFromDetail(payload) {
+  selectedPatient.value = null
+  emit('open-messages', payload)
 }
 
 async function deletePatient(id) {

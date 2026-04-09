@@ -14,7 +14,7 @@ from routers import auth, patients, medical_records, assignments, schedules, mes
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print(" Medic1 API is starting up...")
+    print(" HaminG API is starting up...")
     try:
         validate_environment()
         print(" Environment variables validated")
@@ -29,7 +29,7 @@ try:
 except Exception as e:
     print(f" Database sync skipped or failed: {e}")
 
-app = FastAPI(title="Medic1 Rehabilitation API", version="2.1", lifespan=lifespan)
+app = FastAPI(title="HaminG Rehabilitation API", version="2.1", lifespan=lifespan)
 
 # CORS
 origins = [
@@ -39,7 +39,7 @@ origins = [
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:4173",
-    "https://medic1-le-minh.vercel.app"
+    "https://haming.vercel.app"
 ]
 
 app.add_middleware(
@@ -95,7 +95,7 @@ async def general_exception_handler(request: Request, exc: Exception):
 async def root():
     return {
         "status": "ok",
-        "message": "Medic1 API is running",
+        "message": "HaminG API is running",
         "version": "2.1"
     }
 

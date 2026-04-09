@@ -1,6 +1,6 @@
-# 🏥 Medic1 — Elderly Rehabilitation Care Platform
+# 🏥 HaminG — Elderly Rehabilitation Care Platform
 
-> **Live Production:** [https://medic1-le-minh.vercel.app](https://medic1-le-minh.vercel.app)
+> **Live Production:** [https://haming.vercel.app](https://haming.vercel.app)
 
 A full-stack web application for managing elderly rehabilitation care. Doctors can monitor patient progress, assign exercise plans, track workout sessions, and communicate with patients — all in one place. Patients can view their schedules, perform guided AI-assisted exercises, and message their doctors.
 
@@ -26,6 +26,7 @@ A full-stack web application for managing elderly rehabilitation care. Doctors c
 ## ✨ Features
 
 ### For Doctors
+
 - **Dashboard** — Real-time overview of all patients with status indicators (Active / Needs Attention / Inactive), numbered patient list, progress bars, and a rich patient detail panel
 - **AI Health Assistant** — Premium, context-aware AI chat for analyzing patient performance, medical history, and generating treatment insights
 - **Patient Detail** — Click any patient to see:
@@ -39,6 +40,7 @@ A full-stack web application for managing elderly rehabilitation care. Doctors c
 - **Doctor Notes** — Add private clinical notes per patient
 
 ### For Patients
+
 - **Patient Dashboard** — Today's exercises, heart rate, calories, sleep quality, and weekly activity charts derived from real workout data
 - **AI-Guided Exercises** — Camera-based pose detection for guided physiotherapy exercises
 - **Brain Exercises** — Cognitive training games
@@ -47,6 +49,7 @@ A full-stack web application for managing elderly rehabilitation care. Doctors c
 - **AI Health Assistant** — Premium chat interface for personal health analysis, exercise feedback, and recovery tracking (powered by Gemini 3 Flash)
 
 ### Authentication
+
 - Email-based signup with **OTP verification** sent to your email
 - Secure **Forgot Password** flow (email → OTP → new password)
 - **Google OAuth** login support
@@ -56,22 +59,22 @@ A full-stack web application for managing elderly rehabilitation care. Doctors c
 
 ## 🛠 Tech Stack
 
-| Layer | Technology |
-|---|---|
-| **Frontend** | Vue 3 (Composition API), Vite, D3.js, Lucide Icons, TailwindCSS |
-| **Backend** | Python 3.13, FastAPI, SQLAlchemy ORM, Alembic (migrations) |
-| **Database** | PostgreSQL (production via Neon/Supabase), SQLite (local/test) |
-| **Auth** | JWT (python-jose), bcrypt password hashing (passlib), Google OAuth2 |
-| **Email** | SMTP via Gmail (OTP verification) |
-| **Deployment** | Vercel (frontend + serverless backend via `/api/index.py`) |
-| **Testing** | pytest, FastAPI TestClient, in-memory SQLite |
+| Layer          | Technology                                                          |
+| -------------- | ------------------------------------------------------------------- |
+| **Frontend**   | Vue 3 (Composition API), Vite, D3.js, Lucide Icons, TailwindCSS     |
+| **Backend**    | Python 3.13, FastAPI, SQLAlchemy ORM, Alembic (migrations)          |
+| **Database**   | PostgreSQL (production via Neon/Supabase), SQLite (local/test)      |
+| **Auth**       | JWT (python-jose), bcrypt password hashing (passlib), Google OAuth2 |
+| **Email**      | SMTP via Gmail (OTP verification)                                   |
+| **Deployment** | Vercel (frontend + serverless backend via `/api/index.py`)          |
+| **Testing**    | pytest, FastAPI TestClient, in-memory SQLite                        |
 
 ---
 
 ## 📁 Project Structure
 
 ```
-Medic1_Le_Minh/
+HaminG_Le_Minh/
 ├── frontend/                    # Vue 3 + Vite frontend
 │   ├── src/
 │   │   ├── components/
@@ -154,6 +157,7 @@ Medic1_Le_Minh/
 ```
 
 **Request Flow:**
+
 1. Browser loads the Vue SPA from Vercel's CDN.
 2. Vue Router handles client-side navigation.
 3. API calls go to `/api/*`, routed to the Python serverless function.
@@ -184,6 +188,7 @@ otp_verifications            ← Temporary OTP records for signup/reset
 ```
 
 **Patient Status** is calculated dynamically from `workout_sessions`:
+
 - `active` — worked out in the last 3 days
 - `needs_attention` — last workout was 3–7 days ago
 - `inactive` — no workout in over 7 days
@@ -193,6 +198,7 @@ otp_verifications            ← Temporary OTP records for signup/reset
 ## 🚀 Getting Started (Local Development)
 
 ### Prerequisites
+
 - **Node.js** ≥ 18
 - **Python** ≥ 3.11
 - **PostgreSQL** (or use the included SQLite for local testing)
@@ -214,7 +220,7 @@ cd backend
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 
-#this is used in Tuan Dat Machine every time created 
+#this is used in Tuan Dat Machine every time created
 source /home/tuandat/ProjectB/backend/.venv/bin/activate
 
 # Install dependencies
@@ -257,7 +263,7 @@ Create a `backend/.env` file with these variables:
 
 ```env
 # --- Database ---
-DATABASE_URL=postgresql://user:password@host:5432/medic1_db
+DATABASE_URL=postgresql://user:password@host:5432/haming_db
 
 # --- Security ---
 SECRET_KEY=your-super-secret-jwt-key-at-least-32-characters-long
@@ -272,11 +278,13 @@ GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 ```
 
 **How to get `SMTP_PASSWORD`:**
+
 1. Enable 2FA on your Gmail account
 2. Go to Google Account → Security → App Passwords
 3. Generate an app password and paste it here
 
 **For local testing with SQLite**, you can set:
+
 ```env
 DATABASE_URL=sqlite:///./test.db
 ```
@@ -289,66 +297,66 @@ All endpoints are prefixed with `/api`.
 
 ### Authentication
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/login` | Login with email + password |
-| `POST` | `/api/signup/request-otp` | Start signup — validates data & sends OTP email |
-| `POST` | `/api/signup/verify-otp` | Verify OTP → creates account & returns JWT |
-| `POST` | `/api/forgot-password/request-otp` | Send password reset OTP |
-| `POST` | `/api/forgot-password/verify-otp` | Verify reset OTP |
-| `POST` | `/api/forgot-password/reset` | Set new password |
-| `POST` | `/api/google` | Login/register with Google |
-| `GET`  | `/api/me` | Get current user info (requires JWT) |
+| Method | Endpoint                           | Description                                     |
+| ------ | ---------------------------------- | ----------------------------------------------- |
+| `POST` | `/api/login`                       | Login with email + password                     |
+| `POST` | `/api/signup/request-otp`          | Start signup — validates data & sends OTP email |
+| `POST` | `/api/signup/verify-otp`           | Verify OTP → creates account & returns JWT      |
+| `POST` | `/api/forgot-password/request-otp` | Send password reset OTP                         |
+| `POST` | `/api/forgot-password/verify-otp`  | Verify reset OTP                                |
+| `POST` | `/api/forgot-password/reset`       | Set new password                                |
+| `POST` | `/api/google`                      | Login/register with Google                      |
+| `GET`  | `/api/me`                          | Get current user info (requires JWT)            |
 
 ### AI Assistant (New)
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
+| Method | Endpoint       | Description                                                |
+| ------ | -------------- | ---------------------------------------------------------- |
 | `POST` | `/api/ai/chat` | AI Health Assistant with streaming response & data context |
 
 ### Dashboard (Doctor)
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/dashboard/summary` | Stats: total patients, active count, avg accuracy, trends |
-| `GET` | `/api/patients-with-status` | All patients with status, progress, last active |
-| `GET` | `/api/patient/charts/{patient_id}` | Weekly activity, accuracy trend, muscle focus charts |
-| `GET` | `/api/overall-stats?user_id=<uid>` | Aggregate stats for a patient |
-| `GET` | `/api/patient/health-metrics/{user_id}` | Heart rate, calories, SpO2, sleep quality |
-| `GET` | `/api/patient/health-charts/{user_id}` | 7-day heart rate & weekly activity chart data |
-| `GET` | `/api/today-progress` | Today's activity for all patients |
+| Method | Endpoint                                | Description                                               |
+| ------ | --------------------------------------- | --------------------------------------------------------- |
+| `GET`  | `/api/dashboard/summary`                | Stats: total patients, active count, avg accuracy, trends |
+| `GET`  | `/api/patients-with-status`             | All patients with status, progress, last active           |
+| `GET`  | `/api/patient/charts/{patient_id}`      | Weekly activity, accuracy trend, muscle focus charts      |
+| `GET`  | `/api/overall-stats?user_id=<uid>`      | Aggregate stats for a patient                             |
+| `GET`  | `/api/patient/health-metrics/{user_id}` | Heart rate, calories, SpO2, sleep quality                 |
+| `GET`  | `/api/patient/health-charts/{user_id}`  | 7-day heart rate & weekly activity chart data             |
+| `GET`  | `/api/today-progress`                   | Today's activity for all patients                         |
 
 ### Patients
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/patients` | List all patients |
-| `GET` | `/api/patient-sessions/{id}` | Workout sessions for a patient |
-| `GET` | `/api/patient-logs/{id}` | Exercise logs for a patient |
-| `GET` | `/api/patient-notes/{id}` | Doctor notes for a patient |
-| `POST`| `/api/patient-notes` | Add a note for a patient |
+| Method | Endpoint                     | Description                    |
+| ------ | ---------------------------- | ------------------------------ |
+| `GET`  | `/api/patients`              | List all patients              |
+| `GET`  | `/api/patient-sessions/{id}` | Workout sessions for a patient |
+| `GET`  | `/api/patient-logs/{id}`     | Exercise logs for a patient    |
+| `GET`  | `/api/patient-notes/{id}`    | Doctor notes for a patient     |
+| `POST` | `/api/patient-notes`         | Add a note for a patient       |
 
 ### Medical Records
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/medical-records/{patient_id}` | Get medical record |
-| `PUT` | `/api/medical-records/{patient_id}` | Update medical record |
+| Method | Endpoint                            | Description           |
+| ------ | ----------------------------------- | --------------------- |
+| `GET`  | `/api/medical-records/{patient_id}` | Get medical record    |
+| `PUT`  | `/api/medical-records/{patient_id}` | Update medical record |
 
 ### Messaging
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/messages` | Get conversation with another user |
-| `POST`| `/api/messages` | Send a message |
+| Method | Endpoint        | Description                        |
+| ------ | --------------- | ---------------------------------- |
+| `GET`  | `/api/messages` | Get conversation with another user |
+| `POST` | `/api/messages` | Send a message                     |
 
 ### Exercise & Sessions
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST`| `/api/workout-sessions` | Start a workout session |
-| `POST`| `/api/session-details` | Log exercise detail |
-| `GET` | `/api/weekly-progress?user_id=<uid>` | Recent exercise history |
+| Method | Endpoint                             | Description             |
+| ------ | ------------------------------------ | ----------------------- |
+| `POST` | `/api/workout-sessions`              | Start a workout session |
+| `POST` | `/api/session-details`               | Log exercise detail     |
+| `GET`  | `/api/weekly-progress?user_id=<uid>` | Recent exercise history |
 
 ---
 
@@ -356,14 +364,14 @@ All endpoints are prefixed with `/api`.
 
 All passwords (signup and reset) must satisfy **all 6** of these production-grade rules:
 
-| Rule | Requirement |
-|------|-------------|
-| Length | Minimum **8** characters |
-| Length | Maximum **40** characters |
-| Uppercase | At least **one** uppercase letter (A-Z) |
-| Lowercase | At least **one** lowercase letter (a-z) |
-| Digit | At least **one** number (0-9) |
-| Special | At least **one** special character (`!@#$%^&*` etc.) |
+| Rule      | Requirement                                          |
+| --------- | ---------------------------------------------------- |
+| Length    | Minimum **8** characters                             |
+| Length    | Maximum **40** characters                            |
+| Uppercase | At least **one** uppercase letter (A-Z)              |
+| Lowercase | At least **one** lowercase letter (a-z)              |
+| Digit     | At least **one** number (0-9)                        |
+| Special   | At least **one** special character (`!@#$%^&*` etc.) |
 
 **Example valid password:** `MyPass1!`
 
@@ -380,17 +388,17 @@ pytest tests/ -v
 
 **Current test suite (9 tests, all pass):**
 
-| Test | Description |
-|------|-------------|
-| `test_signup_success` | Full signup flow: request OTP → verify OTP → get JWT |
-| `test_signup_existing_username` | Rejects duplicate usernames |
-| `test_signup_existing_email` | Rejects duplicate emails |
-| `test_signup_weak_password_no_special_char` | Rejects passwords without special chars |
-| `test_signup_weak_password_too_short` | Rejects passwords under 8 characters |
-| `test_login_success` | Login with valid credentials returns JWT |
-| `test_login_invalid_password` | Returns 401 for wrong password |
-| `test_login_nonexistent_user` | Returns 401 for unknown email |
-| `test_google_login_invalid_token` | Returns 401 for bad Google token |
+| Test                                        | Description                                          |
+| ------------------------------------------- | ---------------------------------------------------- |
+| `test_signup_success`                       | Full signup flow: request OTP → verify OTP → get JWT |
+| `test_signup_existing_username`             | Rejects duplicate usernames                          |
+| `test_signup_existing_email`                | Rejects duplicate emails                             |
+| `test_signup_weak_password_no_special_char` | Rejects passwords without special chars              |
+| `test_signup_weak_password_too_short`       | Rejects passwords under 8 characters                 |
+| `test_login_success`                        | Login with valid credentials returns JWT             |
+| `test_login_invalid_password`               | Returns 401 for wrong password                       |
+| `test_login_nonexistent_user`               | Returns 401 for unknown email                        |
+| `test_google_login_invalid_token`           | Returns 401 for bad Google token                     |
 
 Tests use an **in-memory SQLite** database so they are fully isolated and don't touch production data.
 
@@ -400,12 +408,13 @@ Tests use an **in-memory SQLite** database so they are fully isolated and don't 
 
 The app is deployed as a **monorepo** on Vercel with two builds:
 
-| Build | Source | Handler |
-|-------|--------|---------|
+| Build    | Source                  | Handler                                             |
+| -------- | ----------------------- | --------------------------------------------------- |
 | Frontend | `frontend/package.json` | `@vercel/static-build` → generates `/frontend/dist` |
-| Backend | `api/index.py` | `@vercel/python` → serverless function |
+| Backend  | `api/index.py`          | `@vercel/python` → serverless function              |
 
 **Deploy command:**
+
 ```bash
 vercel --prod
 ```
@@ -425,6 +434,7 @@ VITE_API_BASE_URL=/api
 > ⚠️ **Important:** The serverless backend cannot write to the filesystem. All logging, file creation, and debug outputs must go to `stdout`/`stderr` only. This is already handled in the codebase.
 
 **What `vercel.json` does:**
+
 - Routes `/api/*` → Python serverless function
 - All other routes → Vue SPA (`index.html` for client-side routing)
 
@@ -432,14 +442,14 @@ VITE_API_BASE_URL=/api
 
 ## 🖥 Key UI Pages
 
-| Route | Component | Who can access |
-|-------|-----------|---------------|
-| `/` | `Login.vue` | Everyone (unauthenticated) |
-| `/doctor` | `index.vue` (doctor shell) | Doctors only |
-| `/doctor/dashboard` | `Dashboard.vue` | Doctors |
-| `/patient` | `PatientTabs.vue` | Patients only |
-| `/patient/workout` | `PatientWorkout.vue` | Patients |
-| `/patient/brain` | `BrainExercise.vue` | Patients |
+| Route               | Component                  | Who can access             |
+| ------------------- | -------------------------- | -------------------------- |
+| `/`                 | `Login.vue`                | Everyone (unauthenticated) |
+| `/doctor`           | `index.vue` (doctor shell) | Doctors only               |
+| `/doctor/dashboard` | `Dashboard.vue`            | Doctors                    |
+| `/patient`          | `PatientTabs.vue`          | Patients only              |
+| `/patient/workout`  | `PatientWorkout.vue`       | Patients                   |
+| `/patient/brain`    | `BrainExercise.vue`        | Patients                   |
 
 ---
 

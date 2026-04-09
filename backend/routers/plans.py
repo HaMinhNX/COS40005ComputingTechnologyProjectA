@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
 from typing import List
 from uuid import UUID
 from database import get_db
-from models import User, Combo, ComboItem, WeekPlan, Assignment
+from models import User, Combo, ComboItem, WeekPlan, Assignment, WorkoutSession, SessionDetail, ExerciseLogSimple
 from dependencies import get_current_user, get_current_doctor
 from middleware.ownership import ResourceAccess
 from schemas import ComboCreate, WeekPlanCreate, ComboResponse, WeekPlanResponse
@@ -12,6 +13,39 @@ router = APIRouter(
     prefix="/api",
     tags=["plans"]
 )
+
+EXERCISE_NAME_MAPPING = {
+    "Gập bắp tay": "bicep-curl",
+    "Bicep Curl": "bicep-curl",
+    "Đứng lên ngồi xuống": "squat",
+    "Squat": "squat",
+    "Nâng vai": "shoulder-flexion",
+    "Shoulder Flexion": "shoulder-flexion",
+    "Shoulder Press": "shoulder-flexion",
+    "Nâng đầu gối": "knee-raise",
+    "Knee Raise": "knee-raise"
+}
+
+
+def normalize_exercise_type(name: str) -> str:
+    if not name:
+        return ""
+
+    mapped = EXERCISE_NAME_MAPPING.get(name)
+    if mapped:
+        return mapped
+
+    raw = name.strip().lower().replace("_", "-").replace(" ", "-")
+    aliases = {
+        "shoulder-press": "shoulder-flexion",
+        "shoulder-flexion": "shoulder-flexion",
+        "bicep-curl": "bicep-curl",
+        "bicep-curls": "bicep-curl",
+        "curl": "bicep-curl",
+        "knee-raise": "knee-raise",
+        "squat": "squat",
+    }
+    return aliases.get(raw, raw)
 
 @router.get("/combos", response_model=List[ComboResponse])
 async def get_combos(doctor_id: UUID = None, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -110,9 +144,9 @@ async def get_week_plans(
     # Ownership verified via ResourceAccess.patient dependency
     return db.query(WeekPlan).filter(WeekPlan.patient_id == patient_id).order_by(WeekPlan.start_date.desc()).all()
 
-@router.get("/patient/today/{user_id}")
+@router.get("/patient/today/{patient_id}")
 async def get_today_plan(
-    user_id: UUID, 
+    patient_id: UUID,
     db: Session = Depends(get_db), 
     patient: User = Depends(ResourceAccess.patient)
 ):
@@ -127,7 +161,7 @@ async def get_today_plan(
     
     # 1. Get assignments from active week plans for today's day of week
     plan = db.query(WeekPlan).filter(
-        WeekPlan.patient_id == user_id,
+        WeekPlan.patient_id == patient_id,
         WeekPlan.start_date <= today,
         WeekPlan.end_date >= today,
         WeekPlan.status == 'active'
@@ -142,7 +176,7 @@ async def get_today_plan(
     
     # 2. Get direct assignments (no week plan) with assigned_date = today
     direct_assignments = db.query(Assignment).filter(
-        Assignment.patient_id == user_id,
+        Assignment.patient_id == patient_id,
         Assignment.week_plan_id == None,  # Direct assignment, not from week plan
         Assignment.assigned_date == today
     ).all()
@@ -150,7 +184,7 @@ async def get_today_plan(
     
     # 3. Also get daily assignments (frequency = 'Daily')
     daily_assignments = db.query(Assignment).filter(
-        Assignment.patient_id == user_id,
+        Assignment.patient_id == patient_id,
         Assignment.frequency == 'Daily'
     ).all()
     
@@ -159,6 +193,33 @@ async def get_today_plan(
     for a in daily_assignments:
         if a.assignment_id not in existing_ids:
             all_assignments.append(a)
+
+    completed_exercises_today = {
+        normalize_exercise_type(exercise_type)
+        for (exercise_type,) in db.query(SessionDetail.exercise_type)
+        .join(WorkoutSession, WorkoutSession.session_id == SessionDetail.session_id)
+        .filter(
+            WorkoutSession.user_id == patient_id,
+            SessionDetail.reps_completed > 0,
+            func.date(SessionDetail.completed_at) == today
+        )
+        .distinct()
+        .all()
+    }
+
+    legacy_completed = {
+        normalize_exercise_type(exercise_type)
+        for (exercise_type,) in db.query(ExerciseLogSimple.exercise_type)
+        .filter(
+            ExerciseLogSimple.user_id == patient_id,
+            ExerciseLogSimple.date == today,
+            ExerciseLogSimple.rep_count > 0
+        )
+        .distinct()
+        .all()
+    }
+
+    completed_exercises_today.update(legacy_completed)
     
     return [
         {
@@ -167,7 +228,10 @@ async def get_today_plan(
             "target": a.target_reps,
             "sets": a.sets,
             "session_time": a.session_time,
-            "is_completed": a.is_completed,
+            "is_completed": bool(
+                a.is_completed
+                or normalize_exercise_type(a.exercise_type) in completed_exercises_today
+            ),
             "instructions": a.notes,
             "type": "exercise"
         }

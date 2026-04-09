@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Dict, Any
 from uuid import UUID
+from datetime import date
 from database import get_db
-from models import User, WorkoutSession, SessionDetail, BrainExerciseLog, BrainExerciseSession
+from models import User, WorkoutSession, SessionDetail, BrainExerciseLog, BrainExerciseSession, Assignment, WeekPlan
 
 from dependencies import get_current_user
 from middleware.ownership import ResourceAccess
@@ -53,6 +54,78 @@ EXERCISE_NAME_MAPPING = {
     "Nâng đầu gối": "knee-raise",
     "Knee Raise": "knee-raise"
 }
+
+
+def normalize_exercise_type(name: str) -> str:
+    """Normalize exercise labels to the canonical exercise key used by logging."""
+    if not name:
+        return ""
+
+    mapped = EXERCISE_NAME_MAPPING.get(name)
+    if mapped:
+        return mapped
+
+    raw = name.strip().lower().replace("_", "-").replace(" ", "-")
+    aliases = {
+        "shoulder-press": "shoulder-flexion",
+        "shoulder-flexion": "shoulder-flexion",
+        "bicep-curl": "bicep-curl",
+        "bicep-curls": "bicep-curl",
+        "curl": "bicep-curl",
+        "knee-raise": "knee-raise",
+        "squat": "squat",
+    }
+    return aliases.get(raw, raw)
+
+
+def mark_today_assignment_completed(db: Session, user_id: UUID, exercise_type: str) -> None:
+    """Mark matching assignments for today as completed after successful exercise logging."""
+    normalized_logged_exercise = normalize_exercise_type(exercise_type)
+    if not normalized_logged_exercise:
+        return
+
+    today = date.today()
+    day_of_week = today.weekday() + 1
+    assignments_to_check = []
+
+    active_plan = db.query(WeekPlan).filter(
+        WeekPlan.patient_id == user_id,
+        WeekPlan.start_date <= today,
+        WeekPlan.end_date >= today,
+        WeekPlan.status == 'active'
+    ).first()
+
+    if active_plan:
+        assignments_to_check.extend(
+            db.query(Assignment).filter(
+                Assignment.patient_id == user_id,
+                Assignment.week_plan_id == active_plan.plan_id,
+                Assignment.day_of_week == day_of_week
+            ).all()
+        )
+
+    assignments_to_check.extend(
+        db.query(Assignment).filter(
+            Assignment.patient_id == user_id,
+            Assignment.week_plan_id == None,
+            Assignment.assigned_date == today
+        ).all()
+    )
+
+    daily_assignments = db.query(Assignment).filter(
+        Assignment.patient_id == user_id,
+        Assignment.frequency == 'Daily'
+    ).all()
+    existing_ids = {a.assignment_id for a in assignments_to_check}
+    for assignment in daily_assignments:
+        if assignment.assignment_id not in existing_ids:
+            assignments_to_check.append(assignment)
+
+    for assignment in assignments_to_check:
+        if assignment.is_completed:
+            continue
+        if normalize_exercise_type(assignment.exercise_type) == normalized_logged_exercise:
+            assignment.is_completed = True
 
 @router.post("/process_landmarks", response_model=ProcessResponse)
 async def process_landmarks_api(request: ProcessRequest):
@@ -180,21 +253,31 @@ async def start_session(data: WorkoutSessionCreate, db: Session = Depends(get_db
 async def log_session_detail(
     data: SessionDetailCreate, 
     db: Session = Depends(get_db),
-    current_session: WorkoutSession = Depends(ResourceAccess.session)
+    current_user: User = Depends(get_current_user)
 ):
     """Log detail for an exercise in a session"""
+    # Verify session ownership
+    session = db.query(WorkoutSession).filter(WorkoutSession.session_id == data.session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Workout session not found")
+    if session.user_id != current_user.user_id and current_user.role != 'doctor':
+        raise HTTPException(status_code=403, detail="Access denied")
+    if data.reps_completed <= 0:
+        raise HTTPException(status_code=400, detail="Only completed exercise steps can be logged")
+    
     try:
         new_detail = SessionDetail(
             session_id=data.session_id,
             exercise_type=data.exercise_type,
             reps_completed=data.reps_completed,
             duration_seconds=data.duration_seconds,
-            mistakes_count=data.mistakes_count,
-            accuracy_score=data.accuracy_score,
+            mistakes_count=0,
+            accuracy_score=None,
             feedback=data.feedback
         )
 
         db.add(new_detail)
+        mark_today_assignment_completed(db, session.user_id, data.exercise_type)
         db.commit()
         db.refresh(new_detail)
         return new_detail

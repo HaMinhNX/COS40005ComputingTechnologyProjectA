@@ -3,75 +3,75 @@
 @tailwind utilities;
 
 /* ============================================
-   MEDIC1 ELDERLY CARE - BEAUTIFUL HIGH CONTRAST DESIGN SYSTEM
+  HAMING ELDERLY CARE - BEAUTIFUL HIGH CONTRAST DESIGN SYSTEM
    Optimized for elderly users with stunning modern aesthetics
    ============================================ */
 
 :root {
   /* === VIBRANT & EXCITING COLOR PALETTE === */
   /* Clean, modern, yet easy on the eyes */
-  
+
   /* Background System - Layered depth */
-  --color-bg-primary: #FFFFFF;
-  --color-bg-secondary: #F8FAFC;
-  --color-bg-tertiary: #F1F5F9;
-  --color-bg-accent: #FEF7FF;
-  --color-bg-dark: #0F172A;
-  
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f8fafc;
+  --color-bg-tertiary: #f1f5f9;
+  --color-bg-accent: #fef7ff;
+  --color-bg-dark: #0f172a;
+
   /* Text Colors - High contrast for accessibility */
-  --color-text-primary: #0F172A;
+  --color-text-primary: #0f172a;
   --color-text-secondary: #334155;
-  --color-text-light: #64748B;
-  --color-text-white: #FFFFFF;
-  --color-text-muted: #94A3B8;
-  
+  --color-text-light: #64748b;
+  --color-text-white: #ffffff;
+  --color-text-muted: #94a3b8;
+
   /* Primary Colors - Vibrant Indigo to Violet */
-  --color-primary: #6366F1;
-  --color-primary-dark: #4F46E5;
-  --color-primary-darker: #4338CA;
-  --color-primary-light: #A5B4FC;
-  --color-primary-lighter: #E0E7FF;
-  
+  --color-primary: #6366f1;
+  --color-primary-dark: #4f46e5;
+  --color-primary-darker: #4338ca;
+  --color-primary-light: #a5b4fc;
+  --color-primary-lighter: #e0e7ff;
+
   /* Secondary - Purple accent */
-  --color-secondary: #8B5CF6;
-  --color-secondary-dark: #7C3AED;
-  --color-secondary-light: #C4B5FD;
-  --color-secondary-lighter: #EDE9FE;
-  
+  --color-secondary: #8b5cf6;
+  --color-secondary-dark: #7c3aed;
+  --color-secondary-light: #c4b5fd;
+  --color-secondary-lighter: #ede9fe;
+
   /* Success - Vibrant Emerald */
-  --color-success: #10B981;
+  --color-success: #10b981;
   --color-success-dark: #059669;
   --color-success-darker: #047857;
-  --color-success-light: #6EE7B7;
-  --color-success-lighter: #D1FAE5;
-  
+  --color-success-light: #6ee7b7;
+  --color-success-lighter: #d1fae5;
+
   /* Warning - Bright Amber */
-  --color-warning: #F59E0B;
-  --color-warning-dark: #D97706;
-  --color-warning-darker: #B45309;
-  --color-warning-light: #FCD34D;
-  --color-warning-lighter: #FEF3C7;
-  
+  --color-warning: #f59e0b;
+  --color-warning-dark: #d97706;
+  --color-warning-darker: #b45309;
+  --color-warning-light: #fcd34d;
+  --color-warning-lighter: #fef3c7;
+
   /* Error - Bold Rose */
-  --color-error: #F43F5E;
-  --color-error-dark: #E11D48;
-  --color-error-darker: #BE123C;
-  --color-error-light: #FDA4AF;
-  --color-error-lighter: #FFE4E6;
-  
+  --color-error: #f43f5e;
+  --color-error-dark: #e11d48;
+  --color-error-darker: #be123c;
+  --color-error-light: #fda4af;
+  --color-error-lighter: #ffe4e6;
+
   /* Info - Sky Blue */
-  --color-info: #0EA5E9;
-  --color-info-dark: #0284C7;
-  --color-info-darker: #0369A1;
-  --color-info-light: #7DD3FC;
-  --color-info-lighter: #E0F2FE;
-  
+  --color-info: #0ea5e9;
+  --color-info-dark: #0284c7;
+  --color-info-darker: #0369a1;
+  --color-info-light: #7dd3fc;
+  --color-info-lighter: #e0f2fe;
+
   /* Accent Colors - For variety */
-  --color-teal: #14B8A6;
-  --color-cyan: #06B6D4;
-  --color-pink: #EC4899;
-  --color-orange: #F97316;
-  
+  --color-teal: #14b8a6;
+  --color-cyan: #06b6d4;
+  --color-pink: #ec4899;
+  --color-orange: #f97316;
+
   /* === PRODUCTION READY SOLID COLORS & SUBTLE DEPTH === */
   /* Primary accents */
   --color-accent-primary: var(--color-primary);
@@ -79,7 +79,7 @@
   --color-accent-warning: var(--color-warning);
   --color-accent-error: var(--color-error);
   --color-accent-info: var(--color-info);
-  
+
   /* Solid Brand Colors */
   --bg-brand-primary: var(--color-primary);
   --bg-brand-success: var(--color-success);
@@ -88,12 +88,12 @@
   --bg-brand-info: var(--color-info);
 
   /* Subtle background tints */
-  --bg-subtle-primary: #F0F4FF;
-  --bg-subtle-success: #E6FFFA;
-  --bg-subtle-warning: #FFFBEB;
-  --bg-subtle-error: #FFF5F5;
-  --bg-subtle-info: #EBF8FF;
-  
+  --bg-subtle-primary: #f0f4ff;
+  --bg-subtle-success: #e6fffa;
+  --bg-subtle-warning: #fffbeb;
+  --bg-subtle-error: #fff5f5;
+  --bg-subtle-info: #ebf8ff;
+
   /* Legacy gradient variables mapped to solid colors for compatibility */
   --gradient-primary: var(--color-primary);
   --gradient-primary-vivid: var(--color-primary-dark);
@@ -105,7 +105,7 @@
   --gradient-error-vivid: var(--color-error-dark);
   --gradient-info: var(--color-info);
   --gradient-info-vivid: var(--color-info-dark);
-  
+
   --gradient-aurora: var(--color-primary);
   --gradient-candy: var(--color-secondary);
   --gradient-ocean-breeze: var(--color-info);
@@ -114,11 +114,11 @@
   --gradient-royal-purple: var(--color-secondary-dark);
   --gradient-warm-sunset: var(--color-warning);
   --gradient-cool-breeze: var(--color-bg-secondary);
-  
+
   --gradient-bg-primary: var(--color-bg-secondary);
   --gradient-bg-accent: var(--color-bg-accent);
-  --gradient-bg-warm: #FFFBEB;
-  
+  --gradient-bg-warm: #fffbeb;
+
   /* === ENHANCED SHADOWS === */
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
@@ -126,13 +126,13 @@
   --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.15);
   --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.18);
   --shadow-2xl: 0 20px 40px rgba(0, 0, 0, 0.22);
-  
+
   /* Colored shadows for depth */
   --shadow-primary: 0 8px 16px rgba(99, 102, 241, 0.25);
   --shadow-success: 0 8px 16px rgba(16, 185, 129, 0.25);
   --shadow-warning: 0 8px 16px rgba(245, 158, 11, 0.25);
   --shadow-error: 0 8px 16px rgba(244, 63, 94, 0.25);
-  
+
   /* === BORDER STYLES === */
   --border-width: 2px;
   --border-width-thick: 3px;
@@ -142,11 +142,11 @@
   --border-radius-xl: 18px;
   --border-radius-2xl: 22px;
   --border-radius-full: 9999px;
-  
+
   /* === RESPONSIVE TYPOGRAPHY (SCALED DOWN ~20%) === */
   --font-family-primary: 'Be Vietnam Pro', 'Segoe UI', 'Roboto', sans-serif;
   --font-family-display: 'Be Vietnam Pro', 'Segoe UI', 'Arial Black', sans-serif;
-  
+
   /* Base font sizes (Mobile-first) */
   --font-size-xs: 13px;
   --font-size-sm: 14px;
@@ -156,20 +156,20 @@
   --font-size-2xl: 26px;
   --font-size-3xl: 32px;
   --font-size-4xl: 38px;
-  
+
   /* Line heights */
   --line-height-tight: 1.2;
   --line-height-snug: 1.375;
   --line-height-normal: 1.5;
   --line-height-relaxed: 1.625;
   --line-height-loose: 1.8;
-  
+
   /* === TOUCH TARGETS (Mobile-optimized) === */
   --touch-min: 36px;
   --touch-comfortable: 40px;
   --touch-large: 48px;
   --touch-xl: 56px;
-  
+
   /* === RESPONSIVE SPACING (SCALED DOWN ~20%) === */
   --spacing-xs: 6px;
   --spacing-sm: 10px;
@@ -179,20 +179,20 @@
   --spacing-2xl: 26px;
   --spacing-3xl: 38px;
   --spacing-4xl: 51px;
-  
+
   /* Container widths */
   --container-sm: 512px;
   --container-md: 614px;
   --container-lg: 820px;
   --container-xl: 1024px;
   --container-2xl: 1228px;
-  
+
   /* === TRANSITIONS & ANIMATIONS === */
   --transition-fast: 150ms ease-in-out;
   --transition-normal: 250ms ease-in-out;
   --transition-slow: 350ms ease-in-out;
   --transition-slower: 500ms ease-in-out;
-  
+
   /* Easing functions */
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
@@ -204,7 +204,9 @@
    GLOBAL RESETS & BASE STYLES
    ============================================ */
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -235,27 +237,27 @@ button:not([data-isolated-ui] *):not([data-isolated-ui]) {
   font-size: var(--font-size-lg);
   font-weight: 700;
   line-height: var(--line-height-tight);
-  
+
   min-width: var(--touch-min);
   min-height: var(--touch-min);
   padding: var(--spacing-md) var(--spacing-xl);
-  
+
   border: var(--border-width) solid var(--color-text-primary);
   border-radius: var(--border-radius-md);
-  
+
   background: var(--color-bg-primary);
   color: var(--color-text-primary);
-  
+
   cursor: pointer;
   transition: all var(--transition-normal);
-  
+
   box-shadow: var(--shadow-sm);
-  
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--spacing-sm);
-  
+
   position: relative;
   overflow: hidden;
 }
@@ -329,28 +331,28 @@ button:not([data-isolated-ui] *):not([data-isolated-ui]):focus-visible {
    ============================================ */
 /* EXCLUDED FROM ISOLATED COMPONENTS */
 
-input:not([data-isolated-ui] *):not([data-isolated-ui]), 
-select:not([data-isolated-ui] *):not([data-isolated-ui]), 
+input:not([data-isolated-ui] *):not([data-isolated-ui]),
+select:not([data-isolated-ui] *):not([data-isolated-ui]),
 textarea:not([data-isolated-ui] *):not([data-isolated-ui]) {
   font-family: var(--font-family-primary);
   font-size: var(--font-size-base);
   line-height: var(--line-height-normal);
-  
+
   padding: var(--spacing-md) var(--spacing-lg);
-  
+
   border: var(--border-width) solid var(--color-text-secondary);
   border-radius: var(--border-radius-md);
-  
+
   background: var(--color-bg-primary);
   color: var(--color-text-primary);
-  
+
   transition: all var(--transition-normal);
-  
+
   min-height: var(--touch-min);
 }
 
-input:not([data-isolated-ui] *):not([data-isolated-ui]):focus, 
-select:not([data-isolated-ui] *):not([data-isolated-ui]):focus, 
+input:not([data-isolated-ui] *):not([data-isolated-ui]):focus,
+select:not([data-isolated-ui] *):not([data-isolated-ui]):focus,
 textarea:not([data-isolated-ui] *):not([data-isolated-ui]):focus {
   outline: none;
   border-color: var(--color-primary);
@@ -439,11 +441,11 @@ input:not([data-isolated-ui] *):not([data-isolated-ui])::placeholder {
    ============================================ */
 /* EXCLUDED FROM ISOLATED COMPONENTS */
 
-h1:not([data-isolated-ui] *):not([data-isolated-ui]), 
-h2:not([data-isolated-ui] *):not([data-isolated-ui]), 
-h3:not([data-isolated-ui] *):not([data-isolated-ui]), 
-h4:not([data-isolated-ui] *):not([data-isolated-ui]), 
-h5:not([data-isolated-ui] *):not([data-isolated-ui]), 
+h1:not([data-isolated-ui] *):not([data-isolated-ui]),
+h2:not([data-isolated-ui] *):not([data-isolated-ui]),
+h3:not([data-isolated-ui] *):not([data-isolated-ui]),
+h4:not([data-isolated-ui] *):not([data-isolated-ui]),
+h5:not([data-isolated-ui] *):not([data-isolated-ui]),
 h6:not([data-isolated-ui] *):not([data-isolated-ui]) {
   font-family: var(--font-family-display);
   font-weight: 800;
@@ -452,12 +454,24 @@ h6:not([data-isolated-ui] *):not([data-isolated-ui]) {
   margin-bottom: var(--spacing-md);
 }
 
-h1:not([data-isolated-ui] *):not([data-isolated-ui]) { font-size: var(--font-size-4xl); }
-h2:not([data-isolated-ui] *):not([data-isolated-ui]) { font-size: var(--font-size-3xl); }
-h3:not([data-isolated-ui] *):not([data-isolated-ui]) { font-size: var(--font-size-2xl); }
-h4:not([data-isolated-ui] *):not([data-isolated-ui]) { font-size: var(--font-size-xl); }
-h5:not([data-isolated-ui] *):not([data-isolated-ui]) { font-size: var(--font-size-lg); }
-h6:not([data-isolated-ui] *):not([data-isolated-ui]) { font-size: var(--font-size-base); }
+h1:not([data-isolated-ui] *):not([data-isolated-ui]) {
+  font-size: var(--font-size-4xl);
+}
+h2:not([data-isolated-ui] *):not([data-isolated-ui]) {
+  font-size: var(--font-size-3xl);
+}
+h3:not([data-isolated-ui] *):not([data-isolated-ui]) {
+  font-size: var(--font-size-2xl);
+}
+h4:not([data-isolated-ui] *):not([data-isolated-ui]) {
+  font-size: var(--font-size-xl);
+}
+h5:not([data-isolated-ui] *):not([data-isolated-ui]) {
+  font-size: var(--font-size-lg);
+}
+h6:not([data-isolated-ui] *):not([data-isolated-ui]) {
+  font-size: var(--font-size-base);
+}
 
 .text-gradient {
   color: var(--color-primary);
@@ -490,7 +504,8 @@ h6:not([data-isolated-ui] *):not([data-isolated-ui]) { font-size: var(--font-siz
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -499,7 +514,8 @@ h6:not([data-isolated-ui] *):not([data-isolated-ui]) { font-size: var(--font-siz
 }
 
 @keyframes bounce {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -524,7 +540,8 @@ h6:not([data-isolated-ui] *):not([data-isolated-ui]) { font-size: var(--font-siz
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px);
   }
   50% {
@@ -533,7 +550,8 @@ h6:not([data-isolated-ui] *):not([data-isolated-ui]) { font-size: var(--font-siz
 }
 
 @keyframes glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
   }
   50% {
@@ -620,10 +638,18 @@ h6:not([data-isolated-ui] *):not([data-isolated-ui]) { font-size: var(--font-siz
   justify-content: space-between;
 }
 
-.gap-sm { gap: var(--spacing-sm); }
-.gap-md { gap: var(--spacing-md); }
-.gap-lg { gap: var(--spacing-lg); }
-.gap-xl { gap: var(--spacing-xl); }
+.gap-sm {
+  gap: var(--spacing-sm);
+}
+.gap-md {
+  gap: var(--spacing-md);
+}
+.gap-lg {
+  gap: var(--spacing-lg);
+}
+.gap-xl {
+  gap: var(--spacing-xl);
+}
 
 .text-center {
   text-align: center;
@@ -637,16 +663,34 @@ h6:not([data-isolated-ui] *):not([data-isolated-ui]) { font-size: var(--font-siz
   font-weight: 900;
 }
 
-.rounded-sm { border-radius: var(--border-radius-sm); }
-.rounded-md { border-radius: var(--border-radius-md); }
-.rounded-lg { border-radius: var(--border-radius-lg); }
-.rounded-xl { border-radius: var(--border-radius-xl); }
-.rounded-full { border-radius: var(--border-radius-full); }
+.rounded-sm {
+  border-radius: var(--border-radius-sm);
+}
+.rounded-md {
+  border-radius: var(--border-radius-md);
+}
+.rounded-lg {
+  border-radius: var(--border-radius-lg);
+}
+.rounded-xl {
+  border-radius: var(--border-radius-xl);
+}
+.rounded-full {
+  border-radius: var(--border-radius-full);
+}
 
-.shadow-sm { box-shadow: var(--shadow-sm); }
-.shadow-md { box-shadow: var(--shadow-md); }
-.shadow-lg { box-shadow: var(--shadow-lg); }
-.shadow-xl { box-shadow: var(--shadow-xl); }
+.shadow-sm {
+  box-shadow: var(--shadow-sm);
+}
+.shadow-md {
+  box-shadow: var(--shadow-md);
+}
+.shadow-lg {
+  box-shadow: var(--shadow-lg);
+}
+.shadow-xl {
+  box-shadow: var(--shadow-xl);
+}
 
 /* ============================================
    RESPONSIVE DESIGN
@@ -661,7 +705,7 @@ h6:not([data-isolated-ui] *):not([data-isolated-ui]) { font-size: var(--font-siz
     --font-size-3xl: 42px;
     --font-size-4xl: 48px;
   }
-  
+
   .container {
     padding: var(--spacing-md);
   }
@@ -709,8 +753,12 @@ h6:not([data-isolated-ui] *):not([data-isolated-ui]) { font-size: var(--font-siz
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-overlay {

@@ -21,6 +21,12 @@ class WearableUploadSchema(BaseModel):
     daily_records: list
 
 
+def _get_latest_record_for_user(user_id: UUID, db: Session):
+    return db.query(WearableHealthData).filter(
+        WearableHealthData.user_id == user_id
+    ).order_by(desc(WearableHealthData.week_start)).first()
+
+
 @router.post("/upload")
 async def upload_wearable_data(
     data: WearableUploadSchema,
@@ -33,13 +39,41 @@ async def upload_wearable_data(
     try:
         parts = data.week.split(" to ") if data.week else [None, None]
         week_start = date.fromisoformat(parts[0].strip()) if parts[0] else None
-        week_end = date.fromisoformat(parts[1].strip()) if len(parts) > 1 else None
+        week_end = date.fromisoformat(parts[1].strip()) if len(parts) > 1 and parts[1] else None
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid week format. Expected 'YYYY-MM-DD to YYYY-MM-DD'")
 
+    # Fallback to date range from daily records when week is absent.
+    if not week_start or not week_end:
+        daily_dates = []
+        for day in data.daily_records or []:
+            day_date = day.get("date") if isinstance(day, dict) else None
+            if day_date:
+                try:
+                    daily_dates.append(date.fromisoformat(day_date))
+                except Exception:
+                    continue
+        if daily_dates:
+            week_start = min(daily_dates)
+            week_end = max(daily_dates)
+
+    if not week_start or not week_end:
+        raise HTTPException(status_code=400, detail="Missing valid date range. Provide 'week' or daily_records[].date")
+
     # Compute avg resting HR and avg sleep duration from daily records
-    resting_hrs = [d["heart_rate"]["resting_bpm"] for d in data.daily_records if "heart_rate" in d]
-    sleep_durations = [d["sleep"]["total_duration_min"] for d in data.daily_records if "sleep" in d]
+    resting_hrs = []
+    sleep_durations = []
+    for d in data.daily_records or []:
+        if not isinstance(d, dict):
+            continue
+        heart_rate = d.get("heart_rate") or {}
+        sleep = d.get("sleep") or {}
+        resting = heart_rate.get("resting_bpm")
+        duration = sleep.get("total_duration_min")
+        if isinstance(resting, (int, float)):
+            resting_hrs.append(resting)
+        if isinstance(duration, (int, float)):
+            sleep_durations.append(duration)
 
     avg_resting_hr = round(statistics.mean(resting_hrs)) if resting_hrs else None
     avg_sleep_duration = round(statistics.mean(sleep_durations)) if sleep_durations else None
@@ -78,11 +112,34 @@ async def upload_wearable_data(
     return {"message": "Dữ liệu sức khỏe đã được lưu thành công."}
 
 
+@router.get("/latest/me")
+async def get_latest_wearable_me(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get latest wearable data for the authenticated user."""
+    record = _get_latest_record_for_user(current_user.user_id, db)
+
+    if not record:
+        return {"hasData": False}
+
+    return {
+        "hasData": True,
+        "heartRate": record.avg_heart_rate,
+        "restingHR": record.avg_resting_hr,
+        "calories": record.total_calories,
+        "spo2": float(record.avg_spo2) if record.avg_spo2 else None,
+        "sleepQuality": record.avg_sleep_quality,
+        "sleepDurationMin": record.avg_sleep_duration_min,
+        "device": record.device,
+        "weekStart": str(record.week_start),
+        "weekEnd": str(record.week_end),
+    }
+
+
 @router.get("/latest/{user_id}")
 async def get_latest_wearable(user_id: UUID, db: Session = Depends(get_db)):
-    record = db.query(WearableHealthData).filter(
-        WearableHealthData.user_id == user_id
-    ).order_by(desc(WearableHealthData.week_start)).first()
+    record = _get_latest_record_for_user(user_id, db)
 
     if not record:
         return {"hasData": False}

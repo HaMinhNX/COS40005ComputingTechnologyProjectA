@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, time
 from uuid import UUID
 import uuid
 from database import get_db
-from models import User, WorkoutSession, SessionDetail
+from models import User, WorkoutSession, SessionDetail, PatientNote, ExerciseLogSimple
 
 
 router = APIRouter(
@@ -13,50 +13,122 @@ router = APIRouter(
     tags=["dashboard"]
 )
 
+
+def _safe_int(value) -> int:
+    if value is None:
+        return 0
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _to_unix_ts(value: datetime | None) -> float:
+    if not value:
+        return 0.0
+    try:
+        return value.timestamp()
+    except Exception:
+        return 0.0
+
 @router.get("/overall-stats")
 async def get_overall_stats(user_id: UUID = Query(...), db: Session = Depends(get_db)):
     """Get overall stats for a patient"""
-    # Total sessions
-    total_sessions = db.query(WorkoutSession).filter(WorkoutSession.user_id == user_id).count()
-    
-    # Total reps (from SessionDetail)
-    total_reps = db.query(func.sum(SessionDetail.reps_completed)).join(WorkoutSession).filter(
+    session_count = db.query(WorkoutSession).filter(WorkoutSession.user_id == user_id).count()
+    legacy_count = db.query(ExerciseLogSimple).filter(ExerciseLogSimple.user_id == user_id).count()
+
+    session_reps = db.query(func.sum(SessionDetail.reps_completed)).join(WorkoutSession).filter(
         WorkoutSession.user_id == user_id
     ).scalar() or 0
-    
-    # Total duration
-    total_duration = db.query(func.sum(SessionDetail.duration_seconds)).join(WorkoutSession).filter(
+    legacy_reps = db.query(func.sum(ExerciseLogSimple.rep_count)).filter(
+        ExerciseLogSimple.user_id == user_id
+    ).scalar() or 0
+
+    session_duration = db.query(func.sum(SessionDetail.duration_seconds)).join(WorkoutSession).filter(
         WorkoutSession.user_id == user_id
     ).scalar() or 0
-    
-    # Total days
-    total_days = db.query(func.count(func.distinct(func.date(WorkoutSession.start_time)))).filter(
-        WorkoutSession.user_id == user_id
+    legacy_duration = db.query(func.sum(ExerciseLogSimple.session_duration)).filter(
+        ExerciseLogSimple.user_id == user_id
     ).scalar() or 0
+
+    session_days = db.query(func.date(WorkoutSession.start_time)).filter(
+        WorkoutSession.user_id == user_id
+    ).distinct().all()
+    legacy_days = db.query(ExerciseLogSimple.date).filter(
+        ExerciseLogSimple.user_id == user_id
+    ).distinct().all()
+    unique_days = {
+        str(row[0]) for row in session_days if row and row[0]
+    } | {
+        str(row[0]) for row in legacy_days if row and row[0]
+    }
     
     return {
-        "total_sessions": total_sessions,
-        "total_reps": int(total_reps),
-        "total_duration": int(total_duration),
-        "total_days": total_days
+        "total_sessions": session_count + legacy_count,
+        "total_reps": _safe_int(session_reps) + _safe_int(legacy_reps),
+        "total_duration": _safe_int(session_duration) + _safe_int(legacy_duration),
+        "total_days": len(unique_days)
     }
 
 @router.get("/weekly-progress")
 async def get_weekly_progress(user_id: UUID = Query(...), db: Session = Depends(get_db)):
     """Get recent exercise history for a patient"""
-    # Get last 10 session details
-    history = db.query(SessionDetail).join(WorkoutSession).filter(
-        WorkoutSession.user_id == user_id
-    ).order_by(SessionDetail.completed_at.desc()).limit(10).all()
-    
+    session_history = db.query(
+        SessionDetail.exercise_type,
+        SessionDetail.reps_completed,
+        SessionDetail.duration_seconds,
+        SessionDetail.completed_at,
+    ).join(WorkoutSession).filter(
+        WorkoutSession.user_id == user_id,
+        SessionDetail.reps_completed > 0
+    ).order_by(SessionDetail.completed_at.desc()).limit(50).all()
+
+    legacy_history = db.query(
+        ExerciseLogSimple.exercise_type,
+        ExerciseLogSimple.rep_count,
+        ExerciseLogSimple.session_duration,
+        ExerciseLogSimple.created_at,
+        ExerciseLogSimple.date,
+    ).filter(
+        ExerciseLogSimple.user_id == user_id
+    ).order_by(ExerciseLogSimple.created_at.desc()).limit(50).all()
+
+    combined = []
+
+    for item in session_history:
+        duration_seconds = _safe_int(item.duration_seconds)
+        end_time = item.completed_at
+        start_time = end_time - timedelta(seconds=duration_seconds) if end_time else None
+        combined.append({
+            "exercise_type": item.exercise_type,
+            "max_reps": _safe_int(item.reps_completed),
+            "start_time": start_time,
+            "end_time": end_time,
+            "_sort": _to_unix_ts(end_time),
+        })
+
+    for item in legacy_history:
+        duration_seconds = _safe_int(item.session_duration)
+        end_time = item.created_at or datetime.combine(item.date, time.min)
+        start_time = end_time - timedelta(seconds=duration_seconds) if end_time else None
+        combined.append({
+            "exercise_type": item.exercise_type,
+            "max_reps": _safe_int(item.rep_count),
+            "start_time": start_time,
+            "end_time": end_time,
+            "_sort": _to_unix_ts(end_time),
+        })
+
+    combined.sort(key=lambda x: x["_sort"], reverse=True)
+
     return [
         {
-            "exercise_type": h.exercise_type,
-            "max_reps": h.reps_completed,
-            "start_time": h.completed_at - timedelta(seconds=h.duration_seconds),
-            "end_time": h.completed_at
+            "exercise_type": item["exercise_type"],
+            "max_reps": item["max_reps"],
+            "start_time": item["start_time"],
+            "end_time": item["end_time"],
         }
-        for h in history
+        for item in combined[:10]
     ]
 
 @router.get("/patient/charts/{patient_id}")
@@ -71,6 +143,7 @@ async def get_patient_charts(patient_id: UUID, db: Session = Depends(get_db)):
         func.sum(SessionDetail.reps_completed).label('reps')
     ).join(WorkoutSession).filter(
         WorkoutSession.user_id == patient_id,
+        SessionDetail.reps_completed > 0,
         func.date(SessionDetail.completed_at) >= last_week
     ).group_by(func.date(SessionDetail.completed_at)).all()
     
@@ -87,13 +160,244 @@ async def get_patient_charts(patient_id: UUID, db: Session = Depends(get_db)):
         SessionDetail.exercise_type,
         func.count(SessionDetail.detail_id).label('count')
     ).join(WorkoutSession).filter(
-        WorkoutSession.user_id == patient_id
+        WorkoutSession.user_id == patient_id,
+        SessionDetail.reps_completed > 0
     ).group_by(SessionDetail.exercise_type).all()
     
     return {
         "weekly_activity": [{"date": str(d.date), "reps": int(d.reps)} for d in weekly_data],
-        "accuracy_trend": [{"date": str(d.date), "score": float(d.score)} for d in accuracy_data],
+        "accuracy_trend": [{"date": str(d.date), "score": float(d.score) if d.score is not None else 0.0} for d in accuracy_data],
         "muscle_focus": [{"exercise_type": d.exercise_type, "count": d.count} for d in muscle_data]
+    }
+
+
+@router.get("/patient/overview/{patient_id}")
+async def get_patient_overview(patient_id: UUID, db: Session = Depends(get_db)):
+    """Return patient sessions, logs, notes, charts and overall stats in one response."""
+    today = date.today()
+    last_week = today - timedelta(days=7)
+
+    sessions_data = db.query(
+        WorkoutSession.session_id,
+        WorkoutSession.start_time,
+        WorkoutSession.end_time,
+        WorkoutSession.status,
+        func.coalesce(func.sum(SessionDetail.mistakes_count), 0).label("total_errors_detected"),
+        func.coalesce(func.sum(SessionDetail.reps_completed), 0).label("total_reps_completed"),
+        func.max(SessionDetail.exercise_type).label("exercise_type")
+    ).outerjoin(
+        SessionDetail,
+        SessionDetail.session_id == WorkoutSession.session_id
+    ).filter(
+        WorkoutSession.user_id == patient_id
+    ).group_by(
+        WorkoutSession.session_id,
+        WorkoutSession.start_time,
+        WorkoutSession.end_time,
+        WorkoutSession.status
+    ).order_by(
+        desc(WorkoutSession.start_time)
+    ).limit(50).all()
+
+    logs_data = db.query(
+        SessionDetail.exercise_type,
+        SessionDetail.reps_completed.label("rep_number"),
+        SessionDetail.duration_seconds.label("rep_duration_seconds"),
+        WorkoutSession.start_time,
+        WorkoutSession.end_time,
+        SessionDetail.completed_at,
+        SessionDetail.accuracy_score
+    ).join(WorkoutSession).filter(
+        WorkoutSession.user_id == patient_id,
+        SessionDetail.reps_completed > 0
+    ).order_by(desc(SessionDetail.completed_at)).limit(50).all()
+
+    legacy_logs_data = db.query(
+        ExerciseLogSimple.id.label("log_id"),
+        ExerciseLogSimple.exercise_type,
+        ExerciseLogSimple.rep_count,
+        ExerciseLogSimple.session_duration,
+        ExerciseLogSimple.created_at,
+        ExerciseLogSimple.date,
+    ).filter(
+        ExerciseLogSimple.user_id == patient_id
+    ).order_by(desc(ExerciseLogSimple.created_at)).limit(50).all()
+
+    notes_data = db.query(PatientNote).filter(
+        PatientNote.patient_id == patient_id
+    ).order_by(desc(PatientNote.created_at)).all()
+
+    merged_logs = []
+    for l in logs_data:
+        merged_logs.append({
+            "exercise_type": l.exercise_type,
+            "rep_number": _safe_int(l.rep_number),
+            "rep_duration_seconds": _safe_int(l.rep_duration_seconds),
+            "start_time": l.start_time,
+            "end_time": l.end_time,
+            "completed_at": l.completed_at,
+            "accuracy_score": float(l.accuracy_score) if l.accuracy_score else 0,
+            "_sort": _to_unix_ts(l.completed_at),
+        })
+
+    legacy_sessions = []
+    for l in legacy_logs_data:
+        duration_seconds = _safe_int(l.session_duration)
+        end_time = l.created_at or datetime.combine(l.date, time.min)
+        start_time = end_time - timedelta(seconds=duration_seconds) if end_time else None
+        merged_logs.append({
+            "exercise_type": l.exercise_type,
+            "rep_number": _safe_int(l.rep_count),
+            "rep_duration_seconds": duration_seconds,
+            "start_time": start_time,
+            "end_time": end_time,
+            "completed_at": end_time,
+            "accuracy_score": 0,
+            "_sort": _to_unix_ts(end_time),
+        })
+        legacy_sessions.append({
+            "session_id": f"legacy-{l.log_id}",
+            "start_time": start_time,
+            "end_time": end_time,
+            "status": "completed",
+            "total_errors_detected": 0,
+            "total_reps_completed": _safe_int(l.rep_count),
+            "exercise_type": l.exercise_type,
+            "_sort": _to_unix_ts(start_time),
+        })
+
+    merged_logs.sort(key=lambda x: x["_sort"], reverse=True)
+
+    weekly_reps_map = {}
+    for log in merged_logs:
+        completed = log.get("completed_at")
+        if not completed:
+            continue
+        log_date = completed.date()
+        if log_date < last_week:
+            continue
+        key = str(log_date)
+        weekly_reps_map[key] = weekly_reps_map.get(key, 0) + _safe_int(log.get("rep_number"))
+
+    weekly_data = [
+        {"date": d, "reps": weekly_reps_map[d]}
+        for d in sorted(weekly_reps_map.keys())
+    ]
+
+    accuracy_data = db.query(
+        func.date(SessionDetail.completed_at).label('date'),
+        func.avg(SessionDetail.accuracy_score).label('score')
+    ).join(WorkoutSession).filter(
+        WorkoutSession.user_id == patient_id
+    ).group_by(func.date(SessionDetail.completed_at)).order_by('date').limit(10).all()
+
+    muscle_map = {}
+    for log in merged_logs:
+        ex = log.get("exercise_type")
+        if not ex:
+            continue
+        muscle_map[ex] = muscle_map.get(ex, 0) + 1
+
+    muscle_data = [
+        {"exercise_type": ex, "count": count}
+        for ex, count in muscle_map.items()
+    ]
+
+    total_session_count = db.query(WorkoutSession).filter(
+        WorkoutSession.user_id == patient_id
+    ).count()
+    total_legacy_count = db.query(ExerciseLogSimple).filter(
+        ExerciseLogSimple.user_id == patient_id
+    ).count()
+
+    total_reps = db.query(func.sum(SessionDetail.reps_completed)).join(WorkoutSession).filter(
+        WorkoutSession.user_id == patient_id
+    ).scalar() or 0
+    total_legacy_reps = db.query(func.sum(ExerciseLogSimple.rep_count)).filter(
+        ExerciseLogSimple.user_id == patient_id
+    ).scalar() or 0
+
+    total_duration = db.query(func.sum(SessionDetail.duration_seconds)).join(WorkoutSession).filter(
+        WorkoutSession.user_id == patient_id
+    ).scalar() or 0
+    total_legacy_duration = db.query(func.sum(ExerciseLogSimple.session_duration)).filter(
+        ExerciseLogSimple.user_id == patient_id
+    ).scalar() or 0
+
+    session_days = db.query(func.date(WorkoutSession.start_time)).filter(
+        WorkoutSession.user_id == patient_id
+    ).distinct().all()
+    legacy_days = db.query(ExerciseLogSimple.date).filter(
+        ExerciseLogSimple.user_id == patient_id
+    ).distinct().all()
+    unique_days = {
+        str(row[0]) for row in session_days if row and row[0]
+    } | {
+        str(row[0]) for row in legacy_days if row and row[0]
+    }
+
+    combined_sessions = [
+        {
+            "session_id": str(s.session_id),
+            "start_time": s.start_time,
+            "end_time": s.end_time,
+            "status": s.status,
+            "total_errors_detected": _safe_int(s.total_errors_detected),
+            "total_reps_completed": _safe_int(s.total_reps_completed),
+            "exercise_type": s.exercise_type or "mixed",
+            "_sort": _to_unix_ts(s.start_time),
+        }
+        for s in sessions_data
+    ] + legacy_sessions
+
+    combined_sessions.sort(key=lambda x: x["_sort"], reverse=True)
+
+    return {
+        "sessions": [
+            {
+                "session_id": s["session_id"],
+                "start_time": s["start_time"],
+                "end_time": s["end_time"],
+                "status": s["status"],
+                "total_errors_detected": s["total_errors_detected"],
+                "total_reps_completed": s["total_reps_completed"],
+                "exercise_type": s["exercise_type"],
+            }
+            for s in combined_sessions[:50]
+        ],
+        "logs": [
+            {
+                "exercise_type": l["exercise_type"],
+                "rep_number": l["rep_number"],
+                "rep_duration_seconds": l["rep_duration_seconds"],
+                "start_time": l["start_time"],
+                "end_time": l["end_time"],
+                "completed_at": l["completed_at"],
+                "accuracy_score": l["accuracy_score"],
+            }
+            for l in merged_logs[:50]
+        ],
+        "notes": [
+            {
+                "note_id": n.note_id,
+                "title": n.title,
+                "content": n.content,
+                "created_at": n.created_at,
+                "doctor_name": n.doctor.full_name if n.doctor else "Unknown",
+            }
+            for n in notes_data
+        ],
+        "charts": {
+            "weekly_activity": [{"date": d["date"], "reps": _safe_int(d["reps"])} for d in weekly_data],
+            "accuracy_trend": [{"date": str(d.date), "score": float(d.score) if d.score is not None else 0.0} for d in accuracy_data],
+            "muscle_focus": [{"exercise_type": d["exercise_type"], "count": d["count"]} for d in muscle_data],
+        },
+        "overall_stats": {
+            "total_sessions": total_session_count + total_legacy_count,
+            "total_reps": _safe_int(total_reps) + _safe_int(total_legacy_reps),
+            "total_duration": _safe_int(total_duration) + _safe_int(total_legacy_duration),
+            "total_days": len(unique_days),
+        },
     }
 
 @router.get("/today-progress")
@@ -101,7 +405,8 @@ async def get_today_progress_all(db: Session = Depends(get_db)):
     """Get recent activity for all patients (for doctor dashboard)"""
     # Consolidated to use SessionDetail joined with WorkoutSession and User
     logs = db.query(SessionDetail).join(WorkoutSession).join(User, WorkoutSession.user_id == User.user_id).filter(
-        func.date(SessionDetail.completed_at) == date.today()
+        func.date(SessionDetail.completed_at) == date.today(),
+        SessionDetail.reps_completed > 0
     ).order_by(desc(SessionDetail.completed_at)).limit(10).all()
     
     return [{
@@ -152,8 +457,8 @@ async def get_dashboard_summary(db: Session = Depends(get_db)):
         ).distinct())
     ).count()
     
-    # Avg form score across all patients
-    avg_form = db.query(func.avg(SessionDetail.accuracy_score)).scalar() or 0
+    # Accuracy tracking is disabled; keep summary field for backward compatibility.
+    avg_form = 0
     
     # --- TREND CALCULATIONS ---
     # Patient growth: compare this month vs last month
@@ -214,17 +519,7 @@ async def get_patients_with_status(db: Session = Depends(get_db)):
     
     last_session_map = {str(row.user_id): row.last_time for row in last_sessions_subq}
     
-    # Batch query 2: Get avg accuracy for all patients in one query
-    accuracy_subq = db.query(
-        WorkoutSession.user_id,
-        func.avg(SessionDetail.accuracy_score).label('avg_score')
-    ).join(SessionDetail).filter(
-        WorkoutSession.user_id.in_(patient_ids)
-    ).group_by(WorkoutSession.user_id).all()
-    
-    accuracy_map = {str(row.user_id): float(row.avg_score) if row.avg_score else 0 for row in accuracy_subq}
-    
-    # Batch query 3: Get session counts for all patients in one query
+    # Batch query 2: Get session counts for all patients in one query
     session_counts_subq = db.query(
         WorkoutSession.user_id,
         func.count(WorkoutSession.session_id).label('count')
@@ -260,13 +555,10 @@ async def get_patients_with_status(db: Session = Depends(get_db)):
         else:
             status = PatientStatus.INACTIVE.value
         
-        # Get progress from maps
-        avg_accuracy = accuracy_map.get(pid, 0)
+        # Use session count as progress signal.
         session_count = session_count_map.get(pid, 0)
-        
-        if avg_accuracy > 0:
-            progress = round(avg_accuracy)
-        elif session_count > 0:
+
+        if session_count > 0:
             progress = min(session_count * 15, 100)
         else:
             progress = 0
@@ -285,9 +577,18 @@ async def get_patients_with_status(db: Session = Depends(get_db)):
 @router.get("/patient/health-metrics/{user_id}")
 async def get_patient_health_metrics(user_id: UUID, db: Session = Depends(get_db)):
     """Return health metrics from uploaded wearable data, or null if no data uploaded yet."""
-    total_days_active = db.query(func.count(func.distinct(func.date(WorkoutSession.start_time)))).filter(
+    session_days = db.query(func.date(WorkoutSession.start_time)).filter(
         WorkoutSession.user_id == user_id
-    ).scalar() or 0
+    ).distinct().all()
+    legacy_days = db.query(ExerciseLogSimple.date).filter(
+        ExerciseLogSimple.user_id == user_id
+    ).distinct().all()
+    unique_days = {
+        str(row[0]) for row in session_days if row and row[0]
+    } | {
+        str(row[0]) for row in legacy_days if row and row[0]
+    }
+    total_days_active = len(unique_days)
 
     # No workout history and no wearable data = return nulls so frontend shows empty state
     if total_days_active == 0:
@@ -306,18 +607,30 @@ async def get_patient_health_metrics(user_id: UUID, db: Session = Depends(get_db
         func.date(SessionDetail.completed_at) == date.today()
     ).all()
 
+    today_legacy_logs = db.query(ExerciseLogSimple).filter(
+        ExerciseLogSimple.user_id == user_id,
+        ExerciseLogSimple.date == date.today()
+    ).all()
+
     total_reps_all_time = db.query(func.sum(SessionDetail.reps_completed)).join(WorkoutSession).filter(
         WorkoutSession.user_id == user_id
     ).scalar() or 0
 
+    total_legacy_reps_all_time = db.query(func.sum(ExerciseLogSimple.rep_count)).filter(
+        ExerciseLogSimple.user_id == user_id
+    ).scalar() or 0
+
     today_reps = sum(s.reps_completed for s in today_sessions)
     today_duration_seconds = sum(s.duration_seconds for s in today_sessions)
+    today_reps += sum(_safe_int(l.rep_count) for l in today_legacy_logs)
+    today_duration_seconds += sum(_safe_int(l.session_duration) for l in today_legacy_logs)
 
     calories = int(today_reps * 5) + int(today_duration_seconds * 0.1)
     resting_hr = max(50, int(70 - min(15, total_days_active * 0.5)))
-    heart_rate = resting_hr + (min(30, int(today_reps * 0.2)) if today_sessions else 0)
-    spo2 = 97 if total_reps_all_time > 100 else 96
-    sleep_quality = min(100, 70 + (5 if today_sessions else 0))
+    has_activity_today = bool(today_sessions or today_legacy_logs)
+    heart_rate = resting_hr + (min(30, int(today_reps * 0.2)) if has_activity_today else 0)
+    spo2 = 97 if (_safe_int(total_reps_all_time) + _safe_int(total_legacy_reps_all_time)) > 100 else 96
+    sleep_quality = min(100, 70 + (5 if has_activity_today else 0))
 
     return {
         "heartRate": heart_rate,
@@ -341,10 +654,22 @@ async def get_patient_health_charts(user_id: UUID, db: Session = Depends(get_db)
         func.sum(SessionDetail.reps_completed).label('reps')
     ).join(WorkoutSession).filter(
         WorkoutSession.user_id == user_id,
+        SessionDetail.reps_completed > 0,
         func.date(SessionDetail.completed_at) >= start_date
     ).group_by(func.date(SessionDetail.completed_at)).all()
-    
-    rep_map = {str(r.d): int(r.reps) for r in daily_reps}
+
+    legacy_daily_reps = db.query(
+        ExerciseLogSimple.date.label('d'),
+        func.sum(ExerciseLogSimple.rep_count).label('reps')
+    ).filter(
+        ExerciseLogSimple.user_id == user_id,
+        ExerciseLogSimple.date >= start_date
+    ).group_by(ExerciseLogSimple.date).all()
+
+    rep_map = {str(r.d): _safe_int(r.reps) for r in daily_reps}
+    for r in legacy_daily_reps:
+        key = str(r.d)
+        rep_map[key] = rep_map.get(key, 0) + _safe_int(r.reps)
     
     heart_rate_chart = []
     weekly_chart = []

@@ -215,7 +215,11 @@
       <!-- Content Area -->
       <div class="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
         <Transition name="fade-slide" mode="out-in">
-          <component :is="activeComponent" />
+          <component
+            :is="activeComponent"
+            v-bind="activeComponentProps"
+            @open-messages="handleOpenMessages"
+          />
         </Transition>
       </div>
     </main>
@@ -295,6 +299,7 @@ const showNotifications = ref(false)
 const notifications = ref([])
 const active = ref(localStorage.getItem('doctor_active_tab') || 'dashboard')
 const currentUser = ref(JSON.parse(localStorage.getItem('user') || '{}'))
+const messageTargetPatientId = ref(null)
 
 const unreadCount = computed(() => notifications.value.filter((n) => !n.is_read).length)
 
@@ -389,6 +394,14 @@ const components = {
 }
 
 const activeComponent = computed(() => components[active.value] || Dashboard)
+const activeComponentProps = computed(() => {
+  if (active.value === 'messages') {
+    return {
+      initialPatientId: messageTargetPatientId.value,
+    }
+  }
+  return {}
+})
 
 // Computed Title
 const title = computed(() => {
@@ -409,6 +422,14 @@ const currentDate = new Date().toLocaleDateString('vi-VN', {
 const handleMenuClick = (id) => {
   active.value = id
   localStorage.setItem('doctor_active_tab', id)
+  mobileMenuOpen.value = false
+}
+
+const handleOpenMessages = (payload = {}) => {
+  const targetId = payload?.patientId || payload?.patient_id || null
+  messageTargetPatientId.value = targetId
+  active.value = 'messages'
+  localStorage.setItem('doctor_active_tab', 'messages')
   mobileMenuOpen.value = false
 }
 

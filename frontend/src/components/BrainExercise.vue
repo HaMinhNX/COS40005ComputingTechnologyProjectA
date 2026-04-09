@@ -22,7 +22,6 @@
           <div class="stat-label">Ngày liên tiếp</div>
         </div>
       </div>
-
     </div>
 
     <!-- Game Selection (when no game is active) -->
@@ -32,16 +31,8 @@
         Chọn trò chơi
       </h3>
       <div class="game-grid">
-        <div
-          v-for="game in games"
-          :key="game.id"
-          class="game-card-wrapper"
-        >
-          <button
-            @click="startGame(game.id)"
-            class="game-card"
-            :class="'game-theme-' + game.id"
-          >
+        <div v-for="game in games" :key="game.id" class="game-card-wrapper">
+          <button @click="startGame(game.id)" class="game-card" :class="'game-theme-' + game.id">
             <div class="game-card-content">
               <div class="game-icon-container">
                 <component :is="game.icon" :size="36" />
@@ -84,7 +75,6 @@
           <CloseIcon :size="20" class="exit-icon" />
           <span class="exit-text">Thoát</span>
         </button>
-
       </div>
 
       <!-- Question Display -->
@@ -119,7 +109,6 @@
             :level="currentQuestion"
             :answerSubmitted="answerSubmitted"
             @submit="submitAnswer"
-            @ready="data => correctAnswerDisplay = data.correctWord"
           />
 
           <!-- Color Game -->
@@ -189,20 +178,6 @@
 
       <!-- Feedback Overlay -->
       <FeedbackOverlay :show="showFeedback" :tier="feedbackTier" />
-
-      <transition name="bounce">
-        <div v-if="showFeedback && !lastAnswerWasCorrect" class="feedback-display" :class="feedbackClass">
-          <div class="feedback-icon">
-            <component :is="feedbackIcon" :size="48" />
-          </div>
-          <div class="feedback-text">{{ feedbackText }}</div>
-
-          <div v-if="showCorrectAnswer" class="correct-answer-display">
-            <div class="correct-answer-label">Đáp án đúng:</div>
-            <div class="correct-answer-text">{{ correctAnswerDisplay }}</div>
-          </div>
-        </div>
-      </transition>
     </div>
 
     <!-- Results Screen -->
@@ -230,7 +205,6 @@
               <div class="result-stat-value">{{ earnedStars }}</div>
               <div class="result-stat-label">Sao đạt được</div>
             </div>
-
           </div>
           <div class="results-message">{{ resultsMessage }}</div>
           <div class="results-actions">
@@ -243,7 +217,6 @@
               <span class="btn-text">{{ mode === 'flow' ? 'Tiếp tục' : 'Về menu' }}</span>
             </button>
           </div>
-
         </div>
       </div>
     </transition>
@@ -256,12 +229,8 @@
           <h3 class="modal-title">Bạn có chắc muốn thoát?</h3>
           <p class="modal-text">Tiến độ chơi hiện tại sẽ không được lưu lại.</p>
           <div class="modal-actions">
-            <button @click="confirmExit" class="btn-confirm-exit">
-              Thoát
-            </button>
-            <button @click="cancelExit" class="btn-cancel-exit">
-              Ở lại
-            </button>
+            <button @click="confirmExit" class="btn-confirm-exit">Thoát</button>
+            <button @click="cancelExit" class="btn-cancel-exit">Ở lại</button>
           </div>
         </div>
       </div>
@@ -270,16 +239,16 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, markRaw } from 'vue';
-import { API_BASE_URL } from '../config';
-import { 
-  Brain, 
-  Calculator, 
-  Grid, 
-  Type, 
-  Palette, 
-  Layers, 
-  Zap, 
+import { ref, computed, onMounted, markRaw } from 'vue'
+import { API_BASE_URL } from '../config'
+import {
+  Brain,
+  Calculator,
+  Grid,
+  Type,
+  Palette,
+  Layers,
+  Zap,
   Shuffle,
   X as CloseIcon,
   Star,
@@ -287,38 +256,37 @@ import {
   Calendar,
   Gamepad2,
   BarChart3,
-  AlertCircle,
   ArrowRight,
   RotateCcw,
   Home,
-  Hash
-} from 'lucide-vue-next';
+  Hash,
+} from 'lucide-vue-next'
 
 // Game Components
-import MathGame from '../games/MathGame.vue';
-import MemoryGame from '../games/MemoryGame.vue';
-import PatternGame from '../games/PatternGame.vue';
-import WordGame from '../games/WordGame.vue';
-import ColorGame from '../games/ColorGame.vue';
-import CardGame from '../games/CardGame.vue';
-import ReflexGame from '../games/ReflexGame.vue';
-import ComparisonGame from '../games/ComparisonGame.vue';
-import CategoryGame from '../games/CategoryGame.vue';
-import OddOneOutGame from '../games/OddOneOutGame.vue';
-import TrueFalseGame from '../games/TrueFalseGame.vue';
-import ShadowMatchGame from '../games/ShadowMatchGame.vue';
-import FeedbackOverlay from './FeedbackOverlay.vue';
+import MathGame from '../games/MathGame.vue'
+import MemoryGame from '../games/MemoryGame.vue'
+import PatternGame from '../games/PatternGame.vue'
+import WordGame from '../games/WordGame.vue'
+import ColorGame from '../games/ColorGame.vue'
+import CardGame from '../games/CardGame.vue'
+import ReflexGame from '../games/ReflexGame.vue'
+import ComparisonGame from '../games/ComparisonGame.vue'
+import CategoryGame from '../games/CategoryGame.vue'
+import OddOneOutGame from '../games/OddOneOutGame.vue'
+import TrueFalseGame from '../games/TrueFalseGame.vue'
+import ShadowMatchGame from '../games/ShadowMatchGame.vue'
+import FeedbackOverlay from './FeedbackOverlay.vue'
 
 // Props
 const props = defineProps({
   userId: String,
-  mode: { type: String, default: 'standalone' } // 'standalone' or 'flow'
-});
+  mode: { type: String, default: 'standalone' }, // 'standalone' or 'flow'
+})
 
-const emit = defineEmits(['completed', 'exit']);
+const emit = defineEmits(['completed', 'exit'])
 
 // API Configuration
-const API_URL = API_BASE_URL;
+const API_URL = API_BASE_URL
 
 // Game Definitions
 const games = [
@@ -327,329 +295,334 @@ const games = [
     name: 'Toán Đơn Giản',
     description: 'Tính toán cộng, trừ, nhân, chia',
     icon: markRaw(Calculator),
-    difficulty: 1
+    difficulty: 1,
   },
   {
     id: 'memory',
     name: 'Trí Nhớ Số',
     description: 'Ghi nhớ chuỗi số',
     icon: markRaw(Hash),
-    difficulty: 2
+    difficulty: 2,
   },
   {
     id: 'pattern',
     name: 'Nhận Dạng Mẫu',
     description: 'Tìm quy luật trong chuỗi',
     icon: markRaw(Grid),
-    difficulty: 2
+    difficulty: 2,
   },
   {
     id: 'word',
     name: 'Sắp Xếp Chữ',
     description: 'Ghép chữ thành từ có nghĩa',
     icon: markRaw(Type),
-    difficulty: 3
+    difficulty: 3,
   },
   {
     id: 'color',
     name: 'Màu Sắc Vui Nhộn',
     description: 'Thử thách não bộ với màu sắc',
     icon: markRaw(Palette),
-    difficulty: 1
+    difficulty: 1,
   },
   {
     id: 'card',
     name: 'Lật Hình Ghi Nhớ',
     description: 'Tìm cặp hình giống nhau',
     icon: markRaw(Layers),
-    difficulty: 2
+    difficulty: 2,
   },
   {
     id: 'reflex',
     name: 'Phản Xạ Nhanh',
     description: 'Bắt lấy đồ vật xuất hiện',
     icon: markRaw(Zap),
-    difficulty: 3
+    difficulty: 3,
   },
   {
     id: 'mixed',
     name: 'Tổng Hợp',
     description: 'Thử thách tất cả các kỹ năng',
     icon: markRaw(Shuffle),
-    difficulty: 4
+    difficulty: 4,
   },
   {
     id: 'comparison',
     name: 'So Sánh Nhanh',
     description: 'So sánh giá trị biểu thức',
     icon: markRaw(Hash),
-    difficulty: 2
+    difficulty: 2,
   },
   {
     id: 'category',
     name: 'Phân Loại',
     description: 'Sắp xếp theo chủ đề',
     icon: markRaw(Grid),
-    difficulty: 2
+    difficulty: 2,
   },
   {
     id: 'odd_one_out',
     name: 'Khác Biệt',
     description: 'Tìm hình không cùng loại',
     icon: markRaw(Layers),
-    difficulty: 2
+    difficulty: 2,
   },
   {
     id: 'true_false',
     name: 'Đúng Hay Sai',
     description: 'Xác minh nhanh thông tin',
     icon: markRaw(Zap),
-    difficulty: 1
+    difficulty: 1,
   },
   {
     id: 'shadow_match',
     name: 'Ghép Bóng',
     description: 'Tìm bóng của hình ảnh',
     icon: markRaw(Palette),
-    difficulty: 2
-  }
-];
+    difficulty: 2,
+  },
+]
 
 // State
-const activeGame = ref(null);
-const currentSubGame = ref(null);
-const currentQuestion = ref(0);
-const totalQuestions = ref(20);
-const score = ref(0);
-const todayScore = ref(0);
-const streak = ref(0);
+const activeGame = ref(null)
+const currentSubGame = ref(null)
+const currentQuestion = ref(0)
+const totalQuestions = ref(20)
+const score = ref(0)
+const todayScore = ref(0)
+const streak = ref(0)
 
-const answerSubmitted = ref(false);
-const showFeedback = ref(false);
-const lastAnswerWasCorrect = ref(false);
-const feedbackTier = ref('normal');
-const feedbackText = ref('');
-const feedbackClass = ref('');
-const feedbackIcon = ref('');
-const showCorrectAnswer = ref(false);
-const correctAnswerDisplay = ref('');
+const answerSubmitted = ref(false)
+const showFeedback = ref(false)
+const lastAnswerWasCorrect = ref(false)
+const feedbackTier = ref('normal')
 
-const showResults = ref(false);
-const showExitConfirm = ref(false);
+const showResults = ref(false)
+const showExitConfirm = ref(false)
 
 // Computed
 const currentGameIcon = computed(() => {
-  const game = games.find(g => g.id === activeGame.value);
-  return game ? game.icon : '';
-});
+  const game = games.find((g) => g.id === activeGame.value)
+  return game ? game.icon : ''
+})
 
 const currentGameName = computed(() => {
-  const game = games.find(g => g.id === activeGame.value);
-  return game ? game.name : '';
-});
+  const game = games.find((g) => g.id === activeGame.value)
+  return game ? game.name : ''
+})
 
 const progressPercent = computed(() => {
-  return (currentQuestion.value / totalQuestions.value) * 100;
-});
+  return (currentQuestion.value / totalQuestions.value) * 100
+})
 
 const earnedStars = computed(() => {
-  const percentage = (score.value / totalQuestions.value) * 100;
-  if (percentage >= 90) return 3;
-  if (percentage >= 70) return 2;
-  if (percentage >= 50) return 1;
-  return 0;
-});
+  const percentage = (score.value / totalQuestions.value) * 100
+  if (percentage >= 90) return 3
+  if (percentage >= 70) return 2
+  if (percentage >= 50) return 1
+  return 0
+})
 
 const resultsMessage = computed(() => {
-  const percentage = (score.value / totalQuestions.value) * 100;
-  if (percentage >= 90) return 'Xuất sắc! Bạn thật tuyệt vời! 🌟';
-  if (percentage >= 70) return 'Rất tốt! Tiếp tục phát huy nhé! 👏';
-  if (percentage >= 50) return 'Khá tốt! Hãy cố gắng thêm! 💪';
-  return 'Đừng nản chí! Luyện tập nhiều hơn nhé! 🎯';
-});
+  const percentage = (score.value / totalQuestions.value) * 100
+  if (percentage >= 90) return 'Xuất sắc! Bạn thật tuyệt vời! 🌟'
+  if (percentage >= 70) return 'Rất tốt! Tiếp tục phát huy nhé! 👏'
+  if (percentage >= 50) return 'Khá tốt! Hãy cố gắng thêm! 💪'
+  return 'Đừng nản chí! Luyện tập nhiều hơn nhé! 🎯'
+})
 
 // Game Functions
 function startGame(gameId) {
-  activeGame.value = gameId;
-  currentQuestion.value = 0;
-  score.value = 0;
-  showResults.value = false;
-  showFeedback.value = false;
-  generateQuestion();
+  activeGame.value = gameId
+  currentQuestion.value = 0
+  score.value = 0
+  showResults.value = false
+  showFeedback.value = false
+  generateQuestion()
 }
 
 function generateQuestion() {
-  answerSubmitted.value = false;
-  showFeedback.value = false;
-  showCorrectAnswer.value = false;
+  answerSubmitted.value = false
+  showFeedback.value = false
 
   if (activeGame.value === 'mixed') {
-    const subGames = ['math', 'memory', 'pattern', 'word', 'color', 'card', 'reflex', 'comparison', 'category', 'odd_one_out', 'true_false', 'shadow_match'];
-    let nextGame;
+    const subGames = [
+      'math',
+      'memory',
+      'pattern',
+      'word',
+      'color',
+      'card',
+      'reflex',
+      'comparison',
+      'category',
+      'odd_one_out',
+      'true_false',
+      'shadow_match',
+    ]
+    let nextGame
     do {
-      nextGame = subGames[Math.floor(Math.random() * subGames.length)];
-    } while (nextGame === currentSubGame.value && subGames.length > 1);
-    currentSubGame.value = nextGame;
+      nextGame = subGames[Math.floor(Math.random() * subGames.length)]
+    } while (nextGame === currentSubGame.value && subGames.length > 1)
+    currentSubGame.value = nextGame
   } else {
-    currentSubGame.value = activeGame.value;
+    currentSubGame.value = activeGame.value
   }
 }
 
-function submitAnswer(isCorrect) {
-  if (answerSubmitted.value && currentSubGame.value !== 'reflex' && currentSubGame.value !== 'card') return;
-  
-  answerSubmitted.value = true;
-  if (isCorrect) score.value++;
+function submitAnswer(isCorrect, options = {}) {
+  if (answerSubmitted.value && currentSubGame.value !== 'reflex' && currentSubGame.value !== 'card')
+    return
 
-  showFeedbackMessage(isCorrect);
-  logExerciseAttempt(isCorrect);
+  answerSubmitted.value = true
+  if (isCorrect) score.value++
+
+  showFeedbackMessage(isCorrect, options)
+  logExerciseAttempt(isCorrect)
 
   setTimeout(() => {
-    nextQuestion();
-  }, 1500);
+    nextQuestion()
+  }, 1500)
 }
 
 function showFeedbackMessage(isCorrect, options = {}) {
-  const { timeTaken = 0 } = options;
-  lastAnswerWasCorrect.value = isCorrect;
-  
-  if (isCorrect) {
-    // Determine tier based on speed/difficulty
-    if (timeTaken > 0 && timeTaken < 2000) feedbackTier.value = 'excellent';
-    else if (timeTaken > 0 && timeTaken < 4000) feedbackTier.value = 'good';
-    else feedbackTier.value = 'normal';
-    
-    // Fallback for games without time tracking yet
-    if (timeTaken === 0) feedbackTier.value = 'good';
-  } else {
-    feedbackTier.value = 'normal';
-    feedbackText.value = 'Chưa đúng rồi!';
-    feedbackClass.value = 'feedback-incorrect';
-    feedbackIcon.value = markRaw(AlertCircle);
-    
-    if (currentSubGame.value === 'math' || currentSubGame.value === 'word' || currentSubGame.value === 'pattern') {
-      showCorrectAnswer.value = true;
-    }
+  const { timeTaken = 0 } = options
+  lastAnswerWasCorrect.value = isCorrect
+
+  if (!isCorrect) {
+    feedbackTier.value = 'incorrect'
+    showFeedback.value = true
+    setTimeout(() => {
+      showFeedback.value = false
+    }, 1600)
+    return
   }
-  
-  showFeedback.value = true;
+
+  // Determine tier based on speed/difficulty
+  if (timeTaken > 0 && timeTaken < 2000) feedbackTier.value = 'excellent'
+  else if (timeTaken > 0 && timeTaken < 4000) feedbackTier.value = 'good'
+  else feedbackTier.value = 'normal'
+
+  // Fallback for games without time tracking yet
+  if (timeTaken === 0) feedbackTier.value = 'good'
+
+  showFeedback.value = true
   setTimeout(() => {
-    showFeedback.value = false;
-    showCorrectAnswer.value = false;
-  }, 1600);
+    showFeedback.value = false
+  }, 1600)
 }
 
 function nextQuestion() {
-  currentQuestion.value++;
+  currentQuestion.value++
   if (currentQuestion.value < totalQuestions.value) {
-    generateQuestion();
+    generateQuestion()
   } else {
-    finishGame();
+    finishGame()
   }
 }
 
 function finishGame() {
-  showResults.value = true;
-  logGameCompletion();
-  loadUserStats(); // Update stats after completion
+  showResults.value = true
+  logGameCompletion()
+  loadUserStats() // Update stats after completion
 }
 
 function playAgain() {
-  startGame(activeGame.value);
+  startGame(activeGame.value)
 }
 
 function handleFinish() {
   if (props.mode === 'flow') {
-    emit('completed', { score: score.value, total: totalQuestions.value });
+    emit('completed', { score: score.value, total: totalQuestions.value })
   } else {
-    activeGame.value = null;
-    currentSubGame.value = null;
-    showResults.value = false;
+    activeGame.value = null
+    currentSubGame.value = null
+    showResults.value = false
   }
 }
 
 function exitGame() {
-  showExitConfirm.value = true;
+  showExitConfirm.value = true
 }
 
 function confirmExit() {
-  showExitConfirm.value = false;
-  activeGame.value = null;
-  currentSubGame.value = null;
-  emit('exit');
+  showExitConfirm.value = false
+  activeGame.value = null
+  currentSubGame.value = null
+  emit('exit')
 }
 
 function cancelExit() {
-  showExitConfirm.value = false;
+  showExitConfirm.value = false
 }
 
 // Database Functions
 async function logExerciseAttempt(isCorrect) {
   try {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token')
     await fetch(`${API_URL}/brain-exercise/submit`, {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         user_id: props.userId,
         exercise_type: currentSubGame.value,
         is_correct: isCorrect,
-        question_number: currentQuestion.value + 1
-      })
-    });
+        question_number: currentQuestion.value + 1,
+      }),
+    })
   } catch (error) {
-    console.error('Error logging attempt:', error);
+    console.error('Error logging attempt:', error)
   }
 }
 
 async function logGameCompletion() {
   try {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token')
     await fetch(`${API_URL}/brain-exercise/complete`, {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         user_id: props.userId,
         exercise_type: activeGame.value,
         score: score.value,
-        total_questions: totalQuestions.value
-      })
-    });
+        total_questions: totalQuestions.value,
+      }),
+    })
   } catch (error) {
-    console.error('Error logging completion:', error);
+    console.error('Error logging completion:', error)
   }
 }
 
 async function loadUserStats() {
   try {
-    const token = localStorage.getItem('token');
-    if (!token || !props.userId) return;
-    
+    const token = localStorage.getItem('token')
+    if (!token || !props.userId) return
+
     const response = await fetch(`${API_URL}/brain-exercise/stats/${props.userId}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+      headers: { Authorization: `Bearer ${token}` },
+    })
     if (response.ok) {
-      const data = await response.json();
-      todayScore.value = data.today_score || 0;
-      streak.value = data.streak || 0;
+      const data = await response.json()
+      todayScore.value = data.today_score || 0
+      streak.value = data.streak || 0
     }
   } catch (error) {
-    console.error('Error loading stats:', error);
+    console.error('Error loading stats:', error)
   }
 }
 
 // Lifecycle
 onMounted(() => {
   if (props.userId) {
-    loadUserStats();
+    loadUserStats()
   }
-});
+})
 </script>
 
 <style scoped>
@@ -710,7 +683,7 @@ onMounted(() => {
   margin: 0 0 var(--spacing-xs) 0;
   text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.4);
   letter-spacing: 2px;
-  color: #FFE66D;
+  color: #ffe66d;
 }
 
 .header-subtitle {
@@ -719,7 +692,7 @@ onMounted(() => {
   opacity: 0.95;
   font-weight: 700;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-  color: #FFF5E1;
+  color: #fff5e1;
   background: rgba(255, 255, 255, 0.2);
   padding: 8px 16px;
   border-radius: 12px;
@@ -843,7 +816,7 @@ onMounted(() => {
   background: #f1f5f9;
   color: #6366f1;
   transition: all 0.3s ease;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .game-card:hover .game-icon-container {
@@ -899,14 +872,38 @@ onMounted(() => {
 }
 
 /* Card Themes */
-.game-theme-math .game-icon-container { background: #fee2e2; color: #ef4444; }
-.game-theme-memory .game-icon-container { background: #dcfce7; color: #22c55e; }
-.game-theme-pattern .game-icon-container { background: #dbeafe; color: #3b82f6; }
-.game-theme-word .game-icon-container { background: #fef9c3; color: #eab308; }
-.game-theme-color .game-icon-container { background: #fae8ff; color: #d946ef; }
-.game-theme-card .game-icon-container { background: #ffedd5; color: #f97316; }
-.game-theme-reflex .game-icon-container { background: #e0f2fe; color: #06b6d4; }
-.game-theme-mixed .game-icon-container { background: #ede9fe; color: #8b5cf6; }
+.game-theme-math .game-icon-container {
+  background: #fee2e2;
+  color: #ef4444;
+}
+.game-theme-memory .game-icon-container {
+  background: #dcfce7;
+  color: #22c55e;
+}
+.game-theme-pattern .game-icon-container {
+  background: #dbeafe;
+  color: #3b82f6;
+}
+.game-theme-word .game-icon-container {
+  background: #fef9c3;
+  color: #eab308;
+}
+.game-theme-color .game-icon-container {
+  background: #fae8ff;
+  color: #d946ef;
+}
+.game-theme-card .game-icon-container {
+  background: #ffedd5;
+  color: #f97316;
+}
+.game-theme-reflex .game-icon-container {
+  background: #e0f2fe;
+  color: #06b6d4;
+}
+.game-theme-mixed .game-icon-container {
+  background: #ede9fe;
+  color: #8b5cf6;
+}
 
 .card-bg-decoration {
   position: absolute;
@@ -975,7 +972,7 @@ onMounted(() => {
 
 .progress-bar {
   height: 12px;
-  background: #E2E8F0;
+  background: #e2e8f0;
   border-radius: var(--border-radius-full);
   overflow: hidden;
   border: 2px solid var(--color-text-primary);
@@ -992,9 +989,9 @@ onMounted(() => {
   align-items: center;
   gap: var(--spacing-sm);
   padding: var(--spacing-md) var(--spacing-lg);
-  background: #DC2626;
+  background: #dc2626;
   color: white;
-  border: 3px solid #991B1B;
+  border: 3px solid #991b1b;
   border-radius: var(--border-radius-md);
   font-size: var(--font-size-lg);
   font-weight: 800;
@@ -1004,7 +1001,7 @@ onMounted(() => {
 }
 
 .btn-exit:hover {
-  background: #991B1B;
+  background: #991b1b;
   transform: scale(1.05);
 }
 
@@ -1054,7 +1051,7 @@ onMounted(() => {
   text-align: center;
   padding: var(--spacing-xl);
   background: #fff9e6;
-  border: 4px solid #D97706;
+  border: 4px solid #d97706;
   border-radius: var(--border-radius-lg);
   min-width: 300px;
 }
@@ -1072,7 +1069,7 @@ onMounted(() => {
   font-size: var(--font-size-3xl);
   font-weight: 900;
   background: #e0f2fe;
-  border: 4px solid #0369A1;
+  border: 4px solid #0369a1;
   border-radius: var(--border-radius-lg);
   cursor: pointer;
   transition: all var(--transition-normal);
@@ -1111,7 +1108,7 @@ onMounted(() => {
   font-size: var(--font-size-4xl);
   font-weight: 900;
   background: #dbeafe;
-  border: 4px solid #3B82F6;
+  border: 4px solid #3b82f6;
   border-radius: var(--border-radius-md);
 }
 
@@ -1119,7 +1116,7 @@ onMounted(() => {
   font-size: var(--font-size-3xl);
   font-weight: 900;
   text-align: center;
-  color: #DC2626;
+  color: #dc2626;
   margin-top: var(--spacing-lg);
 }
 
@@ -1136,13 +1133,13 @@ onMounted(() => {
   text-align: center;
   font-size: var(--font-size-3xl);
   font-weight: 900;
-  border: 4px solid #CBD5E0;
+  border: 4px solid #cbd5e0;
   border-radius: var(--border-radius-md);
   background: white;
 }
 
 .memory-input:focus {
-  border-color: #3B82F6;
+  border-color: #3b82f6;
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
 }
 
@@ -1161,27 +1158,27 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #F7FAFC;
-  border: 3px dashed #CBD5E0;
+  background: #f7fafc;
+  border: 3px dashed #cbd5e0;
   border-radius: var(--border-radius-md);
   cursor: pointer;
   transition: all var(--transition-normal);
 }
 
 .memory-slot:hover {
-  border-color: #3B82F6;
-  background: #EBF8FF;
+  border-color: #3b82f6;
+  background: #ebf8ff;
 }
 
 .slot-number {
   font-size: var(--font-size-3xl);
   font-weight: 900;
-  color: #2B6CB0;
+  color: #2b6cb0;
 }
 
 .slot-placeholder {
   font-size: var(--font-size-lg);
-  color: #CBD5E0;
+  color: #cbd5e0;
   font-weight: 700;
 }
 
@@ -1202,7 +1199,7 @@ onMounted(() => {
   font-size: var(--font-size-2xl);
   font-weight: 900;
   background: #dbeafe;
-  border: 3px solid #3B82F6;
+  border: 3px solid #3b82f6;
   border-radius: var(--border-radius-md);
   cursor: pointer;
   transition: all var(--transition-normal);
@@ -1224,25 +1221,26 @@ onMounted(() => {
 
 /* Timer Color Classes */
 .timer-green {
-  color: #10B981 !important;
+  color: #10b981 !important;
   font-weight: 900;
 }
 
 .timer-orange {
-  color: #F59E0B !important;
+  color: #f59e0b !important;
   font-weight: 900;
   animation: pulse 0.5s ease-in-out infinite;
 }
 
 .timer-red {
-  color: #EF4444 !important;
+  color: #ef4444 !important;
   font-weight: 900;
   animation: pulse-intense 0.3s ease-in-out infinite;
   text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
@@ -1253,7 +1251,8 @@ onMounted(() => {
 }
 
 @keyframes pulse-intense {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
     filter: brightness(1);
@@ -1265,7 +1264,9 @@ onMounted(() => {
   }
 }
 
-.reflex-timer, .card-timer, .color-timer {
+.reflex-timer,
+.card-timer,
+.color-timer {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
@@ -1279,7 +1280,8 @@ onMounted(() => {
   transition: all 0.3s ease;
 }
 
-.card-game-header, .color-game-header {
+.card-game-header,
+.color-game-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1309,13 +1311,13 @@ onMounted(() => {
   justify-content: center;
   font-size: var(--font-size-4xl);
   background: white;
-  border: 4px solid #CBD5E0;
+  border: 4px solid #cbd5e0;
   border-radius: var(--border-radius-md);
 }
 
 .pattern-question {
   background: #fff9e6;
-  border-color: #D97706;
+  border-color: #d97706;
   font-size: var(--font-size-3xl);
   font-weight: 900;
 }
@@ -1332,7 +1334,7 @@ onMounted(() => {
   height: 100px;
   font-size: var(--font-size-4xl);
   background: #f8fafc;
-  border: 4px solid #CBD5E0;
+  border: 4px solid #cbd5e0;
   border-radius: var(--border-radius-lg);
   cursor: pointer;
   transition: all var(--transition-normal);
@@ -1340,7 +1342,7 @@ onMounted(() => {
 
 .pattern-option-btn:hover:not(:disabled) {
   transform: scale(1.1);
-  border-color: #667EEA;
+  border-color: #667eea;
   box-shadow: var(--shadow-lg);
 }
 
@@ -1358,7 +1360,7 @@ onMounted(() => {
   width: 100%;
   max-width: 700px;
   background: #e0f2fe;
-  border: 3px solid #0369A1;
+  border: 3px solid #0369a1;
   border-radius: var(--border-radius-lg);
   padding: var(--spacing-lg);
   box-shadow: var(--shadow-md);
@@ -1381,7 +1383,8 @@ onMounted(() => {
   margin-top: var(--spacing-md);
 }
 
-.hint-icon, .meaning-icon {
+.hint-icon,
+.meaning-icon {
   font-size: var(--font-size-2xl);
   flex-shrink: 0;
 }
@@ -1391,7 +1394,8 @@ onMounted(() => {
 }
 
 @keyframes glow {
-  0%, 100% {
+  0%,
+  100% {
     filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.5));
     transform: scale(1);
   }
@@ -1404,14 +1408,14 @@ onMounted(() => {
 .hint-text {
   font-size: var(--font-size-lg);
   font-weight: 700;
-  color: #0C4A6E;
+  color: #0c4a6e;
   letter-spacing: 0.5px;
 }
 
 .meaning-text {
   font-size: var(--font-size-md);
   font-weight: 600;
-  color: #0C4A6E;
+  color: #0c4a6e;
   line-height: 1.5;
   font-style: italic;
 }
@@ -1440,7 +1444,7 @@ onMounted(() => {
   padding: var(--spacing-md);
   background: rgba(255, 255, 255, 0.5);
   border-radius: var(--border-radius-md);
-  border: 2px dashed #CBD5E0;
+  border: 2px dashed #cbd5e0;
 }
 
 .char-slot {
@@ -1450,7 +1454,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   background: white;
-  border: 3px solid #CBD5E0;
+  border: 3px solid #cbd5e0;
   border-radius: var(--border-radius-md);
   cursor: pointer;
   transition: all var(--transition-normal);
@@ -1460,11 +1464,11 @@ onMounted(() => {
 
 .char-slot.filled {
   background: #ebf8ff;
-  border-color: #4299E1;
+  border-color: #4299e1;
 }
 
 .char-slot.empty:hover {
-  border-color: #667EEA;
+  border-color: #667eea;
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
 }
@@ -1478,13 +1482,219 @@ onMounted(() => {
 .char-value {
   font-size: var(--font-size-2xl);
   font-weight: 900;
-  color: #2B6CB0;
+  color: #2b6cb0;
 }
 
 .char-placeholder {
   font-size: var(--font-size-3xl);
   font-weight: 300;
-  color: #CBD5E0;
+  color: #cbd5e0;
+}
+
+/* ============================================
+   FEEDBACK + RESULTS
+   ============================================ */
+
+.results-screen {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.results-content {
+  width: min(92vw, 620px);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 4px solid #1f2937;
+  border-radius: 28px;
+  box-shadow: 0 28px 60px rgba(15, 23, 42, 0.35);
+  padding: 28px;
+  text-align: center;
+}
+
+.results-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 108px;
+  height: 108px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #fef08a, #f59e0b);
+  color: #111827;
+  margin-bottom: 10px;
+}
+
+.trophy-icon {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+}
+
+.results-title {
+  margin: 4px 0 18px;
+  font-size: clamp(1.9rem, 4.8vw, 2.4rem);
+  font-weight: 900;
+  color: #111827;
+}
+
+.results-score {
+  margin: 4px auto 20px;
+}
+
+.score-circle {
+  width: 170px;
+  height: 170px;
+  border-radius: 999px;
+  border: 6px solid #6366f1;
+  background: #eef2ff;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-value {
+  font-size: 3rem;
+  line-height: 1;
+  font-weight: 900;
+  color: #312e81;
+}
+
+.score-total {
+  margin-top: 4px;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #4f46e5;
+}
+
+.score-label {
+  margin-top: 10px;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #334155;
+}
+
+.results-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 14px 0 14px;
+}
+
+.result-stat {
+  border: 2px solid #cbd5e1;
+  border-radius: 16px;
+  padding: 12px;
+  background: #fff;
+}
+
+.result-stat-icon {
+  color: #2563eb;
+  margin-bottom: 6px;
+}
+
+.result-stat-value {
+  font-size: 1.65rem;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.result-stat-label {
+  margin-top: 2px;
+  font-size: 0.95rem;
+  color: #475569;
+  font-weight: 700;
+}
+
+.results-message {
+  margin: 10px 0 18px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #f1f5f9;
+  color: #0f172a;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.results-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.btn-play-again,
+.btn-menu {
+  min-width: 170px;
+  border-radius: 14px;
+  border: 3px solid #1f2937;
+  padding: 12px 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.btn-play-again {
+  background: #f59e0b;
+  color: #111827;
+}
+
+.btn-menu {
+  background: #6366f1;
+  color: #fff;
+}
+
+.btn-play-again:hover,
+.btn-menu:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.22);
+}
+
+.btn-icon,
+.btn-text {
+  display: inline-flex;
+  align-items: center;
+}
+
+.slide-enter-active,
+.slide-leave-active {
+  transition: all 0.25s ease;
+}
+
+.slide-enter-from {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+.slide-leave-to {
+  opacity: 0;
+  transform: translateY(-14px);
+}
+
+.bounce-enter-active {
+  animation: pop-bounce 0.28s ease;
+}
+
+@keyframes pop-bounce {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1567,9 +1777,23 @@ onMounted(() => {
 }
 
 @keyframes shake {
-  0%, 100% { transform: rotate(0deg); }
-  10%, 30%, 50%, 70%, 90% { transform: rotate(-5deg); }
-  20%, 40%, 60%, 80% { transform: rotate(5deg); }
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: rotate(-5deg);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: rotate(5deg);
+  }
 }
 
 .modal-title {
@@ -1595,9 +1819,9 @@ onMounted(() => {
 .btn-confirm-exit {
   flex: 1;
   padding: var(--spacing-md) var(--spacing-xl);
-  background: #EF4444;
+  background: #ef4444;
   color: white;
-  border: 3px solid #991B1B;
+  border: 3px solid #991b1b;
   border-radius: var(--border-radius-lg);
   font-weight: 800;
   font-size: var(--font-size-lg);
@@ -1606,7 +1830,7 @@ onMounted(() => {
 }
 
 .btn-confirm-exit:hover {
-  background: #DC2626;
+  background: #dc2626;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
 }
@@ -1614,7 +1838,7 @@ onMounted(() => {
 .btn-cancel-exit {
   flex: 1;
   padding: var(--spacing-md) var(--spacing-xl);
-  background: #F8FAFC;
+  background: #f8fafc;
   color: var(--color-text-primary);
   border: 3px solid var(--color-text-primary);
   border-radius: var(--border-radius-lg);
@@ -1625,17 +1849,18 @@ onMounted(() => {
 }
 
 .btn-cancel-exit:hover {
-  background: #F1F5F9;
+  background: #f1f5f9;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* Transitions */
-.fade-enter-active, .fade-leave-active {
+.fade-enter-active,
+.fade-leave-active {
   transition: opacity 0.3s ease;
 }
-.fade-enter-from, .fade-leave-to {
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
 }
 </style>
-

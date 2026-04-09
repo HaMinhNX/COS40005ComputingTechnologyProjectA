@@ -67,11 +67,9 @@
           <CheckCircle :size="24" />
         </div>
         <div class="stat-info">
-          <span class="stat-label">Điểm trung bình</span>
-          <h3 class="stat-value">{{ stats.avgFormScore }}%</h3>
-          <div class="progress-mini">
-            <div class="progress-fill" :style="{ width: `${stats.avgFormScore}%` }"></div>
-          </div>
+          <span class="stat-label">Không hoạt động</span>
+          <h3 class="stat-value">{{ inactivePatientsCount }}</h3>
+          <span class="stat-trend negative"> <AlertCircle :size="14" /> Cần theo dõi sát </span>
         </div>
         <div class="stat-bg-icon"><CheckCircle :size="100" /></div>
       </div>
@@ -178,7 +176,6 @@
         <div class="detail-content custom-scrollbar">
           <!-- Overview Tab: real multi-chart dashboard -->
           <div v-if="activeTab === 'overview'" class="tab-pane fade-in">
-
             <!-- Quick Stats Row -->
             <div class="overview-stats-row">
               <div class="ov-stat">
@@ -189,9 +186,9 @@
                 <span class="ov-stat-val">{{ patientCharts.totalSessions || 0 }}</span>
                 <span class="ov-stat-label">Buổi tập</span>
               </div>
-              <div class="ov-stat accuracy">
-                <span class="ov-stat-val">{{ patientCharts.avgAccuracy || 0 }}%</span>
-                <span class="ov-stat-label">Độ chính xác TB</span>
+              <div class="ov-stat">
+                <span class="ov-stat-val">{{ exerciseDistribution.length || 0 }}</span>
+                <span class="ov-stat-label">Bài tập khác nhau</span>
               </div>
               <div class="ov-stat">
                 <span class="ov-stat-val">{{ patientCharts.activeDays || 0 }}</span>
@@ -205,11 +202,7 @@
                 <BarChart2 :size="16" /> Hoạt động tuần này (Số reps theo ngày)
               </h4>
               <div class="bar-chart">
-                <div
-                  v-for="day in weeklyActivity"
-                  :key="day.date"
-                  class="bar-col"
-                >
+                <div v-for="day in weeklyActivity" :key="day.date" class="bar-col">
                   <div class="bar-wrap">
                     <div
                       class="bar-fill"
@@ -223,22 +216,15 @@
               </div>
             </div>
 
-            <!-- Accuracy Trend Line Chart (SVG) -->
-            <div class="chart-box">
-              <h4 class="chart-title">
-                <TrendingUp :size="16" /> Xu hướng độ chính xác (10 buổi gần nhất)
-              </h4>
-              <div ref="accuracyChart" class="chart-canvas"></div>
-              <div v-if="!accuracyTrendData.length" class="empty-chart-msg">Chưa có dữ liệu</div>
-            </div>
-
             <!-- Exercise Distribution -->
             <div class="chart-box" v-if="exerciseDistribution.length">
-              <h4 class="chart-title">
-                <PieChart :size="16" /> Phân bố bài tập
-              </h4>
+              <h4 class="chart-title"><PieChart :size="16" /> Phân bố bài tập</h4>
               <div class="exercise-dist">
-                <div v-for="ex in exerciseDistribution" :key="ex.exercise_type" class="ex-dist-item">
+                <div
+                  v-for="ex in exerciseDistribution"
+                  :key="ex.exercise_type"
+                  class="ex-dist-item"
+                >
                   <div class="ex-dist-bar-wrap">
                     <div
                       class="ex-dist-bar"
@@ -268,10 +254,10 @@
                   <Activity :size="16" />
                 </div>
                 <div class="activity-details">
-                  <span class="act-name">{{ session.exercise_type }}</span>
+                  <span class="act-name">{{ session.exercise_type || 'Buổi tập tổng hợp' }}</span>
                   <span class="act-time">{{ formatDate(session.start_time) }}</span>
                 </div>
-                <div class="activity-score">{{ session.total_reps_completed }} reps</div>
+                <div class="activity-score">{{ session.total_reps_completed || 0 }} reps</div>
               </div>
             </div>
           </div>
@@ -291,15 +277,12 @@
                 </div>
                 <div class="history-stats">
                   <span class="reps">{{ log.rep_number }} reps</span>
-                  <span class="score" v-if="log.accuracy_score"
-                    >{{ Math.round(log.accuracy_score) }}%</span
-                  >
                 </div>
               </div>
             </div>
           </div>
 
-           <!-- Notes Tab -->
+          <!-- Notes Tab -->
           <div v-else-if="activeTab === 'notes'" class="tab-pane fade-in">
             <h4>Ghi chú bệnh nhân</h4>
             <div v-if="patientNotes.length === 0" class="empty-state">Chưa có ghi chú nào</div>
@@ -340,8 +323,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch, nextTick } from 'vue'
-import * as d3 from 'd3'
+import { ref, onMounted, computed } from 'vue'
 import {
   Users,
   Activity,
@@ -362,6 +344,7 @@ import { API_BASE_URL } from '../config'
 
 // State
 const API_BASE = API_BASE_URL
+const PATIENT_DATA_CACHE_TTL_MS = 60 * 1000
 const patients = ref([])
 const selectedPatientId = ref(null)
 const selectedPatient = ref(null)
@@ -372,8 +355,6 @@ const activeTab = ref('overview')
 const tabs = ['overview', 'history', 'notes', 'ai_chat']
 const stats = ref({
   totalPatients: 0,
-  avgFormScore: 0,
-  totalReps: 0,
 })
 const trends = ref({
   patientTrend: 0,
@@ -382,20 +363,16 @@ const trends = ref({
 })
 const patientNotes = ref([])
 const currentUser = ref({ full_name: 'Bác sĩ' })
+const patientDataCache = new Map()
 
 // Patient charts data
 const patientCharts = ref({
   totalReps: 0,
   totalSessions: 0,
-  avgAccuracy: 0,
   activeDays: 0,
   weeklyActivity: [],
-  accuracyTrend: [],
   muscleFocus: [],
 })
-
-// Refs for charts
-const accuracyChart = ref(null)
 
 // Computed
 const currentDate = new Date().toLocaleDateString('vi-VN', {
@@ -427,6 +404,7 @@ const filteredPatients = computed(() => {
 
 const activePatientsCount = ref(0)
 const criticalPatientsCount = ref(0)
+const inactivePatientsCount = ref(0)
 
 const recentSessions = computed(() => sessions.value.slice(0, 5))
 
@@ -443,9 +421,6 @@ const weeklyActivity = computed(() => {
     heightPct: Math.round((d.reps / maxReps) * 100),
   }))
 })
-
-// Accuracy trend derived from chart data
-const accuracyTrendData = computed(() => patientCharts.value.accuracyTrend || [])
 
 // Exercise distribution with color
 const CHART_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']
@@ -539,7 +514,7 @@ const loadPatients = async () => {
       const summary = await summaryRes.json()
       activePatientsCount.value = summary.active_count
       criticalPatientsCount.value = summary.needs_attention_count
-      stats.value.avgFormScore = summary.avg_form_score
+      inactivePatientsCount.value = summary.inactive_count || 0
       trends.value.patientTrend = summary.patient_trend || 0
       trends.value.activityTrend = summary.activity_trend || 0
       trends.value.newAlerts = summary.new_alerts || 0
@@ -550,167 +525,54 @@ const loadPatients = async () => {
 }
 
 const loadPatientData = async (id) => {
+  const cached = patientDataCache.get(id)
+  const isFreshCache = cached && Date.now() - cached.timestamp < PATIENT_DATA_CACHE_TTL_MS
+
+  if (isFreshCache) {
+    sessions.value = cached.sessions
+    logs.value = cached.logs
+    patientNotes.value = cached.notes
+    patientCharts.value = cached.charts
+    return
+  }
+
   try {
     const token = localStorage.getItem('token')
-    const [sessRes, logsRes, notesRes, chartsRes, statsRes] = await Promise.all([
-      fetch(`${API_BASE}/patient-sessions/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-      fetch(`${API_BASE}/patient-logs/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-      fetch(`${API_BASE}/patient-notes/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-      fetch(`${API_BASE}/patient/charts/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-      fetch(`${API_BASE}/overall-stats?user_id=${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-    ])
+    const res = await fetch(`${API_BASE}/patient/overview/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
 
-    if (sessRes.ok) sessions.value = await sessRes.json()
-    if (logsRes.ok) logs.value = await logsRes.json()
-    if (notesRes.ok) patientNotes.value = await notesRes.json()
+    if (!res.ok) return
 
-    if (chartsRes.ok) {
-      const chartsData = await chartsRes.json()
-      patientCharts.value.weeklyActivity = chartsData.weekly_activity || []
-      patientCharts.value.accuracyTrend = chartsData.accuracy_trend || []
-      patientCharts.value.muscleFocus = chartsData.muscle_focus || []
-    }
+    const payload = await res.json()
+    sessions.value = payload.sessions || []
+    logs.value = payload.logs || []
+    patientNotes.value = payload.notes || []
 
-    if (statsRes.ok) {
-      const st = await statsRes.json()
-      patientCharts.value.totalReps = st.total_reps || 0
-      patientCharts.value.totalSessions = st.total_sessions || 0
-      patientCharts.value.activeDays = st.total_days || 0
-    }
+    const chartsData = payload.charts || {}
+    patientCharts.value.weeklyActivity = chartsData.weekly_activity || []
+    patientCharts.value.muscleFocus = chartsData.muscle_focus || []
 
-    // Calculate avg accuracy
-    if (logs.value.length) {
-      const avg = logs.value.reduce((a, b) => a + (b.accuracy_score || 0), 0) / logs.value.length
-      patientCharts.value.avgAccuracy = Math.round(avg)
-      stats.value.avgFormScore = Math.round(avg)
-    }
+    const st = payload.overall_stats || {}
+    patientCharts.value.totalReps = st.total_reps || 0
+    patientCharts.value.totalSessions = st.total_sessions || 0
+    patientCharts.value.activeDays = st.total_days || 0
 
-    nextTick(() => drawAccuracyChart())
+    patientDataCache.set(id, {
+      timestamp: Date.now(),
+      sessions: [...sessions.value],
+      logs: [...logs.value],
+      notes: [...patientNotes.value],
+      charts: {
+        ...patientCharts.value,
+        weeklyActivity: [...patientCharts.value.weeklyActivity],
+        muscleFocus: [...patientCharts.value.muscleFocus],
+      },
+    })
   } catch (e) {
     console.error(e)
   }
 }
-
-const drawAccuracyChart = () => {
-  if (!accuracyChart.value) return
-  const data = accuracyTrendData.value
-  if (!data.length) return
-
-  const container = d3.select(accuracyChart.value)
-  container.selectAll('*').remove()
-
-  const width = accuracyChart.value.clientWidth || 300
-  const height = 160
-  const margin = { top: 16, right: 16, bottom: 28, left: 36 }
-  const innerW = width - margin.left - margin.right
-  const innerH = height - margin.top - margin.bottom
-
-  const svg = container
-    .append('svg')
-    .attr('width', width)
-    .attr('height', height)
-
-  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`)
-
-  const x = d3.scaleLinear().domain([0, data.length - 1]).range([0, innerW])
-  const y = d3.scaleLinear().domain([0, 100]).range([innerH, 0])
-
-  // Grid lines
-  g.selectAll('.grid-line')
-    .data([0, 25, 50, 75, 100])
-    .enter()
-    .append('line')
-    .attr('class', 'grid-line')
-    .attr('x1', 0).attr('x2', innerW)
-    .attr('y1', d => y(d)).attr('y2', d => y(d))
-    .attr('stroke', '#f1f5f9')
-    .attr('stroke-width', 1)
-
-  // Area fill
-  const area = d3.area()
-    .x((d, i) => x(i))
-    .y0(innerH)
-    .y1(d => y(d.score))
-    .curve(d3.curveCatmullRom)
-
-  const defs = svg.append('defs')
-  const areaGrad = defs.append('linearGradient')
-    .attr('id', 'area-grad')
-    .attr('x1', 0).attr('x2', 0)
-    .attr('y1', 0).attr('y2', 1)
-  areaGrad.append('stop').attr('offset', '0%').attr('stop-color', '#6366f1').attr('stop-opacity', 0.2)
-  areaGrad.append('stop').attr('offset', '100%').attr('stop-color', '#6366f1').attr('stop-opacity', 0.05)
-
-  g.append('path')
-    .datum(data)
-    .attr('fill', 'url(#area-grad)')
-    .attr('d', area)
-
-  // Line
-  const line = d3.line()
-    .x((d, i) => x(i))
-    .y(d => y(d.score))
-    .curve(d3.curveCatmullRom)
-
-  g.append('path')
-    .datum(data)
-    .attr('fill', 'none')
-    .attr('stroke', '#6366f1')
-    .attr('stroke-width', 2.5)
-    .attr('d', line)
-
-  // Dots
-  g.selectAll('.dot')
-    .data(data)
-    .enter()
-    .append('circle')
-    .attr('cx', (d, i) => x(i))
-    .attr('cy', d => y(d.score))
-    .attr('r', 4)
-    .attr('fill', 'white')
-    .attr('stroke', '#6366f1')
-    .attr('stroke-width', 2)
-
-  // Y-axis labels
-  g.selectAll('.y-label')
-    .data([0, 50, 100])
-    .enter()
-    .append('text')
-    .attr('x', -8)
-    .attr('y', d => y(d) + 4)
-    .attr('text-anchor', 'end')
-    .attr('font-size', 10)
-    .attr('fill', '#94a3b8')
-    .text(d => `${d}%`)
-
-  // X-axis date labels (every 2nd point)
-  data.forEach((d, i) => {
-    if (i % 2 === 0 || i === data.length - 1) {
-      const dateStr = new Date(d.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
-      g.append('text')
-        .attr('x', x(i))
-        .attr('y', innerH + 18)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', 10)
-        .attr('fill', '#94a3b8')
-        .text(dateStr)
-    }
-  })
-}
-
-watch(activeTab, (newTab) => {
-  if (newTab === 'overview') nextTick(() => drawAccuracyChart())
-})
 </script>
 
 <style scoped>
@@ -812,10 +674,18 @@ watch(activeTab, (newTab) => {
   z-index: 2;
 }
 
-.stat-card.blue .stat-icon { background: #3b82f6; }
-.stat-card.green .stat-icon { background: #10b981; }
-.stat-card.orange .stat-icon { background: #f59e0b; }
-.stat-card.purple .stat-icon { background: #8b5cf6; }
+.stat-card.blue .stat-icon {
+  background: #3b82f6;
+}
+.stat-card.green .stat-icon {
+  background: #10b981;
+}
+.stat-card.orange .stat-icon {
+  background: #f59e0b;
+}
+.stat-card.purple .stat-icon {
+  background: #8b5cf6;
+}
 
 .stat-info {
   position: relative;
@@ -843,8 +713,12 @@ watch(activeTab, (newTab) => {
   gap: 4px;
 }
 
-.stat-trend.positive { color: #10b981; }
-.stat-trend.negative { color: #ef4444; }
+.stat-trend.positive {
+  color: #10b981;
+}
+.stat-trend.negative {
+  color: #ef4444;
+}
 
 .stat-bg-icon {
   position: absolute;
@@ -854,20 +728,6 @@ watch(activeTab, (newTab) => {
   transform: rotate(-15deg);
   z-index: 1;
   color: currentColor;
-}
-
-.progress-mini {
-  height: 6px;
-  background: #f1f5f9;
-  border-radius: 10px;
-  overflow: hidden;
-  margin-top: 8px;
-}
-
-.progress-mini .progress-fill {
-  height: 100%;
-  background: #8b5cf6;
-  border-radius: 10px;
 }
 
 /* Main Grid */
@@ -1030,9 +890,18 @@ watch(activeTab, (newTab) => {
   font-weight: 600;
 }
 
-.status-badge.active { background: #dcfce7; color: #166534; }
-.status-badge.needs_attention { background: #fef3c7; color: #92400e; }
-.status-badge.inactive { background: #f1f5f9; color: #64748b; }
+.status-badge.active {
+  background: #dcfce7;
+  color: #166534;
+}
+.status-badge.needs_attention {
+  background: #fef3c7;
+  color: #92400e;
+}
+.status-badge.inactive {
+  background: #f1f5f9;
+  color: #64748b;
+}
 
 .progress-cell {
   display: flex;
@@ -1208,10 +1077,6 @@ watch(activeTab, (newTab) => {
   color: #1e293b;
 }
 
-.ov-stat.accuracy .ov-stat-val {
-  color: #6366f1;
-}
-
 .ov-stat-label {
   font-size: 11px;
   color: #94a3b8;
@@ -1283,19 +1148,6 @@ watch(activeTab, (newTab) => {
   font-size: 9px;
   color: #6366f1;
   font-weight: 700;
-}
-
-/* Accuracy chart canvas */
-.chart-canvas {
-  width: 100%;
-  min-height: 160px;
-}
-
-.empty-chart-msg {
-  text-align: center;
-  color: #94a3b8;
-  font-size: 13px;
-  padding: 20px;
 }
 
 /* Exercise distribution */
@@ -1374,8 +1226,14 @@ watch(activeTab, (newTab) => {
   justify-content: center;
 }
 
-.activity-icon.good { background: #dcfce7; color: #166534; }
-.activity-icon.poor { background: #fee2e2; color: #991b1b; }
+.activity-icon.good {
+  background: #dcfce7;
+  color: #166534;
+}
+.activity-icon.poor {
+  background: #fee2e2;
+  color: #991b1b;
+}
 
 .activity-details {
   flex: 1;
@@ -1400,7 +1258,8 @@ watch(activeTab, (newTab) => {
 }
 
 /* History / Notes */
-.history-list, .notes-list {
+.history-list,
+.notes-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1454,15 +1313,6 @@ watch(activeTab, (newTab) => {
   font-size: 12px;
   font-weight: 700;
   color: #6366f1;
-}
-
-.score {
-  font-size: 11px;
-  font-weight: 700;
-  color: #10b981;
-  background: #dcfce7;
-  padding: 2px 6px;
-  border-radius: 8px;
 }
 
 .note-item {
@@ -1540,12 +1390,22 @@ watch(activeTab, (newTab) => {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.custom-scrollbar::-webkit-scrollbar { width: 6px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background-color: #e2e8f0;
   border-radius: 20px;

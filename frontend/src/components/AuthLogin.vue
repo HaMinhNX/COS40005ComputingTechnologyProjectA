@@ -9,17 +9,29 @@
         <div class="logo-icon animate-float">
           <Activity :size="64" color="#667EEA" />
         </div>
-        <h1 class="app-name">MEDIC1</h1>
+        <h1 class="app-name">HaminG</h1>
         <p class="app-tagline">Chăm sóc sức khỏe người cao tuổi</p>
       </div>
 
       <div class="login-form-section">
         <!-- Tab Switcher -->
         <div class="tab-switcher" v-if="!isForgotPassword">
-          <button @click="isLogin = true; isForgotPassword = false" :class="['tab-btn', { active: isLogin }]">
+          <button
+            @click="
+              isLogin = true;
+              isForgotPassword = false;
+            "
+            :class="['tab-btn', { active: isLogin }]"
+          >
             Đăng nhập
           </button>
-          <button @click="isLogin = false; isForgotPassword = false" :class="['tab-btn', { active: !isLogin }]">
+          <button
+            @click="
+              isLogin = false;
+              isForgotPassword = false;
+            "
+            :class="['tab-btn', { active: !isLogin }]"
+          >
             Đăng ký
           </button>
         </div>
@@ -73,14 +85,27 @@
             <span v-else class="btn-text">Đang xử lý...</span>
             <ArrowRight class="btn-icon" :size="20" />
           </button>
-          
-          <div style="text-align:right; margin-top: 5px;">
-             <a href="#" @click.prevent="isForgotPassword = true; isLogin = false; forgotPasswordStep = 1" style="color: #667eea; text-decoration: none; font-size: 14px;">Quên mật khẩu?</a>
+
+          <div style="text-align: right; margin-top: 5px">
+            <a
+              href="#"
+              @click.prevent="
+                isForgotPassword = true;
+                isLogin = false;
+                forgotPasswordStep = 1;
+              "
+              style="color: #667eea; text-decoration: none; font-size: 14px"
+              >Quên mật khẩu?</a
+            >
           </div>
         </form>
 
         <!-- Signup Form -->
-        <form v-else-if="!isLogin && !isForgotPassword" @submit.prevent="onSignup" class="auth-form">
+        <form
+          v-else-if="!isLogin && !isForgotPassword"
+          @submit.prevent="onSignup"
+          class="auth-form"
+        >
           <h2 class="form-title">Tạo tài khoản mới</h2>
           <p class="form-subtitle">Đăng ký để bắt đầu</p>
 
@@ -216,7 +241,9 @@
                   <AlertCircle v-else :size="13" />
                   Có chữ số (0-9)
                 </div>
-                <div :class="['req-item', signupPasswordRules.hasSpecial ? 'req-met' : 'req-unmet']">
+                <div
+                  :class="['req-item', signupPasswordRules.hasSpecial ? 'req-met' : 'req-unmet']"
+                >
                   <CheckCircle v-if="signupPasswordRules.hasSpecial" :size="13" />
                   <AlertCircle v-else :size="13" />
                   Có ký tự đặc biệt (!@#$%...)
@@ -224,7 +251,7 @@
               </div>
             </div>
 
-            <div class="form-group" style="margin-top: 1rem;">
+            <div class="form-group" style="margin-top: 1rem">
               <label class="form-label">Vai trò</label>
               <div class="input-wrapper">
                 <ShieldCheck :size="18" class="input-icon" />
@@ -262,7 +289,7 @@
               <ArrowRight class="btn-icon" :size="20" />
             </button>
           </div>
-          
+
           <div v-else>
             <div class="form-group">
               <label class="form-label">Mã xác nhận (OTP)</label>
@@ -278,20 +305,29 @@
                 />
               </div>
             </div>
-            
+
             <button type="submit" class="btn-submit" :disabled="loading">
               <span v-if="!loading" class="btn-text">Xác nhận OTP &amp; Đăng ký</span>
               <span v-else class="btn-text">Đang xử lý...</span>
               <CheckCircle class="btn-icon" :size="20" />
             </button>
-            <div style="text-align:center; margin-top: 15px;">
-              <a href="#" @click.prevent="isOTPStep = false" style="color: #667eea; text-decoration: none; font-size: 14px;">Quay lại chỉnh sửa thông tin</a>
+            <div style="text-align: center; margin-top: 15px">
+              <a
+                href="#"
+                @click.prevent="isOTPStep = false"
+                style="color: #667eea; text-decoration: none; font-size: 14px"
+                >Quay lại chỉnh sửa thông tin</a
+              >
             </div>
           </div>
         </form>
 
         <!-- Forgot Password Form -->
-        <form v-else-if="isForgotPassword" @submit.prevent="onForgotPasswordSubmit" class="auth-form">
+        <form
+          v-else-if="isForgotPassword"
+          @submit.prevent="onForgotPasswordSubmit"
+          class="auth-form"
+        >
           <h2 class="form-title">Quên mật khẩu</h2>
           <p class="form-subtitle">
             <span v-if="forgotPasswordStep === 1">Nhập email để nhận mã xác nhận</span>
@@ -384,7 +420,10 @@
               </div>
               <!-- Match indicator -->
               <div v-if="forgotPasswordForm.confirmNewPassword" class="password-match-indicator">
-                <span v-if="forgotPasswordForm.newPassword === forgotPasswordForm.confirmNewPassword" class="match-ok">
+                <span
+                  v-if="forgotPasswordForm.newPassword === forgotPasswordForm.confirmNewPassword"
+                  class="match-ok"
+                >
                   <CheckCircle :size="14" /> Mật khẩu khớp
                 </span>
                 <span v-else class="match-fail">
@@ -422,7 +461,9 @@
                   <AlertCircle v-else :size="13" />
                   Có chữ số (0-9)
                 </div>
-                <div :class="['req-item', forgotPasswordRules.hasSpecial ? 'req-met' : 'req-unmet']">
+                <div
+                  :class="['req-item', forgotPasswordRules.hasSpecial ? 'req-met' : 'req-unmet']"
+                >
                   <CheckCircle v-if="forgotPasswordRules.hasSpecial" :size="13" />
                   <AlertCircle v-else :size="13" />
                   Có ký tự đặc biệt (!@#$%...)
@@ -431,10 +472,15 @@
             </div>
           </div>
 
-          <button 
-            type="submit" 
-            class="btn-submit" 
-            :disabled="loading || (forgotPasswordStep === 3 && (!isForgotPasswordValid || forgotPasswordForm.newPassword !== forgotPasswordForm.confirmNewPassword))"
+          <button
+            type="submit"
+            class="btn-submit"
+            :disabled="
+              loading ||
+              (forgotPasswordStep === 3 &&
+                (!isForgotPasswordValid ||
+                  forgotPasswordForm.newPassword !== forgotPasswordForm.confirmNewPassword))
+            "
           >
             <span v-if="!loading" class="btn-text">
               <span v-if="forgotPasswordStep === 1">Gửi mã OTP</span>
@@ -445,9 +491,17 @@
             <ArrowRight class="btn-icon" :size="20" v-if="forgotPasswordStep !== 3" />
             <CheckCircle class="btn-icon" :size="20" v-else />
           </button>
-          
-          <div style="text-align:center; margin-top: 15px;">
-            <a href="#" @click.prevent="isForgotPassword = false; isLogin = true" style="color: #667eea; text-decoration: none; font-size: 14px;">Quay lại đăng nhập</a>
+
+          <div style="text-align: center; margin-top: 15px">
+            <a
+              href="#"
+              @click.prevent="
+                isForgotPassword = false;
+                isLogin = true;
+              "
+              style="color: #667eea; text-decoration: none; font-size: 14px"
+              >Quay lại đăng nhập</a
+            >
           </div>
         </form>
 
@@ -459,8 +513,6 @@
             {{ message.text }}
           </div>
         </transition>
-
-
       </div>
     </div>
   </div>
@@ -664,21 +716,27 @@ const onLogin = async () => {
 }
 
 const onRequestOTP = async () => {
-  if (!signupForm.value.full_name || !signupForm.value.email || !signupForm.value.username || !signupForm.value.password || !signupForm.value.role) {
-    showMessage("Vui lòng điền đủ thông tin", 'error')
+  if (
+    !signupForm.value.full_name ||
+    !signupForm.value.email ||
+    !signupForm.value.username ||
+    !signupForm.value.password ||
+    !signupForm.value.role
+  ) {
+    showMessage('Vui lòng điền đủ thông tin', 'error')
     return
   }
 
   if (!isSignupPasswordValid.value) {
-    showMessage("Mật khẩu chưa đáp ứng yêu cầu bảo mật", 'error')
+    showMessage('Mật khẩu chưa đáp ứng yêu cầu bảo mật', 'error')
     return
   }
 
   if (signupForm.value.password !== signupForm.value.confirmPassword) {
-    showMessage("Mật khẩu xác nhận không khớp", 'error')
+    showMessage('Mật khẩu xác nhận không khớp', 'error')
     return
   }
-  
+
   loading.value = true
   message.value = { text: '', type: '' }
 
@@ -741,10 +799,10 @@ const onCertificateChange = (event) => {
 const onForgotPasswordSubmit = async () => {
   if (forgotPasswordStep.value === 1) {
     if (!forgotPasswordForm.value.email) {
-      showMessage("Vui lòng nhập email", 'error')
+      showMessage('Vui lòng nhập email', 'error')
       return
     }
-    
+
     loading.value = true
     message.value = { text: '', type: '' }
 
@@ -770,10 +828,10 @@ const onForgotPasswordSubmit = async () => {
     }
   } else if (forgotPasswordStep.value === 2) {
     if (!forgotPasswordForm.value.otpCode) {
-      showMessage("Vui lòng nhập mã OTP", 'error')
+      showMessage('Vui lòng nhập mã OTP', 'error')
       return
     }
-    
+
     loading.value = true
     message.value = { text: '', type: '' }
 
@@ -781,9 +839,9 @@ const onForgotPasswordSubmit = async () => {
       const res = await fetch(`${API_BASE_URL}/forgot-password/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email: forgotPasswordForm.value.email, 
-          otp_code: forgotPasswordForm.value.otpCode 
+        body: JSON.stringify({
+          email: forgotPasswordForm.value.email,
+          otp_code: forgotPasswordForm.value.otpCode,
         }),
       })
 
@@ -802,20 +860,20 @@ const onForgotPasswordSubmit = async () => {
     }
   } else if (forgotPasswordStep.value === 3) {
     if (!forgotPasswordForm.value.newPassword) {
-      showMessage("Vui lòng nhập mật khẩu mới", 'error')
+      showMessage('Vui lòng nhập mật khẩu mới', 'error')
       return
     }
 
     if (!isForgotPasswordValid.value) {
-      showMessage("Mật khẩu mới chưa đáp ứng yêu cầu bảo mật", 'error')
+      showMessage('Mật khẩu mới chưa đáp ứng yêu cầu bảo mật', 'error')
       return
     }
 
     if (forgotPasswordForm.value.newPassword !== forgotPasswordForm.value.confirmNewPassword) {
-      showMessage("Mật khẩu xác nhận không khớp", 'error')
+      showMessage('Mật khẩu xác nhận không khớp', 'error')
       return
     }
-    
+
     loading.value = true
     message.value = { text: '', type: '' }
 
@@ -823,10 +881,10 @@ const onForgotPasswordSubmit = async () => {
       const res = await fetch(`${API_BASE_URL}/forgot-password/reset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email: forgotPasswordForm.value.email, 
+        body: JSON.stringify({
+          email: forgotPasswordForm.value.email,
           otp_code: forgotPasswordForm.value.otpCode,
-          new_password: forgotPasswordForm.value.newPassword
+          new_password: forgotPasswordForm.value.newPassword,
         }),
       })
 
@@ -851,10 +909,10 @@ const onForgotPasswordSubmit = async () => {
 
 const onSignup = async () => {
   if (!otpCode.value) {
-    showMessage("Vui lòng nhập mã OTP", 'error')
+    showMessage('Vui lòng nhập mã OTP', 'error')
     return
   }
-  
+
   loading.value = true
   message.value = { text: '', type: '' }
 
@@ -921,11 +979,12 @@ const onSignup = async () => {
   right: 0;
   bottom: 0;
   background-color: #f8fafc;
-  background-image: 
-    radial-gradient(#e2e8f0 1px, transparent 1px),
-    radial-gradient(#e2e8f0 1px, transparent 1px);
+  background-image:
+    radial-gradient(#e2e8f0 1px, transparent 1px), radial-gradient(#e2e8f0 1px, transparent 1px);
   background-size: 40px 40px;
-  background-position: 0 0, 20px 20px;
+  background-position:
+    0 0,
+    20px 20px;
   opacity: 0.5;
   z-index: 1;
 }
@@ -1238,7 +1297,9 @@ const onSignup = async () => {
   justify-content: center;
   gap: 0.75rem;
   transition: all 0.2s;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .btn-submit:hover:not(:disabled) {
