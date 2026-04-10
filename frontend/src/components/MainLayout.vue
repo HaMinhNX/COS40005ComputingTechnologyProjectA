@@ -288,7 +288,7 @@ import Scheduling from './DoctorScheduling.vue'
 import ExerciseLibrary from './ExerciseLibrary.vue'
 import DoctorMessaging from './DoctorMessaging.vue'
 import PatientAssignment from './PatientAssignment.vue'
-import PatientTabs from './PatientTabs.vue'
+
 import AIChatbox from './AIChatbox.vue'
 
 // State
@@ -376,9 +376,6 @@ const groupedMenu = {
       { id: 'aiChat', label: 'Trợ lý AI', icon: Sparkles },
     ],
   },
-  patientUI: {
-    items: [{ id: 'patientView', label: 'Giao diện Bệnh nhân', icon: Activity }],
-  },
 }
 
 // Component Mapping
@@ -390,7 +387,6 @@ const components = {
   assignment: PatientAssignment,
   messages: DoctorMessaging,
   aiChat: AIChatbox,
-  patientView: PatientTabs,
 }
 
 const activeComponent = computed(() => components[active.value] || Dashboard)
@@ -439,7 +435,6 @@ const translateGroup = (key) => {
     management: 'Quản lý',
     resources: 'Tài nguyên',
     communication: 'Giao tiếp',
-    patientUI: 'Giao diện BN',
   }
   return map[key] || key
 }

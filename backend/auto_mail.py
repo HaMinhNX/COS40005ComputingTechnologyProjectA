@@ -12,9 +12,9 @@ load_dotenv()
 #  CONFIGURATION
 # ─────────────────────────────────────────
 SMTP_SERVER   = "smtp.gmail.com"
-SMTP_PORT     = 587
-SENDER_EMAIL   = os.getenv("SENDER_EMAIL")
-SENDER_PASS    = os.getenv("SENDER_PASSWORD")
+SMTP_PORT     = 465  # SSL port (dùng với SMTP_SSL)
+SENDER_EMAIL   = os.getenv("SMTP_EMAIL")
+SENDER_PASS    = os.getenv("SMTP_PASSWORD")
 RECEIVER_EMAIL = os.getenv("RECEIVER_EMAIL")  # Configure to your mail   
 
 
@@ -225,7 +225,10 @@ def send_health_email(receiver: str = RECEIVER_EMAIL, name: str = "Bệnh nhân"
     sessions = gen_weekly_sessions(n=random.randint(3, 6))
 
     # 2. Parse multiple receivers
-    receivers = [email.strip() for email in receiver.split(",")]
+    if not receiver:
+        print("❌ Chưa cấu hình RECEIVER_EMAIL.")
+        return False
+    receivers = [email.strip() for email in receiver.split(",") if email.strip()]
 
     # 3. Tạo nội dung email
     html_content = build_email_html(health, sessions)

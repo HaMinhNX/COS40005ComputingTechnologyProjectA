@@ -26,7 +26,7 @@ router = APIRouter(
 def send_doctor_review_email(recipient: str, approved: bool, full_name: str, rejection_reason: str | None = None):
     sender = os.getenv("SMTP_EMAIL")
     password = os.getenv("SMTP_PASSWORD")
-    website_url = os.getenv("FRONTEND_URL", "https://medic1-le-minh.vercel.app")
+    website_url = os.getenv("FRONTEND_URL", "https://haming.vercel.app")
 
     if approved:
         subject = "Doctor registration approved"
@@ -34,7 +34,7 @@ def send_doctor_review_email(recipient: str, approved: bool, full_name: str, rej
             f"Hello {full_name},\n\n"
             "Your doctor registration has been approved.\n"
             f"You can now log in here: {website_url}\n\n"
-            "Best regards,\nMedic1 Team"
+            "Best regards,\nHaminG Team"
         )
     else:
         subject = "Doctor registration declined"
@@ -43,7 +43,7 @@ def send_doctor_review_email(recipient: str, approved: bool, full_name: str, rej
             "Your doctor registration has been declined.\n"
             f"Reason: {rejection_reason or 'Not specified'}\n\n"
             "Please review your documents and submit a new request.\n\n"
-            "Best regards,\nMedic1 Team"
+            "Best regards,\nHaminG Team"
         )
 
     if not sender or not password:
@@ -51,7 +51,7 @@ def send_doctor_review_email(recipient: str, approved: bool, full_name: str, rej
         return
 
     msg = MIMEMultipart()
-    msg["From"] = f"Medic1 <{sender}>"
+    msg["From"] = f"HaminG <{sender}>"
     msg["To"] = recipient
     msg["Subject"] = subject
     msg.attach(MIMEText(body, "plain"))
