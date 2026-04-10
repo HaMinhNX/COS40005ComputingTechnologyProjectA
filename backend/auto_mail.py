@@ -237,16 +237,16 @@ def send_health_email(receiver: str = RECEIVER_EMAIL, name: str = "Bệnh nhân"
     try:
         with smtplib.SMTP_SSL(SMTP_SERVER, 465) as server:
             # server.starttls()  # StartTLS is not used when connecting via SSL directly
-            server.login(SENDER_EMAIL, SENDER_PASS)
+            server.login(SMTP_EMAIL, SMTP_PASSWORD)
             for email in receivers:
                 # Tạo message mới cho mỗi recipient
                 msg = MIMEMultipart("alternative")
                 msg["Subject"] = f"🏥 Báo Cáo Phục Hồi Chức Năng Tuần — {health['date']} — {name}"
-                msg["From"]    = SENDER_EMAIL
+                msg["From"]    = SMTP_EMAIL
                 msg["To"]      = email
                 msg.attach(MIMEText(html_content, "html", "utf-8"))
                 
-                server.sendmail(SENDER_EMAIL, email, msg.as_string())
+                server.sendmail(SMTP_EMAIL, email, msg.as_string())
                 print(f"✅ Email đã gửi thành công tới {email}")
         return True
     except smtplib.SMTPAuthenticationError:
