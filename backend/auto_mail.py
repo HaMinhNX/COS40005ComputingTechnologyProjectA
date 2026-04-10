@@ -13,8 +13,8 @@ load_dotenv()
 # ─────────────────────────────────────────
 SMTP_SERVER   = "smtp.gmail.com"
 SMTP_PORT     = 465  # SSL port (dùng với SMTP_SSL)
-SENDER_EMAIL   = os.getenv("SMTP_EMAIL")
-SENDER_PASS    = os.getenv("SMTP_PASSWORD")
+SMTP_EMAIL   = os.getenv("SMTP_EMAIL")
+SMTP_PASSWORD    = os.getenv("SMTP_PASSWORD")
 RECEIVER_EMAIL = os.getenv("RECEIVER_EMAIL")  # Configure to your mail   
 
 
