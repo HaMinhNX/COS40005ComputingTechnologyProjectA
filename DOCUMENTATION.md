@@ -174,6 +174,45 @@ backend/
 └── routers/         ← One file per feature domain
 ```
 
+### AI Assistant Ethical Policy (Role-Based)
+
+The AI assistant is shared by doctors and patients, but it must behave differently by role to satisfy safety and ethics constraints.
+
+**Implementation references:**
+
+- Backend prompt policy: `backend/routers/ai_chat.py`
+- Frontend UI entry point: `frontend/src/components/AIChatbox.vue`
+
+#### Patient Mode (`role=patient`)
+
+**Allowed**
+
+- Explain and summarize the patient’s own rehab/workout data (attendance, trends, reps, completed sessions).
+- Encourage adherence to the existing plan assigned by clinicians.
+- Provide safe, non-prescriptive guidance (e.g. “contact your doctor” when warning signs appear).
+- Help the patient prepare questions for their doctor based on the logged data.
+
+**Disallowed (hard safety boundaries)**
+
+- Do **not** prescribe or suggest specific exercises, reps, frequency, intensity, or create any “assignment” plan.
+- Do **not** recommend changing the treatment/exercise plan.
+- Do **not** present the system’s supported exercise library as options for the patient to self-select.
+- Do **not** diagnose conditions or provide medication advice.
+
+#### Doctor Mode (`role=doctor`)
+
+**Allowed**
+
+- Summarize and analyze patient data and trends with explicit reasoning grounded in the provided context.
+- Suggest exercise assignments **only** from the system’s supported exercise library (no novel exercise creation).
+- Draft messages or clinical summaries for doctor review (human-in-the-loop).
+
+**Ethical constraints still apply**
+
+- If data is missing or uncertain, the AI must say so (avoid hallucination).
+- Never reveal information about other patients.
+- Recommendations are advisory; the clinician remains responsible for final decisions.
+
 ### Router Pattern
 
 Each router follows the same pattern:

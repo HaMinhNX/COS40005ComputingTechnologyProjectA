@@ -272,7 +272,6 @@ import {
   Calendar,
   Dumbbell,
   MessageSquare,
-  Activity,
   LogOut,
   ChevronLeft,
   ChevronRight,

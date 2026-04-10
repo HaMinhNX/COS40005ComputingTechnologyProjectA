@@ -231,6 +231,7 @@ const patients = ref([])
 const patientSearch = ref('')
 const userRole = ref('')
 const currentUser = ref(null)
+const patientStats = ref(null) // { sessions, compliance, totalTime, avgScore }
 const currentStreamingMessage = ref(null)
 const inputRef = ref(null)
 
@@ -291,6 +292,12 @@ const getStatusLabel = (p) => {
   return 'Cần chú ý'
 }
 
+const isNewPatient = computed(() => {
+  if (userRole.value !== 'patient') return false
+  const sessions = Number(patientStats.value?.sessions)
+  return Number.isFinite(sessions) && sessions === 0
+})
+
 const suggestedPrompts = computed(() => {
   if (userRole.value === 'doctor') {
     return [
@@ -301,14 +308,41 @@ const suggestedPrompts = computed(() => {
       'Cảnh báo các chỉ số bất thường',
     ]
   } else {
+    if (isNewPatient.value) {
+      // Onboarding prompts for brand-new patients (no workout sessions yet)
+      return [
+        'Hướng dẫn tôi bắt đầu buổi tập đầu tiên trong ứng dụng',
+        'Tôi xem lịch tập và bài tập được giao ở đâu?',
+        'Khi nào tôi nên liên hệ bác sĩ?',
+      ]
+    }
     return [
       'Tóm tắt tuần tập luyện của tôi',
-      'Mức độ duy trì tập luyện của tôi thế nào?',
-      'Tôi cần cải thiện bài tập nào?',
-      'Phân tích xu hướng sức khỏe',
+      'Tuần này tôi tập đều không?',
+      'Giải thích tiến độ tập luyện của tôi',
+      'Xu hướng phục hồi của tôi gần đây thế nào?',
     ]
   }
 })
+
+const fetchMyStatsIfPatient = async () => {
+  if (userRole.value !== 'patient') return
+  const token = localStorage.getItem('token')
+  const myId = currentUser.value?.user_id
+  if (!token || !myId) return
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/patients/${myId}/stats`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (res.ok) {
+      patientStats.value = await res.json()
+    }
+  } catch (e) {
+    // Non-fatal: fall back to default prompts
+    console.error('Lỗi lấy thống kê bệnh nhân:', e)
+  }
+}
 
 onMounted(async () => {
   const userStr = localStorage.getItem('user')
@@ -322,6 +356,7 @@ onMounted(async () => {
       }
     } else {
       selectedPatientId.value = currentUser.value.user_id
+      await fetchMyStatsIfPatient()
     }
   }
 })
